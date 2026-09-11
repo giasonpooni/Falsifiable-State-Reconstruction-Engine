@@ -130,15 +130,19 @@ the censored median delay):
 - **Leak.** In `leak_stale_constraint` sensor 2's channel alarms in 20/20 seeds at a
   median 60 steps (constraint test: 20/20 at 66), from the evidence alone: the filter
   lags the drain and sensor 2's mean normalised innovation over the leak window is
-  −0.67 (`z̄ s1/s2` column). Sensor 1 stays at 0/20. The worst seed raised one
-  pre-leak alarm on each sensor (`CUSUM FA max` 1 / 1): one in 6,000 sensor-steps.
+  −0.67 (`z̄ s1/s2` column). Sensor 1 stays at 0/20. Over the 20 seeds there was one
+  pre-leak alarm on each sensor, in two different seeds (`CUSUM FA max` 1 / 1; the
+  per-seed counts are in `results/summary.json`): one in 6,000 sensor-steps per sensor.
 - **What it does not see.** The pump-rate error in `closed_blackout_pumpbias` shifts
   sensor 1's normalised innovation by −0.38 per step during the blackout and −0.40 in
   recovery — below k = 0.5, so the statistic has nothing to accumulate: 2/20 seeds
   within 100 steps, median "> 550", against the constraint test's 0/20 (d(f) = 0).
-  Sensor 2's channel fires only once that sensor returns and sees what the dark
-  reservoir accumulated (z̄ = +0.58 in the recovery window): 1/20 within 100 steps, a
-  median 164 steps after onset, i.e. 14 after the blackout ends. A per-step shift
+  Sensor 2's channel is dark for the blackout and, in all but one seed, fires only once
+  that sensor returns and sees what the dark reservoir accumulated (z̄ = +0.58 in the
+  recovery window): a median 164 steps after onset, i.e. 14 after the blackout ends.
+  The 1/20 within 100 steps is a single seed that alarmed 34 steps after onset, before
+  the blackout began (per-seed `cusum_detection_delay_steps` in `results/summary.json`).
+  A per-step shift
   below k is invisible to a CUSUM tuned for a half-sigma shift, whatever h is; the
   same for the zero-mean valve (2/20 and 1/20, both censored).
 - **Its null is measured, not assumed.** `results/calibration.md` runs the channel
@@ -150,8 +154,9 @@ the censored median delay):
   and zero alarms at h = 10 is a statement about this sample, not a bound. Across the
   whole grid the only pre-onset alarms at h = 8 are those two and one in
   `closed_wrong_prior` (`CUSUM FA max` 1 / 0), which is not the wrong prior showing
-  through: the settle-window z̄ there is −0.07 / +0.03, and the alarm falls in the
-  steady state.
+  through: the settle-window z̄ there is −0.07 / +0.03, the same closed system with the
+  correct prior (`closed_noise`) reads 0 / 0, and one alarm in 12,000 sensor-steps is
+  of the same order as the channel's measured null rate (4.3e-5 per sensor-step).
 
 ## What the Phase 1 results do and do not show
 
