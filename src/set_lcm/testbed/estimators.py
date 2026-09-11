@@ -28,6 +28,28 @@ that carries more state declares the extra components in `aug_names` (with
 the no-fault value of each in `aug_nominal`); the runner stores those in
 RunResult.extra and flags each one when it departs from its nominal value by
 more than its own reported uncertainty explains.
+
+Feedback. An estimator that can accept a reconciled state back exposes
+
+    set_state(x, P)  -- replace the state at the last ingested sampling step
+
+which the runner calls, for EstimatorSpec.feedback = True, with the projected
+(x*, P*) of the mass marginal after a projection was applied. P* is
+rank-deficient along the constraint by construction; the next predict adds Q,
+so every REPORTED covariance is SPD again. KalmanFilter and its structural-Q
+variant implement it; HoldLast (no covariance to speak of) and the augmented
+filter (the mass marginal cannot be replaced without its cross-covariances
+with alpha and L) raise NotImplementedError.
+
+Baselines that could remove the case for a constraint row:
+
+    kf_closedq   the same KF with closure written into Q instead of into a
+                 constraint: Q = sigma_q^2 dt^2 B B^T + eps I. It "knows" the
+                 boundary is closed through its noise model.
+    oracle       a KF given the HIDDEN actual pump rate and leak as known
+                 inputs, Q = eps I only. A BOUND on what a perfect model of the
+                 inputs could do, never a candidate; the runner is the one place
+                 that hands it hidden truth.
 """
 from __future__ import annotations
 
@@ -39,6 +61,7 @@ from ..schema import Observation
 from .simulator import MODEL_VERSION
 
 B = np.array([-1.0, 1.0])   # commanded transfer moves mass from reservoir 1 to reservoir 2
+LEAK_DIR = np.array([0.0, -1.0])   # a leak drains reservoir 2 (simulator: dm2/dt = q - leak)
 
 
 @dataclass(frozen=True)
@@ -49,19 +72,41 @@ class KFConfig:
     sigma_w: float = 0.05
 
 
+@dataclass(frozen=True)
+class ClosedQConfig:
+    """Structurally closed process noise: Q = sigma_q^2 dt^2 B B^T + eps I.
+
+    sigma_q is the simulator's declared per-step pump fluctuation
+    (SimConfig.pump_noise_std = 0.01 kg/s), i.e. a stated model parameter, not a
+    value tuned to a scenario. eps keeps Q (and so P) positive definite so the
+    kernel's guards accept the reported covariance."""
+    sigma_q: float = 0.01   # kg/s, along B = (-1, +1): mass moves between the reservoirs, the sum does not
+    eps: float = 1e-8       # kg^2 per step, isotropic floor
+
+
+@dataclass(frozen=True)
+class OracleConfig:
+    """The oracle's only free parameter: the isotropic process-noise floor."""
+    eps: float = 1e-8       # kg^2 per step
+
+
 class KalmanFilter:
-    """Linear KF for x = [m1, m2]:  x_{k+1} = x_k + B u_k dt + w,  y = H_mask x + v."""
+    """Linear KF for x = [m1, m2]:  x_{k+1} = x_k + B u_k dt + w,  y = H_mask x + v.
+
+    Subclasses change the process noise (`process_noise`) and the deterministic
+    per-step drift (`drift`); everything else -- prior, H, Joseph update, the
+    innovation record, reporting and feedback -- is shared."""
 
     model_version = MODEL_VERSION
     config_cls = KFConfig
     aug_names: tuple[str, ...] = ()
     aug_nominal: tuple[float, ...] = ()
 
-    def __init__(self, x0, p0_std: float, dt: float, u_cmd: np.ndarray, cfg: KFConfig = KFConfig()):
+    def __init__(self, x0, p0_std: float, dt: float, u_cmd: np.ndarray, cfg=KFConfig()):
         self.dt = dt
         self.u = u_cmd
         self.cfg = cfg
-        self.Q = np.eye(2) * cfg.sigma_w ** 2
+        self.Q = self.process_noise(cfg, dt)
         self.x0 = np.asarray(x0, dtype=float).copy()
         self.P0 = np.eye(2) * float(p0_std) ** 2
         self._x = self.x0.copy()
@@ -72,8 +117,32 @@ class KalmanFilter:
         self.innov_var: list[np.ndarray] = []
         self.innov_z: list[np.ndarray] = []
 
+    @staticmethod
+    def process_noise(cfg, dt: float) -> np.ndarray:
+        return np.eye(2) * cfg.sigma_w ** 2
+
+    def drift(self, k: int) -> np.ndarray:
+        """Deterministic state change over step k -> k + 1: the COMMANDED transfer."""
+        return B * self.u[k] * self.dt
+
     def predict(self, x, P, k):
-        return x + B * self.u[k] * self.dt, P + self.Q
+        return x + self.drift(k), P + self.Q
+
+    def set_state(self, x: np.ndarray, P: np.ndarray) -> None:
+        """Feedback: replace the state at the last ingested sampling step with (x, P).
+
+        Used by the runner to push a projected (x*, P*) back into the filter. P may be
+        rank-deficient (a hard projection sets A P* A^T = 0); the next predict adds Q.
+        Refuses before anything has been ingested: the declared prior is an input and
+        is never overwritten."""
+        if not self.xf:
+            raise ValueError("set_state before the first ingest would overwrite the declared prior")
+        x = np.array(x, dtype=float, copy=True).reshape(2)
+        P = np.array(P, dtype=float, copy=True).reshape(2, 2)
+        self._x = x
+        self._P = 0.5 * (P + P.T)
+        self.xf[-1] = self._x.copy()
+        self.Pf[-1] = self._P.copy()
 
     def ingest(self, obs: Observation, j: int) -> None:
         if j != len(self.xf):
@@ -110,6 +179,67 @@ class KalmanFilter:
         for i in range(start, k):
             x, P = self.predict(x, P, i)
         return x, P
+
+
+class ClosedQKalmanFilter(KalmanFilter):
+    """The same KF with closure encoded in the process noise instead of in a
+    constraint row:
+
+        Q = sigma_q^2 dt^2 B B^T + eps I,   B = (-1, +1)
+
+    Process noise then moves mass between the reservoirs (the pump's declared
+    fluctuation, sigma_q = 0.01 kg/s) and leaves the sum alone up to eps, so the
+    filter's own uncertainty along the sum direction shrinks as the two sensors are
+    averaged and never regrows. It has no constraint row, does not know the declared
+    total b, and has nothing to stop enforcing when the boundary opens: a stale
+    closure assumption makes it confidently wrong exactly as hard projection is.
+    Its null-direction process noise (sqrt(2) sigma_q = 0.014 kg per step) is also
+    smaller than KFConfig's untuned 0.05, so it averages longer and lags any real
+    change in the difference direction more. Same declared prior and H as
+    KalmanFilter."""
+
+    model_version = "reservoir2-linear-closedq-v1"
+    config_cls = ClosedQConfig
+
+    @staticmethod
+    def process_noise(cfg, dt: float) -> np.ndarray:
+        return cfg.sigma_q ** 2 * dt ** 2 * np.outer(B, B) + cfg.eps * np.eye(2)
+
+
+class OracleKalmanFilter(KalmanFilter):
+    """ORACLE (BOUND), NOT A CANDIDATE. A KF whose deterministic drift uses the
+    HIDDEN actual pump parameter rate and the hidden leak:
+
+        x_{k+1} = x_k + B u_actual_k dt + (0, -leak_k) dt,   Q = eps I
+
+    It is what a perfect model of the inputs would give, and only that: the
+    per-step pump fluctuation and the valve transfer are realised in the truth as
+    process noise the oracle does not model (Q = eps I only), so its bound is
+    tight where the truth is deterministic given the inputs and it is over-
+    confident where it is not (the noisy valve). The hidden arrays reach it only
+    through `oracle_inputs`, which runner.run() sets for spec.kind == "oracle" and
+    for nothing else."""
+
+    model_version = "reservoir2-oracle-v1"
+    config_cls = OracleConfig
+
+    def __init__(self, x0, p0_std: float, dt: float, u_cmd: np.ndarray, cfg=OracleConfig(),
+                 oracle_inputs: tuple[np.ndarray, np.ndarray] | None = None):
+        if oracle_inputs is None:
+            raise ValueError("the oracle needs (u_actual, leak); only runner.run() supplies them, for kind 'oracle'")
+        super().__init__(x0, p0_std, dt, u_cmd, cfg)
+        u_actual, leak = oracle_inputs
+        self.u_actual = np.asarray(u_actual, dtype=float).copy()
+        self.leak = np.asarray(leak, dtype=float).copy()
+        if self.u_actual.shape != np.shape(u_cmd) or self.leak.shape != np.shape(u_cmd):
+            raise ValueError("oracle inputs must be per-step arrays matching the commanded input")
+
+    @staticmethod
+    def process_noise(cfg, dt: float) -> np.ndarray:
+        return cfg.eps * np.eye(2)
+
+    def drift(self, k: int) -> np.ndarray:
+        return B * self.u_actual[k] * self.dt + LEAK_DIR * self.leak[k] * self.dt
 
 
 class HoldLast:
@@ -153,6 +283,9 @@ class HoldLast:
             return self.x0.copy(), np.diag(self.var0 + k * self.inflate)
         x, var = self.hist[j]
         return x.copy(), np.diag(var + (k - j) * self.inflate)
+
+    def set_state(self, x: np.ndarray, P: np.ndarray) -> None:
+        raise NotImplementedError("hold_last has no state to feed a projection back into")
 
 
 @dataclass(frozen=True)
@@ -269,5 +402,17 @@ class AugmentedKalmanFilter:
             x, P = self.predict(x, P, i)
         return x, P
 
+    def set_state(self, x: np.ndarray, P: np.ndarray) -> None:
+        raise NotImplementedError(
+            "feedback into the mass marginal of an augmented state is not implemented: replacing "
+            "(x[:2], P[:2, :2]) alone would leave the cross-covariances with alpha and L inconsistent"
+        )
 
-ESTIMATORS = {"kf": KalmanFilter, "hold_last": HoldLast, "kf_aug": AugmentedKalmanFilter}
+
+ESTIMATORS = {
+    "kf": KalmanFilter,
+    "hold_last": HoldLast,
+    "kf_aug": AugmentedKalmanFilter,
+    "kf_closedq": ClosedQKalmanFilter,
+    "oracle": OracleKalmanFilter,          # BOUND, not a candidate; see runner.run()
+}

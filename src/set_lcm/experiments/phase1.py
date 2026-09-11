@@ -112,9 +112,18 @@ SPECS = [
     EstimatorSpec("kf+soft(1/lam=4)", "kf", "soft", lam=0.25),
     EstimatorSpec("kf+hard", "kf", "hard"),
     EstimatorSpec("kf+hard+guard", "kf", "hard", guard=True),
+    # fed-back projection: the projected (x*, P*) becomes the filter's state
+    EstimatorSpec("kf+hard+fb", "kf", "hard", feedback=True),
+    EstimatorSpec("kf+hard+fb+guard", "kf", "hard", guard=True, feedback=True),
+    # closure in the noise model instead of in a constraint row (mode None: consistency stat
+    # computed and flagged on its marginal, never projected); and the same with a row
+    EstimatorSpec("kf_closedq", "kf_closedq", None),
+    EstimatorSpec("kf_closedq+hard", "kf_closedq", "hard"),
     # mode None: the consistency stat is still computed on the mass marginal and its flag
     # recorded, but nothing is ever projected; alpha and L are outputs with their own flags
     EstimatorSpec("kf_aug", "kf_aug", None),
+    # BOUND, not a candidate: knows the hidden actual pump rate and leak (see runner.run)
+    EstimatorSpec("oracle (bound)", "oracle", None),
 ]
 
 
@@ -396,7 +405,17 @@ LEGEND = (
     "reports; cells and FA max as for the constraint flag, with the same onset. σ_α / σ_L at run end = the "
     "filter's own reported sd of each parameter at the last step (mean over seeds). These flags name a "
     "parameter, not a cause: a sensor bias that the filter can only explain through the pump will raise the "
-    "alpha flag."
+    "alpha flag. "
+    "Baselines: kf_closedq is the kf with closure written into its process noise instead of into a constraint "
+    "row, Q = σ_q² dt² B Bᵀ + ε I with B = (−1, 1), σ_q = 0.01 kg/s (the simulator's declared pump fluctuation) "
+    "and ε = 1e-8; it has no constraint row and does not know b, and its consistency stat is computed on its "
+    "own marginal but never projected (kf_closedq+hard adds the row). kf+hard+fb feeds the projected (x*, P*) "
+    "back into the filter's state after every applied projection (under arrival delay, the projection of the "
+    "filter's own state at its last ingested step); +guard stops feeding back while the flag holds. "
+    "oracle (bound) is a KF given the HIDDEN actual pump parameter rate and the hidden leak as known inputs "
+    "with Q = ε I only: a bound on what a perfect model of the inputs could do, never a candidate; it does not "
+    "model the per-step pump fluctuation or the valve transfer, so it is over-confident wherever the truth is "
+    "not deterministic given those inputs."
 )
 
 

@@ -1,22 +1,22 @@
 # Fault-magnitude sweep
 
-Generated with Python 3.13.5, numpy 2.5.3 on Windows-11-10.0.26200-SP0; source sha256 e870574f197f, git b05ffed8b2 (source dirty). Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.5, numpy 2.5.3 on Windows-11-10.0.26200-SP0; source sha256 2d4f6e9f99d2, git 6f66c4cc37 (source dirty). Latency columns are wall-clock on this machine and are not a claim.
 
 20 seeds per point. Cells are (RMSE kg / cov95 / nz) over the fault window; det = seeds flagged within 100 steps of onset; held = mean steps the guard reported model_inconsistent. nz = RMS normalised error (1.0 calibrated, >1 over-confident).
 
 ## declared_total_error
 
-The declared total is wrong by delta. The joint hypothesis is false from step 0 for delta > 0. kf_aug reads the constraint only through its consistency flag and never projects, so its row is the same at every delta.
+The declared total is wrong by delta. The joint hypothesis is false from step 0 for delta > 0. kf_aug and kf_closedq read the constraint only through its consistency flag and never project, so their rows are the same at every delta. kf+hard+fb+guard feeds each applied projection back into the filter and stops while the guard holds.
 
-| declared_total_error [kg] | kf (RMSE/cov/nz) | kf+hard (RMSE/cov/nz) | kf+hard+guard (RMSE/cov/nz) | kf_aug (RMSE/cov/nz) | kf+hard+guard det | guard held |
-| --- | --- | --- | --- | --- | --- | --- |
-| 0 | 0.23 / 0.99 / 0.73 | 0.16 / 0.98 / 0.72 | 0.16 / 0.98 / 0.72 | 0.32 / 0.98 / 0.80 | — | 0 |
-| 0.25 | 0.23 / 0.99 / 0.73 | 0.21 / 0.97 / 0.92 | 0.21 / 0.97 / 0.92 | 0.32 / 0.98 / 0.80 | 0/20 | 0 |
-| 0.5 | 0.23 / 0.99 / 0.73 | 0.30 / 0.88 / 1.33 | 0.30 / 0.88 / 1.33 | 0.32 / 0.98 / 0.80 | 0/20 | 0 |
-| 1 | 0.23 / 0.99 / 0.73 | 0.53 / 0.35 / 2.34 | 0.52 / 0.40 / 2.28 | 0.32 / 0.98 / 0.80 | 3/20 | 38 |
-| 1.5 | 0.23 / 0.99 / 0.73 | 0.77 / 0.03 / 3.41 | 0.54 / 0.56 / 2.32 | 0.32 / 0.98 / 0.80 | 13/20 | 289 |
-| 2 | 0.23 / 0.99 / 0.73 | 1.01 / 0.00 / 4.50 | 0.29 / 0.94 / 1.04 | 0.32 / 0.98 / 0.80 | 20/20 | 524 |
-| 4 | 0.23 / 0.99 / 0.73 | 2.01 / 0.00 / 8.91 | 0.23 / 0.99 / 0.73 | 0.32 / 0.98 / 0.80 | 20/20 | 592 |
+| declared_total_error [kg] | kf (RMSE/cov/nz) | kf+hard (RMSE/cov/nz) | kf+hard+guard (RMSE/cov/nz) | kf+hard+fb+guard (RMSE/cov/nz) | kf_aug (RMSE/cov/nz) | kf_closedq (RMSE/cov/nz) | kf+hard+guard det | kf+hard+fb+guard det | guard held |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0 | 0.23 / 0.99 / 0.73 | 0.16 / 0.98 / 0.72 | 0.16 / 0.98 / 0.72 | 0.16 / 0.98 / 0.72 | 0.32 / 0.98 / 0.80 | 0.11 / 0.98 / 0.75 | — | — | 0 |
+| 0.25 | 0.23 / 0.99 / 0.73 | 0.21 / 0.97 / 0.92 | 0.21 / 0.97 / 0.92 | 0.21 / 0.97 / 0.92 | 0.32 / 0.98 / 0.80 | 0.11 / 0.98 / 0.75 | 0/20 | 0/20 | 0 |
+| 0.5 | 0.23 / 0.99 / 0.73 | 0.30 / 0.88 / 1.33 | 0.30 / 0.88 / 1.33 | 0.30 / 0.88 / 1.33 | 0.32 / 0.98 / 0.80 | 0.11 / 0.98 / 0.75 | 0/20 | 0/20 | 0 |
+| 1 | 0.23 / 0.99 / 0.73 | 0.53 / 0.35 / 2.34 | 0.52 / 0.40 / 2.28 | 0.53 / 0.35 / 2.34 | 0.32 / 0.98 / 0.80 | 0.11 / 0.98 / 0.75 | 3/20 | 0/20 | 38 |
+| 1.5 | 0.23 / 0.99 / 0.73 | 0.77 / 0.03 / 3.41 | 0.54 / 0.56 / 2.32 | 0.77 / 0.03 / 3.41 | 0.32 / 0.98 / 0.80 | 0.11 / 0.98 / 0.75 | 13/20 | 0/20 | 289 |
+| 2 | 0.23 / 0.99 / 0.73 | 1.01 / 0.00 / 4.50 | 0.29 / 0.94 / 1.04 | 1.01 / 0.00 / 4.50 | 0.32 / 0.98 / 0.80 | 0.11 / 0.98 / 0.75 | 20/20 | 0/20 | 524 |
+| 4 | 0.23 / 0.99 / 0.73 | 2.01 / 0.00 / 8.91 | 0.23 / 0.99 / 0.73 | 2.01 / 0.00 / 8.91 | 0.32 / 0.98 / 0.80 | 0.11 / 0.98 / 0.75 | 20/20 | 0/20 | 592 |
 
 ## sensor_bias
 

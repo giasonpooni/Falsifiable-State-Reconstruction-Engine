@@ -33,15 +33,18 @@ KF = EstimatorSpec("kf", "kf", None)
 HARD = EstimatorSpec("kf+hard", "kf", "hard")
 GUARD = EstimatorSpec("kf+hard+guard", "kf", "hard", guard=True)
 AUG = EstimatorSpec("kf_aug", "kf_aug", None)     # never projects; alpha and L are outputs with flags
+CLOSEDQ = EstimatorSpec("kf_closedq", "kf_closedq", None)   # closure in Q, no constraint row, never projects
+FB_GUARD = EstimatorSpec("kf+hard+fb+guard", "kf", "hard", guard=True, feedback=True)
 SOFT_NAME = "kf+soft(lam=1/sigma_b^2)"
 
 AXES: dict[str, dict] = {
     "declared_total_error": {
         "base": "closed_noise", "points": (0.0, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0), "unit": "kg",
-        "window": "steady", "specs": (KF, HARD, GUARD, AUG),
+        "window": "steady", "specs": (KF, HARD, GUARD, FB_GUARD, AUG, CLOSEDQ),
         "note": "The declared total is wrong by delta. The joint hypothesis is false from step 0 for delta > 0. "
-                "kf_aug reads the constraint only through its consistency flag and never projects, so its row "
-                "is the same at every delta.",
+                "kf_aug and kf_closedq read the constraint only through its consistency flag and never project, "
+                "so their rows are the same at every delta. kf+hard+fb+guard feeds each applied projection back "
+                "into the filter and stops while the guard holds.",
     },
     "sensor_bias": {
         "base": "bias_quant_delay", "points": (0.5, 1.0, 2.0, 3.0), "unit": "kg",

@@ -6,6 +6,33 @@ has arrived, per Observation.arrival_t), the commanded input, a DECLARED prior
 for the initial state, and the declared constraint set. Truth.m is never read
 here; Truth is passed only for its public fields (t, u_commanded).
 
+THE ONE EXCEPTION, deliberately visible: for spec.kind == "oracle" -- and for
+no other kind -- run() hands the estimator constructor the hidden per-step
+arrays (truth.u_actual, truth.leak) through the keyword `oracle_inputs`. The
+oracle is a BOUND on what a perfect model of the inputs could do, labelled
+"oracle (bound)" wherever it is tabulated, and never a candidate. Truth.m is
+not read even there. This is the only place hidden truth crosses to the
+estimator side; a test corrupts both arrays and checks that every other
+estimator's record is bit-identical.
+
+Feedback (EstimatorSpec.feedback): after a projection has been applied at
+report step k (status ok), the projected mass marginal (x*, P*) is pushed
+back into the estimator with est.set_state(). When the estimator is current
+(its last ingested sampling step j equals k) that is literally the reported
+(x*, P*); under arrival delay (j < k) the report is a prediction from the
+state at j, so the projection of that state -- same mode, same constraint --
+is what goes back, which keeps the feedback on the estimator's own clock. P*
+is rank-deficient along the constraint; the next predict adds Q, so the
+reported covariance the kernel sees at k + 1 is SPD again (asserted in
+tests). While the guard holds (model_inconsistent) nothing is fed back.
+RunResult.x_unproj for a fed-back estimator is what that estimator reported,
+which already carries every earlier projection; nothing in the record is
+overwritten. A consequence the results make measurable: a fed-back filter
+carries A P A^T = A Q A^T after each predict and its residual shrinks with it,
+so the consistency statistic on its own marginal no longer rejects a stale
+constraint -- the filter has been told the constraint every step and no
+longer disagrees with it.
+
 Three detection channels run side by side and never talk to each other: the
 constraint-side consistency flag (debounced chi-square exceedance, on the
 report clock), the evidence-side per-sensor CUSUM on the estimator's
@@ -25,10 +52,10 @@ from time import perf_counter
 
 import numpy as np
 
-from ..lcm import chi2_quantile, consistency_stat, is_feasible, reconcile
+from ..lcm import chi2_quantile, consistency_stat, is_feasible, project_hard, project_soft, reconcile
 from ..schema import ConstraintSet, Observation, Status
 from .cusum import Cusum, CusumConfig
-from .estimators import ESTIMATORS, AugConfig, KFConfig
+from .estimators import ESTIMATORS, AugConfig, ClosedQConfig, KFConfig, OracleConfig
 from .simulator import Truth
 
 # Flags on an augmented estimator's extra components: two-sided z test at the 0.001
@@ -50,6 +77,14 @@ class EstimatorSpec:
     # Evidence-side channel: per-sensor two-sided CUSUM on the normalised innovation,
     # run on the ingest clock. None switches it off (cusum_stat NaN, no alarms).
     cusum: CusumConfig | None = CusumConfig()
+    # Push the projected (x*, P*) back into the estimator after each applied projection
+    # (see the module docstring). Needs a projection mode; the estimator must implement
+    # set_state (kf and kf_closedq do; kf_aug and hold_last raise NotImplementedError).
+    feedback: bool = False
+
+    def __post_init__(self):
+        if self.feedback and self.mode is None:
+            raise ValueError(f"spec {self.name!r}: feedback requires a projection mode")
 
 
 @dataclass
@@ -93,12 +128,20 @@ def run(
     declared_m0_std: float = 5.0,
     kf_cfg: KFConfig = KFConfig(),
     aug_cfg: AugConfig = AugConfig(),
+    closedq_cfg: ClosedQConfig = ClosedQConfig(),
+    oracle_cfg: OracleConfig = OracleConfig(),
 ) -> RunResult:
     n = len(obs)
     dt = float(truth.t[1] - truth.t[0])
     est_cls = ESTIMATORS[spec.kind]
-    cfg = {KFConfig: kf_cfg, AugConfig: aug_cfg}[est_cls.config_cls]
-    est = est_cls(declared_m0, declared_m0_std, dt, truth.u_commanded, cfg)
+    cfg = {KFConfig: kf_cfg, AugConfig: aug_cfg, ClosedQConfig: closedq_cfg, OracleConfig: oracle_cfg}[est_cls.config_cls]
+    est_kwargs: dict = {}
+    if spec.kind == "oracle":
+        # THE ONE PLACE hidden truth crosses to the estimator side. The oracle (bound) gets
+        # the hidden actual pump parameter rate and the hidden leak as known inputs. No
+        # other kind receives them, and Truth.m is not read even here.
+        est_kwargs["oracle_inputs"] = (truth.u_actual, truth.leak)
+    est = est_cls(declared_m0, declared_m0_std, dt, truth.u_commanded, cfg, **est_kwargs)
     aug_names = tuple(est.aug_names)
 
     rows = cs.dof if cs is not None else 1
@@ -159,6 +202,8 @@ def run(
             xr, Pr, cs, mode=spec.mode, lam=spec.lam, hold=hold, threshold=thr,
             stat=s if feasible else None, t=tk, model_version=est.model_version,
         )
+        if spec.feedback and se.status is Status.OK and next_obs > 0:
+            _feed_back(est, se, cs, spec, k, j=next_obs - 1)
         lat[k] = perf_counter() - t0
 
         x[k], P[k] = se.x, se.P
@@ -183,3 +228,22 @@ def run(
 
     return RunResult(spec, x, P, xu, Pu, status, stat, thr, flag, res_pre, res_post, corr, lat,
                      innov, innov_var, innov_z, cusum_stat, cusum_alarm, extra)
+
+
+def _feed_back(est, se, cs: ConstraintSet, spec: EstimatorSpec, k: int, j: int) -> None:
+    """Push the applied projection back into the estimator's state at its own last
+    ingested sampling step j. When j == k the report at k IS the state at j, so the
+    reported (x*, P*) goes back verbatim; under arrival delay (j < k) the state at j
+    is projected with the same mode. Only the mass marginal is ever fed back."""
+    if j == k:
+        xs, Ps = se.x, se.P
+    else:
+        xj, Pj = est.report(j)
+        xj, Pj = xj[:2], Pj[:2, :2]
+        if spec.mode == "hard":
+            xs, Ps = project_hard(xj, Pj, cs)
+        elif spec.mode == "soft":
+            xs, Ps = project_soft(xj, Pj, cs, spec.lam)
+        else:   # unreachable: __post_init__ requires a mode
+            raise ValueError(f"unknown mode {spec.mode!r}")
+    est.set_state(xs, Ps)
