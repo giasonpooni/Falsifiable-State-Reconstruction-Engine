@@ -46,7 +46,15 @@ uv run --python 3.13 python -m set_lcm.experiments.sweep
 The grid writes `results/summary.{md,json}`; the other two write
 `results/calibration.{md,json}` and `results/sweep.{md,json}` (about ten minutes
 together). Full-size runs are also wrapped in tests marked `slow`, which the default
-`pytest` skips; `uv run --python 3.13 --dev pytest -m slow` runs them. Every scenario is
+`pytest` skips; `uv run --python 3.13 --dev pytest -m slow` runs them.
+
+`results/` is a verified artifact, not a hand-committed file: the slow test
+`tests/test_results_reproduce.py` regenerates the whole grid and asserts equality with
+the committed `results/summary.json` value for value (latency and the provenance
+stamp excluded). Every results file carries a provenance block — Python and numpy
+versions, platform, a line-ending-independent SHA-256 of the source tree, and git
+HEAD at generation time (the parent of the commit that contains the results) — and
+prints it as the first line of the markdown. Every scenario is
 run over 20 seeds (simulation and degradation seeds offset together); tables report
 mean ± sd across seeds and the JSON keeps every per-seed metric. A single seed is a
 realization, not a result: the first single-seed run of the noisy-valve scenario put
@@ -178,9 +186,12 @@ nz is the RMS normalised error eᵢ/σᵢ: 1.0 when calibrated, above 1 over-con
   Dependent constraint rows are reduced to an independent set and the χ² dof is
   `rank(A)`, not `rows(A)`.
 - **Not evidence of anything:** "no solver failures" (nothing can emit
-  `not_converged` yet); the latency column (interpreter overhead on 2×2 matrices on
-  one laptop); determinism beyond same-process; the soft variant as a meaningfully
-  different estimator at 1/λ = 4 kg² against S ≈ 0.2 kg².
+  `not_converged` yet); the latency column, tagged "(this machine)" — interpreter
+  overhead on 2×2 matrices on one laptop, and roughly doubled since the kernel guards
+  run an eigenvalue and a condition check every step; determinism beyond same-process
+  (the reproduction test proves same-build, same-machine reproduction, nothing more);
+  the shipped soft variant at 1/λ = 4 kg² as a meaningfully different estimator
+  against S ≈ 0.2 kg² — the `uncertain_total` sweep is where soft mode earns its place.
 
 ## Deliberately out of scope for Phase 1
 

@@ -125,14 +125,18 @@ def render(nulls: dict, sweep: list[dict], n_seeds: int) -> str:
 
 
 def main(out_dir: Path, n_seeds: int = N_SEEDS, *, quiet: bool = False) -> int:
+    from .provenance import header_line, provenance
+
     out_dir = Path(out_dir)
     out_dir.mkdir(exist_ok=True)
+    prov = provenance()
     nulls = null_stats(n_seeds)
     sweep = threshold_sweep(n_seeds)
-    text = render(nulls, sweep, n_seeds)
+    text = render(nulls, sweep, n_seeds).replace("\n\n", "\n\n" + header_line(prov) + "\n\n", 1)
     (out_dir / "calibration.md").write_text(text, encoding="utf-8")
     (out_dir / "calibration.json").write_text(
-        json.dumps({"n_seeds": n_seeds, "null": nulls, "threshold_sweep": sweep}, indent=2), encoding="utf-8")
+        json.dumps({"n_seeds": n_seeds, "provenance": prov, "null": nulls, "threshold_sweep": sweep}, indent=2),
+        encoding="utf-8")
     if not quiet:
         print(text)
     return 0

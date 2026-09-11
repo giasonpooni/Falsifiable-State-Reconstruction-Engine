@@ -256,7 +256,7 @@ def table(name: str, sc: Scenario, agg: dict) -> str:
         rows1.append(r)
 
     head2 = ["estimator", "RMSE all", "cov95 all", "nz all", "|res| post", "|corr|", "FA (max / rate)",
-             f"detected ≤{DETECT_WITHIN} (k/n)", "median delay", "held steps", "d(f)", "lat p50 µs"]
+             f"detected ≤{DETECT_WITHIN} (k/n)", "median delay", "held steps", "d(f)", "lat p50 µs (this machine)"]
     rows2 = [head2, ["---"] * len(head2)]
     for est, a in agg.items():
         det = a["detection"]
@@ -299,10 +299,13 @@ LEGEND = (
 
 def main(out_dir: Path, *, quiet: bool = False) -> int:
     """Run the whole grid, print the markdown tables, write summary.md / summary.json to out_dir."""
+    from .provenance import header_line, provenance
+
     out_dir = Path(out_dir)
     out_dir.mkdir(exist_ok=True)
-    summary = {"seed": SEED, "n_seeds": N_SEEDS, "detect_within": DETECT_WITHIN, "scenarios": {}}
-    md = ["# SET + LCM Phase 1 results", "",
+    prov = provenance()
+    summary = {"seed": SEED, "n_seeds": N_SEEDS, "detect_within": DETECT_WITHIN, "provenance": prov, "scenarios": {}}
+    md = ["# SET + LCM Phase 1 results", "", header_line(prov), "",
           f"Two-reservoir material transfer, 600 steps, hidden truth, {N_SEEDS} seeds per scenario "
           "(mean ± sd across seeds where shown). Declared constraint: m1 + m2 = 100 kg.",
           LEGEND, ""]

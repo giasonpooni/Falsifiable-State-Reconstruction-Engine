@@ -1,5 +1,7 @@
 # In-loop null of the consistency statistic
 
+Generated with Python 3.13.5, numpy 2.5.3 on Windows-11-10.0.26200-SP0; source sha256 78dfa2ab0249, git d3d240c5cf (source dirty). Latency columns are wall-clock on this machine and are not a claim.
+
 Unconstrained KF, 20 seeds, statistic r²/(A P Aᵀ) computed from the filter's own reported P over windows where the joint hypothesis holds. Under an exact χ²(1) null the mean would be 1.0 and the exceedances would equal the nominal tail probabilities. The lag-1 autocorrelation gives an AR(1) integrated autocorrelation time τ; the number of effectively independent samples is n/τ.
 
 | window | n | mean | q95 | q99 | q999 | P(>3.841) [0.05] | P(>6.635) [0.01] | P(>10.828) [0.001] | ρ₁ | τ | n_eff |

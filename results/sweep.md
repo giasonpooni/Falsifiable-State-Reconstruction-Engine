@@ -1,5 +1,7 @@
 # Fault-magnitude sweep
 
+Generated with Python 3.13.5, numpy 2.5.3 on Windows-11-10.0.26200-SP0; source sha256 78dfa2ab0249, git d3d240c5cf (source dirty). Latency columns are wall-clock on this machine and are not a claim.
+
 20 seeds per point. Cells are (RMSE kg / cov95 / nz) over the fault window; det = seeds flagged within 100 steps of onset; held = mean steps the guard reported model_inconsistent. nz = RMS normalised error (1.0 calibrated, >1 over-confident).
 
 ## declared_total_error

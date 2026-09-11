@@ -1,5 +1,15 @@
 {
   "n_seeds": 20,
+  "provenance": {
+    "python": "3.13.5",
+    "numpy": "2.5.3",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "machine": "AMD64",
+    "source_sha256": "78dfa2ab02494646541cf5081385760efd0476354fffab0b2dbba5b441dfd05a",
+    "git_head": "d3d240c5cf35bf9cadb4cf185aebcfa763b21330",
+    "source_dirty": true,
+    "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
+  },
   "null": {
     "closed_noise": {
       "window": [

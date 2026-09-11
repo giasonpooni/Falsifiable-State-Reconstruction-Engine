@@ -143,13 +143,17 @@ def render(results: dict[str, dict[float, dict]], n_seeds: int) -> str:
 
 
 def main(out_dir: Path, n_seeds: int = N_SEEDS, *, quiet: bool = False) -> int:
+    from .provenance import header_line, provenance
+
     out_dir = Path(out_dir)
     out_dir.mkdir(exist_ok=True)
+    prov = provenance()
     results = {axis: run_axis(axis, n_seeds) for axis in AXES}
-    text = render(results, n_seeds)
+    text = render(results, n_seeds).replace("\n\n", "\n\n" + header_line(prov) + "\n\n", 1)
     (out_dir / "sweep.md").write_text(text, encoding="utf-8")
     (out_dir / "sweep.json").write_text(
-        json.dumps({"n_seeds": n_seeds, "axes": {a: {k: v for k, v in AXES[a].items() if k != "specs"} for a in AXES},
+        json.dumps({"n_seeds": n_seeds, "provenance": prov,
+                    "axes": {a: {k: v for k, v in AXES[a].items() if k != "specs"} for a in AXES},
                     "results": {a: {str(p): r for p, r in pts.items()} for a, pts in results.items()}},
                    indent=2, default=str), encoding="utf-8")
     if not quiet:
