@@ -59,9 +59,9 @@ HEAD at generation time (the parent of the commit that contains the results) —
 prints it as the first line of the markdown. Every scenario is
 run over 20 seeds (simulation and degradation seeds offset together); tables report
 mean ± sd across seeds and the JSON keeps every per-seed metric. A single seed is a
-realization, not a result: the first single-seed run of the noisy-valve scenario put
-`kf+hard` within 8 % of `kf` during the blackout (0.386 vs 0.419 kg); over 20 seeds it
-is 0.55 ± 0.18 vs 0.92 ± 0.44 kg.
+realization, not a result: seed 0 of the noisy-valve scenario on its own puts `kf+hard`
+within 8 % of `kf` during the blackout (0.386 vs 0.419 kg, the per-seed entries in
+`results/summary.json`); over 20 seeds it is 0.55 ± 0.18 vs 0.92 ± 0.44 kg.
 
 ## What is in the slice
 
@@ -71,7 +71,7 @@ is 0.55 ± 0.18 vs 0.92 ± 0.44 kg.
 | `src/set_lcm/lcm/` | Hard (KKT closed form) and soft (penalty) linear-equality projection weighted by `P⁻¹`; feasibility check and reduction of dependent rows; SPD / singularity guards; χ² consistency statistic and the detectability `d(f)` of a fault direction; `reconcile()` that never mutates its input. |
 | `src/set_lcm/testbed/simulator.py` | Two-reservoir material transfer. Hidden `m`, hidden leak, hidden actual pump *parameter* rate (`u_actual`: the per-step pump fluctuation is process noise, not part of it); public commanded pump rate and declared initial total. |
 | `src/set_lcm/testbed/degrade.py` | Noise, random dropout, sensor blackout, undeclared bias, quantization (declared into `R`), arrival delay written into `arrival_t`. Seed-controlled. |
-| `src/set_lcm/testbed/estimators.py` | Five estimator kinds behind one `ingest` / `report` interface, each initialised from a *declared* prior and reporting by predicting forward from the last *arrived* observation. `hold_last`. `kf`: linear KF on x = [m1, m2] with a *diagonal* Q, σ_w = 0.05 kg per step (`KFConfig`; closure is the constraint's declared claim, not the filter's). `kf_aug`: x = [m1, m2, α, L] — pump scale and boundary flux as states with their own uncertainty, a time-varying *linear* KF (`AugConfig`: α ~ N(1, 0.1²), L ~ N(0, 0.02²), random walks 1e-3 and 2e-3 kg/s per step, same σ_w). Two baselines built to remove the case for a constraint row: `kf_closedq`, the KF with closure written into its process noise, Q = σ_q² dt² B Bᵀ + ε I with σ_q = 0.01 kg/s (the simulator's declared pump fluctuation) and ε = 1e-8 (`ClosedQConfig`), and `oracle`, a KF given the *hidden* actual pump parameter rate and leak as known inputs with Q = ε I only (`OracleConfig`) — a bound, never a candidate. Every filter records, per ingested step and sensor, the innovation, its variance and the normalised innovation; hold-last records NaN. `kf` and `kf_closedq` implement `set_state(x, P)` for fed-back projection; `kf_aug` (the mass marginal cannot be replaced without its cross-covariances) and hold-last raise `NotImplementedError`. |
+| `src/set_lcm/testbed/estimators.py` | Five estimator kinds behind one `ingest` / `report` interface, each initialised from a *declared* prior and reporting by predicting forward from the last *arrived* observation. `hold_last`. `kf`: linear KF on x = [m1, m2] with a *diagonal* Q, σ_w = 0.05 kg per step (`KFConfig`; closure is the constraint's declared claim, not the filter's). `kf_aug`: x = [m1, m2, α, L] — pump scale and boundary flux as states with their own uncertainty, a time-varying *linear* KF (`AugConfig`: α ~ N(1, 0.1²), L ~ N(0, 0.02²), random walks of 1e-3 (α, dimensionless) and 2e-3 kg/s (L) per step, same σ_w). Two baselines built to remove the case for a constraint row: `kf_closedq`, the KF with closure written into its process noise, Q = σ_q² dt² B Bᵀ + ε I with σ_q = 0.01 kg/s (the simulator's declared pump fluctuation) and ε = 1e-8 (`ClosedQConfig`), and `oracle`, a KF given the *hidden* actual pump parameter rate and leak as known inputs with Q = ε I only (`OracleConfig`) — a bound, never a candidate. Every filter records, per ingested step and sensor, the innovation, its variance and the normalised innovation; hold-last records NaN. `kf` and `kf_closedq` implement `set_state(x, P)` for fed-back projection; `kf_aug` (the mass marginal cannot be replaced without its cross-covariances) and hold-last raise `NotImplementedError`. |
 | `src/set_lcm/testbed/cusum.py` | Per-sensor two-sided CUSUM on the normalised innovation (`CusumConfig(k=0.5, h=8.0)`): the evidence side's own detector, reading no constraint. |
 | `src/set_lcm/testbed/runner.py` | Runs a (scenario, estimator) pair step by step, ingesting observations only once `arrival_t ≤ t_k`. Three detection channels that never talk to each other: the debounced consistency flag (with the optional guard that *holds* projection and reports `MODEL_INCONSISTENT`), the CUSUM on the ingest clock with alarms stamped at the report step of ingestion, and one debounced flag per extra state (\|α̂ − 1\|/σ_α > 3.29, \|L̂\|/σ_L > 3.29, three consecutive reports). Reconciliation always acts on the mass marginal (x[:2], P[:2, :2]); an augmented estimator's extra states go to `RunResult.extra`. `EstimatorSpec.feedback` pushes each applied projection (x*, P*) back into the filter at its own last ingested step, at most once per ingested step. The one place hidden truth crosses to the estimator side is marked here: `truth.u_actual` and `truth.leak` go to the constructor of kind `"oracle"` and to nothing else. |
 | `src/set_lcm/testbed/evaluate.py` | RMSE (overall and windowed), 95 % interval coverage, normalised error, error along row(A) and null(A), residuals, correction magnitude, false alarms and censored detection delay for the constraint flag, per sensor for the CUSUM and per parameter for the α / L flags, α error against the hidden pump-rate ratio over pump-on steps, L error against the hidden leak, mean normalised innovation per window, solver failures, latency. Only reader of truth. |
@@ -161,8 +161,10 @@ nz is the RMS normalised error eᵢ/σᵢ: 1.0 when calibrated, above 1 over-con
 - **A single sum constraint is blind to the difference direction.** For
   `A = [1, 1]` and the pump or valve fault along `(−1, 1)`, the detectability
   `d(f) = fᵀAᵀ(APAᵀ)⁻¹Af` is exactly 0 for every estimator in every seed (`d(f)`
-  column). Those faults are structurally undetectable by this test — 0/20 seeds flag
-  within 100 steps and the censored median delay is "> 550" — while calibration
+  column). Those faults are structurally undetectable by this test — for `kf` and its
+  projected variants 0/20 seeds flag within 100 steps and the censored median delay is
+  "> 550"; `kf_closedq`, whose sum-direction uncertainty is ε-small, is also 0/20 within
+  100 with a median 350 — while calibration
   collapses: kf in the pump-bias blackout reads 1.31 / 0.21 / 2.90 with error
   0.71 along row(A) versus 1.70 along null(A). For the leak and the sensor bias,
   d(f) is 4.9 and 4.4 and 20/20 seeds flag. The answer to that blindness is not a
@@ -278,8 +280,10 @@ the censored median delay):
   shipped default: its 2 alarms are 4.3e-5 per sensor-step, a quarter of the
   constraint guard's own pre-onset rate (1.7e-4 per step at q = 0.999, debounce 3),
   and zero alarms at h = 10 is a statement about this sample, not a bound. Across the
-  whole grid the only pre-onset alarms at h = 8 are those two and one in
-  `closed_wrong_prior` (`CUSUM FA max` 1 / 0), which is not the wrong prior showing
+  whole grid, on `kf`'s own channels, the only pre-onset alarms at h = 8 are those two
+  and one in `closed_wrong_prior` (`CUSUM FA max` 1 / 0; the closed-Q, oracle and
+  fed-back rows carry their own counts in that column, at most 2 per sensor in any
+  seed), which is not the wrong prior showing
   through: the settle-window z̄ there is −0.07 / +0.03, the same closed system with the
   correct prior (`closed_noise`) reads 0 / 0, and one alarm in 12,000 sensor-steps is
   of the same order as the channel's measured null rate (4.3e-5 per sensor-step).
@@ -295,7 +299,7 @@ x = [m1, m2, α, L]: α scales the commanded pump rate and L is a flux out of re
 
 which is linear in the state for the known commanded u, so it is a time-varying linear
 Kalman filter, not an EKF. Its priors are declared, not tuned: α ~ N(1, 0.1²),
-L ~ N(0, 0.02²), random walks of 1e-3 and 2e-3 kg/s per step, and the same diagonal
+L ~ N(0, 0.02²), random walks of 1e-3 (α, dimensionless) and 2e-3 kg/s (L) per step, and the same diagonal
 0.05 kg mass process noise as `kf` (`AugConfig`). The reconciliation stage sees only the
 mass marginal (x[:2], P[:2, :2]) and, at mode None, computes the consistency statistic
 but never projects; α and L are *outputs* with their own σ, and the runner raises a flag

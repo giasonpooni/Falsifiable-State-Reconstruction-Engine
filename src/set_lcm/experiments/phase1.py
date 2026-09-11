@@ -1,4 +1,4 @@
-"""Phase 1 experiment grid: 6 scenarios x 6 estimator variants x N seeds.
+"""Experiment grid: 6 scenarios x 11 estimator specs (SPECS) x N seeds.
 
 Every scenario declares the same constraint (closed boundary, m1 + m2 = 100 kg).
 In four of them that constraint is true throughout; in the other two something
