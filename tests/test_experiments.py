@@ -3,15 +3,17 @@ is supposed to be able to make -- and the negative control it must not fail.
 
 Claims are asserted on means over several seeds; a single seed is a realization.
 """
+from dataclasses import replace
 from functools import lru_cache
 
 import numpy as np
 import pytest
 
-from set_lcm.experiments.phase1 import SCENARIOS, SPECS, constraint_for, run_scenario
-from set_lcm.testbed.degrade import observe
+from set_lcm.experiments.phase1 import SCENARIOS, SPECS, constraint_for, declared_prior, run_scenario
+from set_lcm.schema import Observation
+from set_lcm.testbed.degrade import DegradeConfig, observe
 from set_lcm.testbed.runner import run
-from set_lcm.testbed.simulator import simulate
+from set_lcm.testbed.simulator import SimConfig, simulate
 
 TEST_SEEDS = 8
 
@@ -30,7 +32,8 @@ def _single(name, spec_name):
     truth = simulate(sc.sim)
     obs = observe(truth, sc.deg)
     spec = next(s for s in SPECS if s.name == spec_name)
-    return run(truth, obs, constraint_for(truth), spec, sc.sim.m0, sc.deg.delay_steps)
+    m0, m0_std = declared_prior(sc, sc.sim)
+    return run(truth, obs, constraint_for(truth), spec, m0, m0_std)
 
 
 def test_determinism_same_seed_identical_output():
@@ -40,6 +43,36 @@ def test_determinism_same_seed_identical_output():
     assert np.array_equal(a.P, b.P)
     assert np.array_equal(a.stat, b.stat)
     assert a.status == b.status
+
+
+def test_observations_are_used_only_after_they_arrive():
+    """With a 5-step arrival delay, nothing sampled after step k-5 may influence the
+    report at step k. Corrupt every observation sampled after step K-5: reports up to
+    K must be bit-identical; the report at K+1 must differ."""
+    d, K = 5, 200
+    truth = simulate(SimConfig(seed=1))
+    obs = observe(truth, DegradeConfig(seed=2, delay_steps=d))
+    corrupted = [
+        o if j <= K - d else Observation(o.t, o.arrival_t, o.y + 1000.0, o.R, o.mask, o.source_ids)
+        for j, o in enumerate(obs)
+    ]
+    spec = next(s for s in SPECS if s.name == "kf")
+    a = run(truth, obs, constraint_for(truth), spec, (70.0, 30.0), 5.0)
+    b = run(truth, corrupted, constraint_for(truth), spec, (70.0, 30.0), 5.0)
+    assert np.array_equal(a.x_unproj[: K + 1], b.x_unproj[: K + 1])
+    assert not np.array_equal(a.x_unproj[K + 1], b.x_unproj[K + 1])
+    # before anything has arrived the report is the declared prior, predicted forward
+    assert np.array_equal(a.x_unproj[0], np.array([70.0, 30.0]))
+
+
+def test_estimator_forgets_a_wrong_declared_prior():
+    """closed_wrong_prior starts the estimator at 74/26 (truth 70/30). The KF must end
+    up where closed_noise's KF ends up; hold-last must be worse than the KF while settling."""
+    a = agg("closed_wrong_prior")
+    ref = agg("closed_noise")
+    assert win(a, "kf", "steady") == pytest.approx(win(ref, "kf", "steady"), rel=0.2)
+    assert win(a, "kf", "settle") < 2.0
+    assert win(a, "kf", "settle") < win(a, "hold_last", "settle")
 
 
 def test_unconstrained_kf_tracks_leak_with_bounded_lag():

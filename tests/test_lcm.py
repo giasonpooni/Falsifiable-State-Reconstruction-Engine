@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 from set_lcm.lcm import (
-    chi2_quantile, consistency_stat, is_feasible, project_hard, project_soft, reconcile,
+    chi2_quantile, consistency_stat, is_feasible, project_hard, project_soft, reconcile, reduced,
 )
 from set_lcm.schema import ConstraintSet, Status
 
@@ -54,6 +54,7 @@ def test_infeasible_constraint_set_is_reported_not_solved():
     assert not is_feasible(cs)
     se = reconcile(np.array([60.0, 40.0]), np.diag([4.0, 4.0]), cs, mode="hard")
     assert se.status is Status.INFEASIBLE
+    assert se.consistency_stat is None                     # cannot be computed for a contradiction
     np.testing.assert_array_equal(se.x, se.x_unprojected)
 
 
@@ -107,3 +108,44 @@ def test_review_sanity_check_reproduced():
         xs, _ = project_hard(np.array([60.0, 40.0]) + e[i], np.diag([4.0, 4.0]), SUM100)
         y = np.array([60.0, 40.0]) + e[i]
         np.testing.assert_allclose(xs, y + (100.0 - y.sum()) / 2.0)
+
+
+# ---------------------------------------------------------------------------
+# Input guards: the kernel must refuse what it cannot interpret, not return 0.0
+# ---------------------------------------------------------------------------
+
+def test_consistency_stat_refuses_rank_deficient_P():
+    """A hard-projected covariance has A P* A^T = 0. Feeding it back used to give
+    stat = 0.0 with Status.OK -- a silent lie. Now it raises."""
+    x = np.array([62.0, 41.0]); P = np.diag([4.0, 4.0])
+    xs, Ps = project_hard(x, P, SUM100)
+    with pytest.raises(ValueError):
+        consistency_stat(xs, Ps, SUM100)
+    with pytest.raises(ValueError):
+        reconcile(xs, Ps, SUM100, mode="hard")
+
+
+@pytest.mark.parametrize("bad", [np.zeros((2, 2)), np.diag([4.0, -1.0]), np.array([[4.0, 1.0], [0.0, 4.0]])])
+def test_kernel_refuses_non_spd_P(bad):
+    x = np.array([62.0, 41.0])
+    with pytest.raises(ValueError):
+        consistency_stat(x, bad, SUM100)
+    with pytest.raises(ValueError):
+        project_hard(x, bad, SUM100)
+    with pytest.raises(ValueError):
+        project_soft(x, bad, SUM100, 1.0)
+
+
+def test_duplicated_constraint_row_uses_rank_and_projects_identically():
+    """Rows(A) = 2 but rank(A) = 1: the reduced system is m1 + m2 = 100 and the chi-square
+    dof is 1. Projection and statistic must match the single-row constraint."""
+    cs = ConstraintSet("dup", np.array([[1.0, 1.0], [1.0, 1.0]]), np.array([100.0, 100.0]), "dup")
+    assert cs.dof == 2 and cs.rank == 1
+    A_r, b_r = reduced(cs)
+    assert A_r.shape == (1, 2)
+    x = np.array([62.0, 41.0]); P = np.diag([4.0, 4.0])
+    xs, Ps = project_hard(x, P, cs)
+    np.testing.assert_allclose(xs, [60.5, 39.5])
+    assert consistency_stat(x, P, cs) == pytest.approx(consistency_stat(x, P, SUM100))
+    se = reconcile(x, P, cs, mode="hard")
+    assert se.status is Status.OK and se.residual_pre.shape == (2,)

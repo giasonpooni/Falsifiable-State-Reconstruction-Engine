@@ -46,17 +46,21 @@ is 0.55 ± 0.18 vs 0.92 ± 0.44 kg.
 
 | Module | Responsibility |
 |---|---|
-| `set_lcm/schema.py` | `Observation`, `ConstraintSet`, `StateEstimate` envelope with `status`, unprojected state, correction, residuals pre/post, consistency stat. |
-| `set_lcm/simulator.py` | Two-reservoir material transfer. Hidden `m`, hidden leak; public commanded pump rate and declared initial total. |
-| `set_lcm/degrade.py` | Noise, random dropout, sensor blackout, undeclared bias, quantization (declared into `R`), uniform arrival delay. Seed-controlled. |
-| `set_lcm/estimators.py` | Hold-last baseline; linear Kalman filter with a *diagonal* Q (closure is the constraint's declared claim, not the filter's). Delay handled as forward prediction from the last arrived state. |
-| `set_lcm/lcm.py` | Hard (KKT closed form) and soft (penalty) linear-equality projection weighted by `P⁻¹`; feasibility check; χ² consistency statistic; `reconcile()` that never mutates its input. |
-| `set_lcm/runner.py` | Runs a (scenario, estimator) pair step by step; debounced consistency flag; optional guard that *holds* projection and reports `MODEL_INCONSISTENT`. |
-| `set_lcm/evaluate.py` | RMSE (overall and windowed), 95 % interval coverage, residuals, correction magnitude, false alarms, detection delay, solver failures, latency. |
+| `src/set_lcm/schema/` | `Observation`, `ConstraintSet` (`dof` = rows, `rank` = χ² dof), `StateEstimate` envelope with `status`, unprojected state, correction, residuals pre/post, consistency stat. |
+| `src/set_lcm/lcm/` | Hard (KKT closed form) and soft (penalty) linear-equality projection weighted by `P⁻¹`; feasibility check and reduction of dependent rows; SPD / singularity guards; χ² consistency statistic; `reconcile()` that never mutates its input. |
+| `src/set_lcm/testbed/simulator.py` | Two-reservoir material transfer. Hidden `m`, hidden leak; public commanded pump rate and declared initial total. |
+| `src/set_lcm/testbed/degrade.py` | Noise, random dropout, sensor blackout, undeclared bias, quantization (declared into `R`), arrival delay written into `arrival_t`. Seed-controlled. |
+| `src/set_lcm/testbed/estimators.py` | Hold-last baseline; linear Kalman filter with a *diagonal* Q (closure is the constraint's declared claim, not the filter's). Both start from a declared prior and report by predicting forward from the last *arrived* observation. |
+| `src/set_lcm/testbed/runner.py` | Runs a (scenario, estimator) pair step by step, ingesting observations only once `arrival_t ≤ t_k`; debounced consistency flag; optional guard that *holds* projection and reports `MODEL_INCONSISTENT`. |
+| `src/set_lcm/testbed/evaluate.py` | RMSE (overall and windowed), 95 % interval coverage, residuals, correction magnitude, false alarms, detection delay, solver failures, latency. Only reader of truth. |
+| `src/set_lcm/experiments/phase1.py` | The scenario grid, estimator specs, multi-seed aggregation and report writer; `run_experiments.py` is a thin CLI over it. |
 
 ## Scenarios
 
-All five declare the same constraint, `m1 + m2 = 100 kg`, version `closed-boundary-v1`.
+All six declare the same constraint, `m1 + m2 = 100 kg`, version `closed-boundary-v1`.
+The estimator is initialised from a *declared* prior (mean and std, stated per
+scenario), never from the simulator's state, and it may use an observation only
+once `Observation.arrival_t` has passed.
 
 | Scenario | Constraint is | What it tests |
 |---|---|---|
@@ -65,6 +69,7 @@ All five declare the same constraint, `m1 + m2 = 100 kg`, version `closed-bounda
 | `closed_blackout_noisy_valve` | true | Sensor 2 dark for 300 steps while an unmodeled valve moves mass at random (pure observability loss). Does the constraint carry sensor 1's information into the dark reservoir? |
 | `leak_stale_constraint` | **stale** from step 300 | 10 kg leaks out. Does hard projection make the estimate confidently wrong? Does the guard notice and stop enforcing? |
 | `bias_quant_delay` | true, evidence is not | Sensor 1 gains an undeclared +3 kg bias. Does the guard flag it? Note it cannot tell bias from leak. |
+| `closed_wrong_prior` | true | The declared initial fill is 74/26 kg against a truth of 70/30 (5 kg prior std). Is the wrong prior forgotten from the evidence? (KF: 0.60 kg while settling → 0.23 steady; hold-last stays at ~2.0.) |
 
 Estimator variants: `hold_last`, `kf`, `kf+soft(1/λ = 4 kg²)`, `kf+hard`, `kf+hard+guard`.
 
@@ -105,8 +110,17 @@ the first round of work in this repository addresses them.
 - **The guard has a dead band.** A declared-total error of 0.5–1.5 kg already makes
   hard projection worse than the unconstrained filter and does not trip the guard.
   The leak (10 kg) and bias (3 kg) scenarios only show the easy regime.
-- **Two truth leaks.** The estimator is initialised from the simulator's exact initial
-  mass, and `Observation.arrival_t` is never consumed (delay is passed out of band).
+- **Two truth leaks, now closed.** The estimator used to be initialised from the
+  simulator's exact initial mass and delay was passed out of band. It is now
+  initialised from a declared prior (`closed_wrong_prior` exercises a wrong one), and
+  the runner ingests an observation only once its `arrival_t` has passed — a test
+  corrupts every observation sampled after step *k − d* and checks that reports up to
+  *k* are bit-identical.
+- **The kernel now refuses what it cannot interpret.** A rank-deficient or indefinite
+  `P`, or a singular `A P Aᵀ`, raises instead of yielding `stat = 0.0` with `status =
+  ok` (which is what a hard-projected covariance fed back in used to produce).
+  Dependent constraint rows are reduced to an independent set and the χ² dof is
+  `rank(A)`, not `rows(A)`.
 - **Not evidence of anything:** "no solver failures" (nothing can emit
   `not_converged` yet); the latency column (interpreter overhead on 2×2 matrices on
   one laptop); determinism beyond same-process; the soft variant as a meaningfully

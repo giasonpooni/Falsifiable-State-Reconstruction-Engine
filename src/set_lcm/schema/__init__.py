@@ -46,7 +46,13 @@ class ConstraintSet:
 
     @property
     def dof(self) -> int:
-        return int(self.A.shape[0])
+        """Number of declared rows. Use `rank` for chi-square degrees of freedom."""
+        return int(np.atleast_2d(self.A).shape[0])
+
+    @property
+    def rank(self) -> int:
+        """Number of independent constraints; the chi-square dof of the consistency statistic."""
+        return int(np.linalg.matrix_rank(np.atleast_2d(np.asarray(self.A, dtype=float))))
 
 
 @dataclass
@@ -62,5 +68,5 @@ class StateEstimate:
     residual_pre: np.ndarray | None  # A x_unprojected - b
     residual_post: np.ndarray | None # A x - b
     correction: np.ndarray | None    # x - x_unprojected
-    consistency_stat: float | None   # r^T (A P A^T)^-1 r, chi-square(dof) under "same system"
+    consistency_stat: float | None   # r^T (A P A^T)^-1 r, chi-square(rank A) under "same system"
     consistency_threshold: float | None

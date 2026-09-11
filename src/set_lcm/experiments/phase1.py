@@ -1,7 +1,7 @@
-"""Phase 1 experiment grid: 5 scenarios x 5 estimator variants x N seeds.
+"""Phase 1 experiment grid: 6 scenarios x 5 estimator variants x N seeds.
 
 Every scenario declares the same constraint (closed boundary, m1 + m2 = 100 kg).
-In three of them that constraint is true throughout; in the other two something
+In four of them that constraint is true throughout; in the other two something
 the constraint author did not know about makes it stale or misleading.
 
 Each scenario is run over N_SEEDS independent seeds (simulation and degradation
@@ -34,6 +34,10 @@ class Scenario:
     fault_onset: int | None
     windows: dict[str, tuple[int, int]]
     note: str
+    # What the estimator is told about the initial state. None means "the declared
+    # initial fill equals the simulator's" -- a scenario choice, stated here, not a leak.
+    declared_m0: tuple[float, float] | None = None
+    declared_m0_std: float = 5.0
 
 
 SCENARIOS: dict[str, Scenario] = {
@@ -80,6 +84,16 @@ SCENARIOS: dict[str, Scenario] = {
         note="Closed system; sensor 1 acquires an undeclared +3 kg bias at step 200; 0.5 kg "
              "quantization; 5-step arrival delay. Constraint is TRUE but the evidence is not.",
     ),
+    "closed_wrong_prior": Scenario(
+        sim=SimConfig(seed=SEED),
+        deg=DegradeConfig(seed=SEED + 6, dropout_p=0.05),
+        fault_onset=None,
+        windows={"settle": (0, 50), "steady": (300, 600)},
+        declared_m0=(74.0, 26.0), declared_m0_std=5.0,
+        note="Closed system as closed_noise, but the estimator is initialised from a DECLARED "
+             "initial fill of 74/26 kg (truth 70/30) with 5 kg prior std. Constraint is TRUE; "
+             "the prior is wrong and has to be forgotten from the evidence.",
+    ),
 }
 
 SPECS = [
@@ -98,6 +112,12 @@ def constraint_for(truth) -> ConstraintSet:
         b=np.array([truth.total0]),
         description=f"m1 + m2 = {truth.total0:g} kg (boundary assumed closed)",
     )
+
+
+def declared_prior(sc: Scenario, sim: SimConfig) -> tuple[tuple[float, float], float]:
+    """What the estimator is told about the initial state for this scenario."""
+    m0 = sc.declared_m0 if sc.declared_m0 is not None else sim.m0
+    return m0, sc.declared_m0_std
 
 
 def _ms(vals) -> dict | None:
@@ -140,12 +160,14 @@ def run_scenario(name: str, n_seeds: int = N_SEEDS, specs=SPECS) -> tuple[dict, 
         truth = simulate(sim)
         obs = observe(truth, deg)
         cs = constraint_for(truth)
+        m0, m0_std = declared_prior(sc, sim)
         per_seed.append({
-            spec.name: evaluate(run(truth, obs, cs, spec, sim.m0, deg.delay_steps), truth, sc.fault_onset, sc.windows)
+            spec.name: evaluate(run(truth, obs, cs, spec, m0, m0_std), truth, sc.fault_onset, sc.windows)
             for spec in specs
         })
     meta = {"sim": asdict(sc.sim), "deg": asdict(sc.deg), "constraint": "closed-boundary-v1",
             "fault_onset": sc.fault_onset, "windows": sc.windows, "note": sc.note,
+            "declared_m0": sc.declared_m0, "declared_m0_std": sc.declared_m0_std,
             "n_seeds": n_seeds, "seed_stride": SEED_STRIDE}
     return aggregate(per_seed), per_seed, meta
 
