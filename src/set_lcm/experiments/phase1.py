@@ -213,6 +213,20 @@ def run_scenario(name: str, n_seeds: int = N_SEEDS, specs=SPECS) -> tuple[dict, 
     return aggregate(per_seed), per_seed, meta
 
 
+def iter_runs(name: str, spec: EstimatorSpec, n_seeds: int = N_SEEDS):
+    """Yield (seed_index, truth, obs, cs, RunResult) for one scenario and one estimator spec.
+    Used by the calibration and sweep modules, which need the raw per-step record."""
+    sc = SCENARIOS[name]
+    for i in range(n_seeds):
+        sim = replace(sc.sim, seed=sc.sim.seed + SEED_STRIDE * i)
+        deg = replace(sc.deg, seed=sc.deg.seed + SEED_STRIDE * i)
+        truth = simulate(sim)
+        obs = observe(truth, deg)
+        cs = constraint_for(truth)
+        m0, m0_std = declared_prior(sc, sim)
+        yield i, truth, obs, cs, run(truth, obs, cs, spec, m0, m0_std)
+
+
 def fms(d: dict | None, nd: int = 2) -> str:
     return "—" if d is None else f"{d['mean']:.{nd}f} ± {d['sd']:.{nd}f}"
 

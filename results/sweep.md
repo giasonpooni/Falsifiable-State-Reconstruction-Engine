@@ -1,0 +1,51 @@
+# Fault-magnitude sweep
+
+20 seeds per point. Cells are (RMSE kg / cov95 / nz) over the fault window; det = seeds flagged within 100 steps of onset; held = mean steps the guard reported model_inconsistent. nz = RMS normalised error (1.0 calibrated, >1 over-confident).
+
+## declared_total_error
+
+The declared total is wrong by delta. The joint hypothesis is false from step 0 for delta > 0.
+
+| declared_total_error [kg] | kf (RMSE/cov/nz) | kf+hard (RMSE/cov/nz) | kf+hard+guard (RMSE/cov/nz) | kf+hard+guard det | guard held |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 0.23 / 0.99 / 0.73 | 0.16 / 0.98 / 0.72 | 0.16 / 0.98 / 0.72 | — | 0 |
+| 0.25 | 0.23 / 0.99 / 0.73 | 0.21 / 0.97 / 0.92 | 0.21 / 0.97 / 0.92 | 0/20 | 0 |
+| 0.5 | 0.23 / 0.99 / 0.73 | 0.30 / 0.88 / 1.33 | 0.30 / 0.88 / 1.33 | 0/20 | 0 |
+| 1 | 0.23 / 0.99 / 0.73 | 0.53 / 0.35 / 2.34 | 0.52 / 0.40 / 2.28 | 3/20 | 38 |
+| 1.5 | 0.23 / 0.99 / 0.73 | 0.77 / 0.03 / 3.41 | 0.54 / 0.56 / 2.32 | 13/20 | 289 |
+| 2 | 0.23 / 0.99 / 0.73 | 1.01 / 0.00 / 4.50 | 0.29 / 0.94 / 1.04 | 20/20 | 524 |
+| 4 | 0.23 / 0.99 / 0.73 | 2.01 / 0.00 / 8.91 | 0.23 / 0.99 / 0.73 | 20/20 | 592 |
+
+## sensor_bias
+
+Undeclared sensor-1 bias from step 200, with 0.5 kg quantization and 5-step delay.
+
+| sensor_bias [kg] | kf (RMSE/cov/nz) | kf+hard (RMSE/cov/nz) | kf+hard+guard (RMSE/cov/nz) | kf+hard+guard det | guard held |
+| --- | --- | --- | --- | --- | --- |
+| 0.5 | 0.41 / 0.88 / 1.22 | 0.29 / 0.91 / 1.23 | 0.30 / 0.91 / 1.24 | 0/20 | 1 |
+| 1 | 0.71 / 0.59 / 2.09 | 0.50 / 0.45 / 2.11 | 0.52 / 0.46 / 2.14 | 1/20 | 9 |
+| 2 | 1.34 / 0.52 / 3.95 | 0.95 / 0.08 / 3.98 | 1.29 / 0.44 / 4.02 | 18/20 | 285 |
+| 3 | 1.98 / 0.52 / 5.85 | 1.41 / 0.05 / 5.88 | 1.97 / 0.50 / 5.85 | 20/20 | 362 |
+
+## leak_rate
+
+Leak from reservoir 2 over steps 300-500; total lost = 200 x rate.
+
+| leak_rate [kg/s] | kf (RMSE/cov/nz) | kf+hard (RMSE/cov/nz) | kf+hard+guard (RMSE/cov/nz) | kf+hard+guard det | guard held |
+| --- | --- | --- | --- | --- | --- |
+| 0.005 | 0.24 / 0.99 / 0.75 | 0.41 / 0.65 / 1.81 | 0.41 / 0.66 / 1.81 | 0/20 | 1 |
+| 0.01 | 0.30 / 0.96 / 0.94 | 0.77 / 0.30 / 3.44 | 0.52 / 0.64 / 2.28 | 0/20 | 101 |
+| 0.02 | 0.47 / 0.77 / 1.47 | 1.52 / 0.17 / 6.77 | 0.59 / 0.65 / 2.37 | 3/20 | 183 |
+| 0.05 | 1.07 / 0.60 / 3.35 | 3.80 / 0.09 / 16.87 | 1.12 / 0.55 / 3.87 | 20/20 | 235 |
+
+## uncertain_total
+
+b = total0 + N(0, sigma_b^2) per seed. The guard tests the constraint as if exact; the soft variant uses the declared uncertainty as the pseudo-measurement variance.
+
+| uncertain_total [kg (sigma_b)] | kf (RMSE/cov/nz) | kf+hard (RMSE/cov/nz) | kf+hard+guard (RMSE/cov/nz) | kf+soft(lam=1/sigma_b^2) (RMSE/cov/nz) | kf+hard+guard det | kf+soft(lam=1/sigma_b^2) det | guard held |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.1 | 0.23 / 0.99 / 0.73 | 0.17 / 0.98 / 0.75 | 0.17 / 0.98 / 0.75 | 0.17 / 0.98 / 0.73 | 0/20 | 0/20 | 0 |
+| 0.3 | 0.23 / 0.99 / 0.73 | 0.21 / 0.96 / 0.92 | 0.21 / 0.96 / 0.92 | 0.19 / 0.99 / 0.74 | 0/20 | 0/20 | 2 |
+| 0.5 | 0.23 / 0.99 / 0.73 | 0.26 / 0.88 / 1.15 | 0.26 / 0.89 / 1.13 | 0.20 / 0.99 / 0.73 | 0/20 | 0/20 | 11 |
+| 1 | 0.23 / 0.99 / 0.73 | 0.41 / 0.68 / 1.84 | 0.33 / 0.81 / 1.43 | 0.22 / 0.99 / 0.72 | 4/20 | 4/20 | 72 |
+| 2 | 0.23 / 0.99 / 0.73 | 0.75 / 0.37 / 3.34 | 0.41 / 0.67 / 1.75 | 0.23 / 0.99 / 0.72 | 10/20 | 10/20 | 183 |

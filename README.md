@@ -35,7 +35,18 @@ uv run --python 3.13 --dev pytest -q
 uv run --python 3.13 python run_experiments.py
 ```
 
-Results land in `results/summary.md` and `results/summary.json`. Every scenario is
+```bash
+uv run --python 3.13 python -m set_lcm.experiments.calibration
+```
+
+```bash
+uv run --python 3.13 python -m set_lcm.experiments.sweep
+```
+
+The grid writes `results/summary.{md,json}`; the other two write
+`results/calibration.{md,json}` and `results/sweep.{md,json}` (about ten minutes
+together). Full-size runs are also wrapped in tests marked `slow`, which the default
+`pytest` skips; `uv run --python 3.13 --dev pytest -m slow` runs them. Every scenario is
 run over 20 seeds (simulation and degradation seeds offset together); tables report
 mean ± sd across seeds and the JSON keeps every per-seed metric. A single seed is a
 realization, not a result: the first single-seed run of the noisy-valve scenario put
@@ -54,6 +65,8 @@ is 0.55 ± 0.18 vs 0.92 ± 0.44 kg.
 | `src/set_lcm/testbed/runner.py` | Runs a (scenario, estimator) pair step by step, ingesting observations only once `arrival_t ≤ t_k`; debounced consistency flag; optional guard that *holds* projection and reports `MODEL_INCONSISTENT`. |
 | `src/set_lcm/testbed/evaluate.py` | RMSE (overall and windowed), 95 % interval coverage, residuals, correction magnitude, false alarms, detection delay, solver failures, latency. Only reader of truth. |
 | `src/set_lcm/experiments/phase1.py` | The scenario grid, estimator specs, multi-seed aggregation and report writer; `run_experiments.py` is a thin CLI over it. |
+| `src/set_lcm/experiments/calibration.py` | In-loop null of the consistency statistic (mean, tail quantiles, empirical vs nominal exceedance, autocorrelation time) and a threshold × debounce sweep of the guard. |
+| `src/set_lcm/experiments/sweep.py` | Fault-magnitude sweep on four axes (declared-total error, sensor bias, leak rate, uncertain declared total with soft λ = 1/σ_b²). |
 
 ## Scenarios
 
@@ -109,12 +122,19 @@ nz is the RMS normalised error eᵢ/σᵢ: 1.0 when calibrated, above 1 over-con
   the whole-run cov95 column (0.67, 0.36, 0.53) hides that. In the bias scenario
   kf+hard has the *lowest* post-bias RMSE of any variant and the worst calibration —
   RMSE alone would pick the wrong estimator.
-- **The consistency statistic is not χ²(1) in the loop.** Its steady-state mean is
-  ≈0.42, deflated because the diagonal Q asserts sum-direction process noise that
-  the closed simulator never generates; the same shows as nz = 0.73 for the
-  unconstrained KF in `closed_noise` (under-confident by ~1.4×). The pre-fault count
-  of one flagged step in 6,000 is therefore a property of a deflated statistic, not
-  of the guard.
+- **The consistency statistic is not χ²(1) in the loop.** `results/calibration.md`
+  pools it from the filter's own reported P over the windows where the joint
+  hypothesis holds: mean 0.46–0.64 instead of 1.0, q999 between 5.5 and 9.8 instead of
+  10.8, and lag-1 autocorrelation 0.76–0.94 — an integrated autocorrelation time of
+  7–30 steps, so the 12,000 samples in `closed_noise` are about 400 independent ones.
+  The deflation comes from the diagonal Q asserting sum-direction process noise that
+  the closed simulator never generates (the same thing shows as nz = 0.73 for the
+  unconstrained KF). The pre-fault count of one flagged step in 6,000 is therefore a
+  property of a deflated, autocorrelated statistic, not of the guard. Sweeping the
+  threshold on the leak scenario (q ∈ {0.95, 0.99, 0.999} × debounce ∈ {1, 3, 10}):
+  every setting detects the 10 kg leak in 20/20 seeds; what the setting buys is
+  pre-onset false-alarm rate against delay, from 1.6e-2 per step at a median 44-step
+  delay (q = 0.95, debounce 1) to 0 at 73 steps (q = 0.999, debounce 10).
 - **A single sum constraint is blind to the difference direction.** For
   `A = [1, 1]` and the pump or valve fault along `(−1, 1)`, the detectability
   `d(f) = fᵀAᵀ(APAᵀ)⁻¹Af` is exactly 0 for every estimator in every seed (`d(f)`
@@ -127,10 +147,25 @@ nz is the RMS normalised error eᵢ/σᵢ: 1.0 when calibrated, above 1 over-con
   which has a null(A) component whenever `P` is anisotropic. In the pump-bias
   blackout the null-direction error goes 1.70 → 1.41 under hard projection; in
   `closed_noise`, where `P` is nearly isotropic, it is unchanged (0.23 → 0.23).
-- **The guard has a dead band.** A declared-total error of 0.5–1.5 kg already makes
-  hard projection worse than the unconstrained filter and does not trip the guard.
-  The leak (10 kg) and bias (3 kg) scenarios only show the easy regime. (Measured
-  during review; the sweep that reproduces it in-repo is the next stage.)
+- **The guard has a dead band, and it sits at 1–3σ of the constraint's own
+  uncertainty.** From `results/sweep.md` (20 seeds, steady window; kf reads
+  0.23 / 0.99 / 0.73 throughout): with the declared total wrong by 0.25 kg, hard
+  projection still helps (0.21 / 0.97 / 0.92); at 0.5 kg it is already worse than the
+  unconstrained filter (0.30 / 0.88 / 1.33) and the guard fires in 0/20 seeds; at 1 kg
+  hard reads 0.53 / 0.35 / 2.34 and the guard fires in 3/20; only from 2 kg does the
+  guard catch it in 20/20 and hand back the unconstrained answer (0.29 / 0.94 / 1.04).
+  The sum's own uncertainty is A P Aᵀ ≈ 0.2 kg², i.e. σ ≈ 0.45 kg, so the dead band is
+  the 1–3σ region where a wrong constraint is neither negligible nor rejectable. The
+  leak axis has the same shape: a 1 kg leak (0.005 kg/s) already costs hard projection
+  0.41 / 0.65 / 1.81 against kf's 0.24 / 0.99 / 0.75, with the guard silent. The 10 kg
+  leak and 3 kg bias of the main grid are the easy regime.
+- **When the constraint's uncertainty is declared, use it.** On the `uncertain_total`
+  axis (b = total0 + N(0, σ_b²) drawn per seed) the soft mode with λ = 1/σ_b² — the
+  pseudo-measurement whose variance *is* the declared uncertainty — stays calibrated
+  at every σ_b (cov95 0.98–0.99, nz 0.72–0.75) at or below kf's RMSE, while hard
+  projection and the guard, which treat the constraint as exact, degrade to
+  0.75 / 0.37 / 3.34 and 0.41 / 0.67 / 1.75 at σ_b = 2 kg. An arbitrary λ is not a
+  mode; a declared σ_b is.
 - **Two truth leaks, now closed.** The estimator used to be initialised from the
   simulator's exact initial mass and delay was passed out of band. It is now
   initialised from a declared prior (`closed_wrong_prior` exercises a wrong one), and

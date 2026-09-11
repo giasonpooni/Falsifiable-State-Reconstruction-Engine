@@ -17,3 +17,5 @@ packages = ["src/set_lcm"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["slow: full-size experiment runs (minutes); select with -m slow"]
+addopts = "-m 'not slow'"
