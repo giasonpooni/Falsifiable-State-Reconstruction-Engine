@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .schema import Observation
+from ..schema import Observation
 from .simulator import Truth
 
 SOURCE_IDS = ("sensor_m1", "sensor_m2")

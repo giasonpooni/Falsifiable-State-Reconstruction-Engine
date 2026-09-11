@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .schema import Observation
+from ..schema import Observation
 from .simulator import MODEL_VERSION
 
 B = np.array([-1.0, 1.0])   # commanded transfer moves mass from reservoir 1 to reservoir 2

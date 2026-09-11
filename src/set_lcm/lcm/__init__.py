@@ -1,4 +1,4 @@
-"""Lattice-Calibration Module, Phase 1 kernel: linear equality constraints only.
+"""Constraint-reconciliation kernel, Phase 1: linear equality constraints only.
 
 Two formulations, kept explicitly separate because they make different promises.
 
@@ -30,7 +30,12 @@ from __future__ import annotations
 
 import numpy as np
 
-from .schema import ConstraintSet, StateEstimate, Status
+from ..schema import ConstraintSet, StateEstimate, Status
+
+__all__ = [
+    "chi2_quantile", "is_feasible", "residual", "consistency_stat",
+    "project_hard", "project_soft", "reconcile",
+]
 
 # Upper quantiles of chi^2(dof). Enough for Phase 1; scipy would replace this table.
 _CHI2 = {

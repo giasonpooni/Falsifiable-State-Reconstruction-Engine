@@ -8,10 +8,10 @@ from functools import lru_cache
 import numpy as np
 import pytest
 
-from run_experiments import SCENARIOS, SPECS, constraint_for, run_scenario
-from set_lcm.degrade import observe
-from set_lcm.runner import run
-from set_lcm.simulator import simulate
+from set_lcm.experiments.phase1 import SCENARIOS, SPECS, constraint_for, run_scenario
+from set_lcm.testbed.degrade import observe
+from set_lcm.testbed.runner import run
+from set_lcm.testbed.simulator import simulate
 
 TEST_SEEDS = 8
 

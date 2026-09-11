@@ -10,8 +10,8 @@ from collections import Counter
 
 import numpy as np
 
+from ..schema import Status
 from .runner import RunResult
-from .schema import Status
 from .simulator import Truth
 
 

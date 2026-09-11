@@ -9,9 +9,9 @@ from time import perf_counter
 
 import numpy as np
 
+from ..lcm import chi2_quantile, consistency_stat, reconcile
+from ..schema import ConstraintSet, Observation, Status
 from .estimators import ESTIMATORS, KFConfig
-from .lcm import chi2_quantile, consistency_stat, reconcile
-from .schema import ConstraintSet, Observation, Status
 from .simulator import Truth
 
 
