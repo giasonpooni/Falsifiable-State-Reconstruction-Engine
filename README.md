@@ -44,8 +44,8 @@ uv run --python 3.13 python -m set_lcm.experiments.sweep
 ```
 
 The grid writes `results/summary.{md,json}`; the other two write
-`results/calibration.{md,json}` and `results/sweep.{md,json}` (about ten minutes
-together). Full-size runs are also wrapped in tests marked `slow`, which the default
+`results/calibration.{md,json}` and `results/sweep.{md,json}` (about a quarter of an
+hour together). Full-size runs are also wrapped in tests marked `slow`, which the default
 `pytest` skips; `uv run --python 3.13 --dev pytest -m slow` runs them.
 
 `results/` is a verified artifact, not a hand-committed file: the slow test
@@ -67,15 +67,15 @@ is 0.55 ± 0.18 vs 0.92 ± 0.44 kg.
 |---|---|
 | `src/set_lcm/schema/` | `Observation`, `ConstraintSet` (`dof` = rows, `rank` = χ² dof), `StateEstimate` envelope with `status`, unprojected state, correction, residuals pre/post, consistency stat. |
 | `src/set_lcm/lcm/` | Hard (KKT closed form) and soft (penalty) linear-equality projection weighted by `P⁻¹`; feasibility check and reduction of dependent rows; SPD / singularity guards; χ² consistency statistic; `reconcile()` that never mutates its input. |
-| `src/set_lcm/testbed/simulator.py` | Two-reservoir material transfer. Hidden `m`, hidden leak; public commanded pump rate and declared initial total. |
+| `src/set_lcm/testbed/simulator.py` | Two-reservoir material transfer. Hidden `m`, hidden leak, hidden actual pump rate; public commanded pump rate and declared initial total. |
 | `src/set_lcm/testbed/degrade.py` | Noise, random dropout, sensor blackout, undeclared bias, quantization (declared into `R`), arrival delay written into `arrival_t`. Seed-controlled. |
-| `src/set_lcm/testbed/estimators.py` | Hold-last baseline; linear Kalman filter with a *diagonal* Q (closure is the constraint's declared claim, not the filter's). Both start from a declared prior and report by predicting forward from the last *arrived* observation. The filter records, per ingested step and sensor, the innovation, its variance and the normalised innovation; hold-last records NaN. |
+| `src/set_lcm/testbed/estimators.py` | Hold-last baseline; linear Kalman filter with a *diagonal* Q (closure is the constraint's declared claim, not the filter's); an augmented-state filter `kf_aug` with x = [m1, m2, α, L] — pump scale and boundary flux as states with their own uncertainty — run as a time-varying *linear* KF (`AugConfig`). All start from a declared prior and report by predicting forward from the last *arrived* observation. The filters record, per ingested step and sensor, the innovation, its variance and the normalised innovation; hold-last records NaN. |
 | `src/set_lcm/testbed/cusum.py` | Per-sensor two-sided CUSUM on the normalised innovation (`CusumConfig(k=0.5, h=8.0)`): the evidence side's own detector, reading no constraint. |
-| `src/set_lcm/testbed/runner.py` | Runs a (scenario, estimator) pair step by step, ingesting observations only once `arrival_t ≤ t_k`; debounced consistency flag; optional guard that *holds* projection and reports `MODEL_INCONSISTENT`; runs the CUSUM on the ingest clock and stamps its alarms at the report step of ingestion. |
-| `src/set_lcm/testbed/evaluate.py` | RMSE (overall and windowed), 95 % interval coverage, residuals, correction magnitude, false alarms and detection delay for the constraint flag and per sensor for the CUSUM, mean normalised innovation per window, solver failures, latency. Only reader of truth. |
+| `src/set_lcm/testbed/runner.py` | Runs a (scenario, estimator) pair step by step, ingesting observations only once `arrival_t ≤ t_k`; debounced consistency flag; optional guard that *holds* projection and reports `MODEL_INCONSISTENT`; runs the CUSUM on the ingest clock and stamps its alarms at the report step of ingestion. Reconciliation always acts on the mass marginal; an augmented estimator's extra states go to `RunResult.extra` with one debounced flag each (\|α̂ − 1\|/σ_α > 3.29, \|L̂\|/σ_L > 3.29). |
+| `src/set_lcm/testbed/evaluate.py` | RMSE (overall and windowed), 95 % interval coverage, residuals, correction magnitude, false alarms and detection delay for the constraint flag, per sensor for the CUSUM and per parameter for the α / L flags, α error against the hidden pump-rate ratio over pump-on steps, L error against the hidden leak, mean normalised innovation per window, solver failures, latency. Only reader of truth. |
 | `src/set_lcm/experiments/phase1.py` | The scenario grid, estimator specs, multi-seed aggregation and report writer; `run_experiments.py` is a thin CLI over it. |
 | `src/set_lcm/experiments/calibration.py` | In-loop null of the consistency statistic (mean, tail quantiles, empirical vs nominal exceedance, autocorrelation time), a threshold × debounce sweep of the guard, and the null of the CUSUM channel over the same windows for h ∈ {4, 6, 8, 10}. |
-| `src/set_lcm/experiments/sweep.py` | Fault-magnitude sweep on four axes (declared-total error, sensor bias, leak rate, uncertain declared total with soft λ = 1/σ_b²). |
+| `src/set_lcm/experiments/sweep.py` | Fault-magnitude sweep on four axes (declared-total error, sensor bias, leak rate, uncertain declared total with soft λ = 1/σ_b²); `kf_aug` runs on the first and third. |
 
 ## Scenarios
 
@@ -93,7 +93,8 @@ once `Observation.arrival_t` has passed.
 | `bias_quant_delay` | true, evidence is not | Sensor 1 gains an undeclared +3 kg bias. Does the guard flag it? Note it cannot tell bias from leak. |
 | `closed_wrong_prior` | true | The declared initial fill is 74/26 kg against a truth of 70/30 (5 kg prior std). Is the wrong prior forgotten from the evidence? (KF: 0.60 kg while settling → 0.23 steady; hold-last stays at ~2.0.) |
 
-Estimator variants: `hold_last`, `kf`, `kf+soft(1/λ = 4 kg²)`, `kf+hard`, `kf+hard+guard`.
+Estimator variants: `hold_last`, `kf`, `kf+soft(1/λ = 4 kg²)`, `kf+hard`, `kf+hard+guard`,
+and `kf_aug` (augmented state, never projected; see "Seeing the null space").
 
 ## What a flag means
 
@@ -158,6 +159,80 @@ the censored median delay):
   correct prior (`closed_noise`) reads 0 / 0, and one alarm in 12,000 sensor-steps is
   of the same order as the channel's measured null rate (4.3e-5 per sensor-step).
 
+## Seeing the null space
+
+The two faults the sum constraint cannot see — a mis-scaled pump, which moves mass along
+null(A), and a boundary flux, which makes the constraint stale — are not fixed by a better
+test on the same two states. They are fixed by more state. `kf_aug` carries
+x = [m1, m2, α, L]: α scales the commanded pump rate and L is a flux out of reservoir 2,
+
+    m1' = m1 − α u dt,   m2' = m2 + α u dt − L dt,   α' = α,   L' = L,
+
+which is linear in the state for the known commanded u, so it is a time-varying linear
+Kalman filter, not an EKF. Its priors are declared, not tuned: α ~ N(1, 0.1²),
+L ~ N(0, 0.02²), random walks of 1e-3 and 2e-3 kg/s per step, and the same diagonal
+0.05 kg mass process noise as `kf` (`AugConfig`). The reconciliation stage sees only the
+mass marginal (x[:2], P[:2, :2]) and, at mode None, computes the consistency statistic
+but never projects; α and L are *outputs* with their own σ, and the runner raises a flag
+on each when it departs from its no-fault value by more than 3.29 σ (two-sided 0.001)
+for three consecutive reports. The evaluator scores α against the hidden parameter
+ratio over the steps where the pump is commanded on and L against the hidden leak. From
+`results/summary.md` (20 seeds; triples are RMSE kg / cov95 / nz over the named window):
+
+- **Pump bias during a blackout.** In `closed_blackout_pumpbias` kf_aug reads
+  0.50 / 0.96 / 0.83 over the blackout against kf 1.31 / 0.21 / 2.90 and kf+hard
+  1.00 / 0.02 / 3.75, and 0.43 / 0.97 / 0.88 in recovery against 1.01 / 0.25 / 2.67 and
+  0.89 / 0.06 / 3.61. The null-direction error is 0.53 kg where kf carries 1.70 and hard
+  projection 1.41: the fault the constraint test is structurally blind to (d(f) = 0, and
+  still 0/20 flags on kf_aug's own marginal) is estimated instead of tested for. α̂
+  converges from sensor 1 alone — RMSE against the hidden ratio of 1.2 is 0.084 over the
+  blackout and 0.035 over recovery, σ_α = 0.041 at run end — and the α flag fires in
+  20/20 seeds, but slowly: 0/20 within 100 steps of onset and a median of 146, about when
+  the blackout ends. With 2 kg sensors, one of them dark, a 20 % pump error takes ~150
+  steps to reach 3.29 σ. No false alarms (FA max 0 / 0).
+- **Leak under a stale constraint.** In `leak_stale_constraint` kf_aug reads
+  0.40 / 0.95 / 0.94 over the leak window against kf 1.07 / 0.60 / 3.35, kf+hard
+  3.80 / 0.09 / 16.87 and kf+hard+guard 1.12 / 0.55 / 3.87. It beats kf+hard+guard by a
+  factor of 2.8 and is the only variant that stays calibrated through the leak; L̂ tracks
+  the 0.05 kg/s drain with an RMSE of 0.025 kg/s over the window, onset and shut-off
+  transients included. The L flag fires in 20/20 seeds, 9/20 within 100 steps, median 103
+  — slower than the constraint test (20/20 at 66) and the CUSUM (20/20 at 60), because a
+  0.05 kg/s leak is 3.5 σ_L of the filter's own steady-state L uncertainty (0.0144 kg/s):
+  the flag needs L̂ almost fully converged. The tracking itself does two things the flag
+  does not: the consistency statistic on kf_aug's marginal still rejects the stale
+  constraint in 20/20 seeds at a median 54 steps, and sensor 2's CUSUM goes quiet
+  (1/20, z̄ −0.01 against kf's −0.67) because the prediction no longer lags the drain.
+  On the `leak_rate` axis of `results/sweep.md` the L flag's dead band is *wider* than
+  the guard's — 0/20 seeds at 0.005, 0.01 and 0.02 kg/s (the guard: 0/20, 0/20, 3/20) and
+  9/20 at 0.05 (the guard: 20/20) — but the estimate does not wait for the flag: kf_aug
+  reads 0.30 / 0.99 / 0.74, 0.30 / 0.99 / 0.75 and 0.31 / 0.99 / 0.77 at the three small
+  leaks where the guard reads 0.41 / 0.66 / 1.81, 0.52 / 0.64 / 2.28 and 0.59 / 0.65 / 2.37
+  and even the unconstrained filter degrades to 0.47 / 0.77 / 1.47 at 0.02 kg/s. A 1–4 kg
+  leak that neither test can reject is absorbed by L̂ without a flag, which is the point:
+  the parameter is estimated, not merely tested.
+- **What it costs.** Two extra states are two extra ways to be wrong. On the nominal
+  system (`closed_noise`) kf_aug reads 0.32 / 0.98 / 0.80 in steady state against kf
+  0.23 / 0.99 / 0.73 and kf+hard 0.16 / 0.98 / 0.72: a 40 % RMSE premium for freedom it
+  does not use, still calibrated. In `closed_blackout_noisy_valve` — pure observability
+  loss, no parameter fault — it is *worse* than the unconstrained filter over the 300-step
+  blackout, 1.54 ± 1.39 / 0.89 / 1.12 against kf 0.92 ± 0.44 / 0.73 / 1.67 and kf+hard
+  0.55 / 0.67 / 1.96: L is unobservable while sensor 2 is dark, so m2 is dead-reckoned
+  from the pre-blackout L̂ (σ_L ≈ 0.014 kg/s over 300 steps is ±4 kg). Its intervals admit
+  it (cov95 0.89 against kf's 0.73); the constraint fixes it. In `bias_quant_delay` the α
+  flag fires in 15/20 seeds at a median 57 steps after the +3 kg sensor bias: a 3 kg rise
+  in m1 while the pump is on can only be explained by the model through α, so the flag
+  names a parameter, not a cause — the estimator side cannot tell a biased sensor from a
+  mis-scaled pump, just as the constraint test cannot tell a leak from a bias. Before any
+  onset, in every scenario, neither parameter flags (FA max 0 / 0 throughout).
+- **Plainly.** kf_aug beats kf+hard+guard in both fault scenarios — 0.50 vs 1.02 over the
+  pump-bias blackout, 0.40 vs 1.12 over the leak — and is calibrated there where the guard
+  is not (cov95 0.96 and 0.95 against 0.02 and 0.55). It loses to hard projection on the
+  nominal system (0.32 vs 0.16) and on the noisy valve (1.54 vs 0.55). Neither is "the"
+  estimator; each carries a failure the results name. And its flags are not the
+  constraint's: with the stated priors a 0.05 kg/s leak sits at 3.5 σ_L of the filter's
+  steady-state uncertainty and a 20 % pump error needs ~150 steps to reach 3.29 σ_α, so
+  both are seen but neither is seen quickly, and a 0.02 kg/s leak is not flagged at all.
+
 ## What the Phase 1 results do and do not show
 
 The tables in `results/summary.md` are real, but several of the obvious readings
@@ -204,7 +279,9 @@ nz is the RMS normalised error eᵢ/σᵢ: 1.0 when calibrated, above 1 over-con
   within 100 steps and the censored median delay is "> 550" — while calibration
   collapses: kf in the pump-bias blackout reads 1.31 / 0.21 / 2.90 with error
   0.71 along row(A) versus 1.70 along null(A). For the leak and the sensor bias,
-  d(f) is 4.9 and 4.4 and 20/20 seeds flag.
+  d(f) is 4.9 and 4.4 and 20/20 seeds flag. The answer to that blindness is not a
+  better test but more state: `kf_aug` ("Seeing the null space") estimates the
+  null-direction fault and reads 0.50 / 0.96 / 0.83 in the same window.
 - **The projection is oblique.** The `P⁻¹`-weighted correction moves along `P Aᵀ`,
   which has a null(A) component whenever `P` is anisotropic. In the pump-bias
   blackout the null-direction error goes 1.70 → 1.41 under hard projection; in
@@ -220,7 +297,10 @@ nz is the RMS normalised error eᵢ/σᵢ: 1.0 when calibrated, above 1 over-con
   the 1–3σ region where a wrong constraint is neither negligible nor rejectable. The
   leak axis has the same shape: a 1 kg leak (0.005 kg/s) already costs hard projection
   0.41 / 0.65 / 1.81 against kf's 0.24 / 0.99 / 0.75, with the guard silent. The 10 kg
-  leak and 3 kg bias of the main grid are the easy regime.
+  leak and 3 kg bias of the main grid are the easy regime. `kf_aug`, which never
+  projects, reads 0.32 / 0.98 / 0.80 at every value of the declared-total error: immune
+  to a wrong constraint because it does not use the constraint, and paying for that on
+  the nominal system (0.32 against kf+hard's 0.16 at δ = 0).
 - **When the constraint's uncertainty is declared, use it.** On the `uncertain_total`
   axis (b = total0 + N(0, σ_b²) drawn per seed) the soft mode with λ = 1/σ_b² — the
   pseudo-measurement whose variance *is* the declared uncertainty — stays calibrated

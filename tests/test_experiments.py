@@ -46,13 +46,19 @@ def _single(name, spec_name):
     return run(truth, obs, constraint_for(truth), spec, m0, m0_std)
 
 
-def test_determinism_same_seed_identical_output():
-    a = _single("leak_stale_constraint", "kf+hard+guard")
-    b = _single("leak_stale_constraint", "kf+hard+guard")
+@pytest.mark.parametrize("spec_name", ["kf+hard+guard", "kf_aug"])
+def test_determinism_same_seed_identical_output(spec_name):
+    a = _single("leak_stale_constraint", spec_name)
+    b = _single("leak_stale_constraint", spec_name)
     assert np.array_equal(a.x, b.x)
     assert np.array_equal(a.P, b.P)
     assert np.array_equal(a.stat, b.stat)
     assert a.status == b.status
+    assert (a.extra is None) == (b.extra is None)
+    if a.extra is not None:
+        assert set(a.extra) == set(b.extra)
+        for k in a.extra:
+            assert np.array_equal(a.extra[k], b.extra[k]), k
 
 
 def test_observations_are_used_only_after_they_arrive():

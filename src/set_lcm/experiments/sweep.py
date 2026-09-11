@@ -32,13 +32,16 @@ from .phase1 import DETECT_WITHIN, N_SEEDS, SCENARIOS, SEED, SEED_STRIDE, Scenar
 KF = EstimatorSpec("kf", "kf", None)
 HARD = EstimatorSpec("kf+hard", "kf", "hard")
 GUARD = EstimatorSpec("kf+hard+guard", "kf", "hard", guard=True)
+AUG = EstimatorSpec("kf_aug", "kf_aug", None)     # never projects; alpha and L are outputs with flags
 SOFT_NAME = "kf+soft(lam=1/sigma_b^2)"
 
 AXES: dict[str, dict] = {
     "declared_total_error": {
         "base": "closed_noise", "points": (0.0, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0), "unit": "kg",
-        "window": "steady", "specs": (KF, HARD, GUARD),
-        "note": "The declared total is wrong by delta. The joint hypothesis is false from step 0 for delta > 0.",
+        "window": "steady", "specs": (KF, HARD, GUARD, AUG),
+        "note": "The declared total is wrong by delta. The joint hypothesis is false from step 0 for delta > 0. "
+                "kf_aug reads the constraint only through its consistency flag and never projects, so its row "
+                "is the same at every delta.",
     },
     "sensor_bias": {
         "base": "bias_quant_delay", "points": (0.5, 1.0, 2.0, 3.0), "unit": "kg",
@@ -47,8 +50,9 @@ AXES: dict[str, dict] = {
     },
     "leak_rate": {
         "base": "leak_stale_constraint", "points": (0.005, 0.01, 0.02, 0.05), "unit": "kg/s",
-        "window": "leak_and_after", "specs": (KF, HARD, GUARD),
-        "note": "Leak from reservoir 2 over steps 300-500; total lost = 200 x rate.",
+        "window": "leak_and_after", "specs": (KF, HARD, GUARD, AUG), "aug_flag": "L",
+        "note": "Leak from reservoir 2 over steps 300-500; total lost = 200 x rate. kf_aug L det = seeds whose "
+                f"L flag (|L̂| / σ_L > 3.29, 3 consecutive reports) fired within {DETECT_WITHIN} steps of onset.",
     },
     "uncertain_total": {
         "base": "closed_noise", "points": (0.1, 0.3, 0.5, 1.0, 2.0), "unit": "kg (sigma_b)",
@@ -124,22 +128,29 @@ def render(results: dict[str, dict[float, dict]], n_seeds: int) -> str:
     for axis, pts in results.items():
         cfg = AXES[axis]
         w = cfg["window"]
-        specs = list(next(iter(pts.values())).keys())
+        first = next(iter(pts.values()))
+        specs = list(first.keys())
+        det_specs = [s for s in specs if "guard" in s or "soft" in s]
+        # an augmented estimator gets a flag column on axes that name which flag is the fault's
+        aug_flag = cfg.get("aug_flag")
+        aug_specs = [s for s in specs if aug_flag and first[s].get("aug") is not None]
+        det_heads = [f"{s} det" for s in det_specs] + [f"{s} {aug_flag} det" for s in aug_specs]
         md += [f"## {axis}", "", cfg["note"], "",
                "| " + f"{axis} [{cfg['unit']}]" + " | " + " | ".join(f"{s} (RMSE/cov/nz)" for s in specs) +
-               " | " + " | ".join(f"{s} det" for s in specs if "guard" in s or "soft" in s) + " | guard held |",
-               "| " + " | ".join(["---"] * (1 + len(specs) + sum(1 for s in specs if "guard" in s or "soft" in s) + 1)) + " |"]
+               " | " + " | ".join(det_heads) + " | guard held |",
+               "| " + " | ".join(["---"] * (1 + len(specs) + len(det_heads) + 1)) + " |"]
         for p, agg in pts.items():
             cells = [f"{p:g}"] + [_cell(agg[s], w) for s in specs]
-            dets = []
-            for s in specs:
-                if "guard" in s or "soft" in s:
-                    d = agg[s]["detection"]
-                    dets.append(f"{d['detected_within']}/{d['n']}" if d["applicable"] else "—")
+            dets = [_det(agg[s]["detection"]) for s in det_specs]
+            dets += [_det(agg[s]["aug"]["flags"][aug_flag]["detection"]) for s in aug_specs]
             held = f"{agg['kf+hard+guard']['held_steps']['mean']:.0f}" if "kf+hard+guard" in agg else "—"
             md.append("| " + " | ".join(cells + dets + [held]) + " |")
         md.append("")
     return "\n".join(md)
+
+
+def _det(d: dict) -> str:
+    return f"{d['detected_within']}/{d['n']}" if d["applicable"] else "—"
 
 
 def main(out_dir: Path, n_seeds: int = N_SEEDS, *, quiet: bool = False) -> int:

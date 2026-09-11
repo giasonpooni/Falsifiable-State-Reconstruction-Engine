@@ -1,22 +1,22 @@
 # Fault-magnitude sweep
 
-Generated with Python 3.13.5, numpy 2.5.3 on Windows-11-10.0.26200-SP0; source sha256 93f1aba6cc1e, git 3015a7007f (source dirty). Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.5, numpy 2.5.3 on Windows-11-10.0.26200-SP0; source sha256 e870574f197f, git b05ffed8b2 (source dirty). Latency columns are wall-clock on this machine and are not a claim.
 
 20 seeds per point. Cells are (RMSE kg / cov95 / nz) over the fault window; det = seeds flagged within 100 steps of onset; held = mean steps the guard reported model_inconsistent. nz = RMS normalised error (1.0 calibrated, >1 over-confident).
 
 ## declared_total_error
 
-The declared total is wrong by delta. The joint hypothesis is false from step 0 for delta > 0.
+The declared total is wrong by delta. The joint hypothesis is false from step 0 for delta > 0. kf_aug reads the constraint only through its consistency flag and never projects, so its row is the same at every delta.
 
-| declared_total_error [kg] | kf (RMSE/cov/nz) | kf+hard (RMSE/cov/nz) | kf+hard+guard (RMSE/cov/nz) | kf+hard+guard det | guard held |
-| --- | --- | --- | --- | --- | --- |
-| 0 | 0.23 / 0.99 / 0.73 | 0.16 / 0.98 / 0.72 | 0.16 / 0.98 / 0.72 | — | 0 |
-| 0.25 | 0.23 / 0.99 / 0.73 | 0.21 / 0.97 / 0.92 | 0.21 / 0.97 / 0.92 | 0/20 | 0 |
-| 0.5 | 0.23 / 0.99 / 0.73 | 0.30 / 0.88 / 1.33 | 0.30 / 0.88 / 1.33 | 0/20 | 0 |
-| 1 | 0.23 / 0.99 / 0.73 | 0.53 / 0.35 / 2.34 | 0.52 / 0.40 / 2.28 | 3/20 | 38 |
-| 1.5 | 0.23 / 0.99 / 0.73 | 0.77 / 0.03 / 3.41 | 0.54 / 0.56 / 2.32 | 13/20 | 289 |
-| 2 | 0.23 / 0.99 / 0.73 | 1.01 / 0.00 / 4.50 | 0.29 / 0.94 / 1.04 | 20/20 | 524 |
-| 4 | 0.23 / 0.99 / 0.73 | 2.01 / 0.00 / 8.91 | 0.23 / 0.99 / 0.73 | 20/20 | 592 |
+| declared_total_error [kg] | kf (RMSE/cov/nz) | kf+hard (RMSE/cov/nz) | kf+hard+guard (RMSE/cov/nz) | kf_aug (RMSE/cov/nz) | kf+hard+guard det | guard held |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0 | 0.23 / 0.99 / 0.73 | 0.16 / 0.98 / 0.72 | 0.16 / 0.98 / 0.72 | 0.32 / 0.98 / 0.80 | — | 0 |
+| 0.25 | 0.23 / 0.99 / 0.73 | 0.21 / 0.97 / 0.92 | 0.21 / 0.97 / 0.92 | 0.32 / 0.98 / 0.80 | 0/20 | 0 |
+| 0.5 | 0.23 / 0.99 / 0.73 | 0.30 / 0.88 / 1.33 | 0.30 / 0.88 / 1.33 | 0.32 / 0.98 / 0.80 | 0/20 | 0 |
+| 1 | 0.23 / 0.99 / 0.73 | 0.53 / 0.35 / 2.34 | 0.52 / 0.40 / 2.28 | 0.32 / 0.98 / 0.80 | 3/20 | 38 |
+| 1.5 | 0.23 / 0.99 / 0.73 | 0.77 / 0.03 / 3.41 | 0.54 / 0.56 / 2.32 | 0.32 / 0.98 / 0.80 | 13/20 | 289 |
+| 2 | 0.23 / 0.99 / 0.73 | 1.01 / 0.00 / 4.50 | 0.29 / 0.94 / 1.04 | 0.32 / 0.98 / 0.80 | 20/20 | 524 |
+| 4 | 0.23 / 0.99 / 0.73 | 2.01 / 0.00 / 8.91 | 0.23 / 0.99 / 0.73 | 0.32 / 0.98 / 0.80 | 20/20 | 592 |
 
 ## sensor_bias
 
@@ -31,14 +31,14 @@ Undeclared sensor-1 bias from step 200, with 0.5 kg quantization and 5-step dela
 
 ## leak_rate
 
-Leak from reservoir 2 over steps 300-500; total lost = 200 x rate.
+Leak from reservoir 2 over steps 300-500; total lost = 200 x rate. kf_aug L det = seeds whose L flag (|L̂| / σ_L > 3.29, 3 consecutive reports) fired within 100 steps of onset.
 
-| leak_rate [kg/s] | kf (RMSE/cov/nz) | kf+hard (RMSE/cov/nz) | kf+hard+guard (RMSE/cov/nz) | kf+hard+guard det | guard held |
-| --- | --- | --- | --- | --- | --- |
-| 0.005 | 0.24 / 0.99 / 0.75 | 0.41 / 0.65 / 1.81 | 0.41 / 0.66 / 1.81 | 0/20 | 1 |
-| 0.01 | 0.30 / 0.96 / 0.94 | 0.77 / 0.30 / 3.44 | 0.52 / 0.64 / 2.28 | 0/20 | 101 |
-| 0.02 | 0.47 / 0.77 / 1.47 | 1.52 / 0.17 / 6.77 | 0.59 / 0.65 / 2.37 | 3/20 | 183 |
-| 0.05 | 1.07 / 0.60 / 3.35 | 3.80 / 0.09 / 16.87 | 1.12 / 0.55 / 3.87 | 20/20 | 235 |
+| leak_rate [kg/s] | kf (RMSE/cov/nz) | kf+hard (RMSE/cov/nz) | kf+hard+guard (RMSE/cov/nz) | kf_aug (RMSE/cov/nz) | kf+hard+guard det | kf_aug L det | guard held |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 0.005 | 0.24 / 0.99 / 0.75 | 0.41 / 0.65 / 1.81 | 0.41 / 0.66 / 1.81 | 0.30 / 0.99 / 0.74 | 0/20 | 0/20 | 1 |
+| 0.01 | 0.30 / 0.96 / 0.94 | 0.77 / 0.30 / 3.44 | 0.52 / 0.64 / 2.28 | 0.30 / 0.99 / 0.75 | 0/20 | 0/20 | 101 |
+| 0.02 | 0.47 / 0.77 / 1.47 | 1.52 / 0.17 / 6.77 | 0.59 / 0.65 / 2.37 | 0.31 / 0.99 / 0.77 | 3/20 | 0/20 | 183 |
+| 0.05 | 1.07 / 0.60 / 3.35 | 3.80 / 0.09 / 16.87 | 1.12 / 0.55 / 3.87 | 0.40 / 0.95 / 0.94 | 20/20 | 9/20 | 235 |
 
 ## uncertain_total
 

@@ -6,12 +6,17 @@ has arrived, per Observation.arrival_t), the commanded input, a DECLARED prior
 for the initial state, and the declared constraint set. Truth.m is never read
 here; Truth is passed only for its public fields (t, u_commanded).
 
-Two detection channels run side by side and never talk to each other: the
+Three detection channels run side by side and never talk to each other: the
 constraint-side consistency flag (debounced chi-square exceedance, on the
-report clock) and the evidence-side per-sensor CUSUM on the estimator's
+report clock), the evidence-side per-sensor CUSUM on the estimator's
 normalised innovation (updated on the ingest clock, alarms stamped at the
-report step of ingestion). The reconciliation stage acts on the mass marginal
-only and reads neither channel except through the guard.
+report step of ingestion), and, for an estimator that carries extra state
+(kf_aug: pump scale alpha, boundary flux L), one debounced flag per extra
+component on the report clock: |x_i - nominal_i| / sd_i > PARAM_FLAG_Z for
+PARAM_FLAG_DEBOUNCE consecutive reports. The last are estimator outputs, not
+reconciliation statuses; Status is unchanged. The reconciliation stage acts on
+the mass marginal (x[:2], P[:2, :2]) only and reads none of the channels except
+the first, through the guard.
 """
 from __future__ import annotations
 
@@ -23,8 +28,14 @@ import numpy as np
 from ..lcm import chi2_quantile, consistency_stat, is_feasible, reconcile
 from ..schema import ConstraintSet, Observation, Status
 from .cusum import Cusum, CusumConfig
-from .estimators import ESTIMATORS, KFConfig
+from .estimators import ESTIMATORS, AugConfig, KFConfig
 from .simulator import Truth
+
+# Flags on an augmented estimator's extra components: two-sided z test at the 0.001
+# level (3.29 = Phi^-1(0.9995)) against the component's own reported sd, debounced
+# like the constraint guard's default.
+PARAM_FLAG_Z = 3.29
+PARAM_FLAG_DEBOUNCE = 3
 
 
 @dataclass(frozen=True)
@@ -67,6 +78,10 @@ class RunResult:
     # stamped at the report step, its delay includes the observation's arrival delay.
     cusum_stat: np.ndarray   # (N, 2)
     cusum_alarm: np.ndarray  # (N, 2) bool
+    # Augmented estimators only (else None): for each name in the estimator's aug_names,
+    # "<name>_hat" and "<name>_sd" (N,) on the report clock and "flag_<name>" (N,) bool,
+    # the debounced |hat - nominal| / sd > PARAM_FLAG_Z. x / P above stay the mass marginal.
+    extra: dict[str, np.ndarray] | None = None
 
 
 def run(
@@ -77,10 +92,14 @@ def run(
     declared_m0: tuple[float, float],
     declared_m0_std: float = 5.0,
     kf_cfg: KFConfig = KFConfig(),
+    aug_cfg: AugConfig = AugConfig(),
 ) -> RunResult:
     n = len(obs)
     dt = float(truth.t[1] - truth.t[0])
-    est = ESTIMATORS[spec.kind](declared_m0, declared_m0_std, dt, truth.u_commanded, kf_cfg)
+    est_cls = ESTIMATORS[spec.kind]
+    cfg = {KFConfig: kf_cfg, AugConfig: aug_cfg}[est_cls.config_cls]
+    est = est_cls(declared_m0, declared_m0_std, dt, truth.u_commanded, cfg)
+    aug_names = tuple(est.aug_names)
 
     rows = cs.dof if cs is not None else 1
     feasible = cs is not None and is_feasible(cs)
@@ -98,6 +117,14 @@ def run(
     cusum = Cusum(spec.cusum) if spec.cusum is not None else None
     cusum_stat = np.full((n, 2), np.nan)
     cusum_alarm = np.zeros((n, 2), dtype=bool)
+    extra: dict[str, np.ndarray] | None = None
+    if aug_names:
+        extra = {}
+        for name in aug_names:
+            extra[f"{name}_hat"] = np.full(n, np.nan)
+            extra[f"{name}_sd"] = np.full(n, np.nan)
+            extra[f"flag_{name}"] = np.zeros(n, dtype=bool)
+    aug_streak = [0] * len(aug_names)
 
     streak = 0
     next_obs = 0   # index of the first observation that has not yet arrived
@@ -112,6 +139,15 @@ def run(
         if cusum is not None:
             cusum_stat[k] = cusum.stat
         xr, Pr = est.report(k)
+        if aug_names:
+            # the reconciliation stage sees the mass marginal only; the rest is an output
+            for i, (name, nominal) in enumerate(zip(aug_names, est.aug_nominal)):
+                hat, sd = float(xr[2 + i]), float(np.sqrt(Pr[2 + i, 2 + i]))
+                extra[f"{name}_hat"][k] = hat
+                extra[f"{name}_sd"][k] = sd
+                aug_streak[i] = aug_streak[i] + 1 if abs(hat - nominal) > PARAM_FLAG_Z * sd else 0
+                extra[f"flag_{name}"][k] = aug_streak[i] >= PARAM_FLAG_DEBOUNCE
+            xr, Pr = xr[:2], Pr[:2, :2]
 
         s = consistency_stat(xr, Pr, cs) if feasible else np.nan
         exceed = feasible and s > thr
@@ -146,4 +182,4 @@ def run(
         innov_z[:j] = np.asarray(est.innov_z)
 
     return RunResult(spec, x, P, xu, Pu, status, stat, thr, flag, res_pre, res_post, corr, lat,
-                     innov, innov_var, innov_z, cusum_stat, cusum_alarm)
+                     innov, innov_var, innov_z, cusum_stat, cusum_alarm, extra)

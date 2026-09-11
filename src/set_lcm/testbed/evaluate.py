@@ -1,4 +1,5 @@
-"""Evaluation against hidden truth. This is the only module that reads Truth.m.
+"""Evaluation against hidden truth. This is the only module that reads Truth.m,
+Truth.leak and Truth.u_actual.
 
 Per run it reports: reconstruction error (overall, per window, and decomposed
 along row(A) / null(A)); calibration as 95 % interval coverage and as the RMS
@@ -6,7 +7,11 @@ normalised error e_i / sigma_i (target 1.0), both per window; constraint
 residuals pre/post; correction magnitude; the detectability of the scenario's
 declared fault direction; false alarms and (censorable) detection delay for
 the constraint flag and, per sensor, for the innovation CUSUM; solver
-failures; latency.
+failures; latency. For an augmented estimator (RunResult.extra) it adds the
+error of the pump scale alpha against u_actual / u_commanded over the steps
+where the pump is commanded on, the error of the boundary flux L against the
+hidden leak, and the same false-alarm / censored-delay bookkeeping for the
+alpha and L flags.
 
 NEES (e^T P^-1 e) is deliberately absent: after a hard projection P is
 rank-deficient along the constraint and a pseudo-inverse NEES silently drops
@@ -100,19 +105,11 @@ def evaluate(
     # fault_onset: first step at which the joint hypothesis "constraint AND model AND
     # calibrated uncertainty" stops being true. Flags before it are false alarms;
     # flags after it are detections. None means it holds for the whole run.
-    flags = run.flag
-    if fault_onset is None:
-        out["false_alarms"] = int(flags.sum())
-        out["fa_rate"] = float(flags.mean())
-        out["detection_delay_steps"] = None
-        out["detection_censor_steps"] = None
-    else:
-        pre = flags[:fault_onset]
-        out["false_alarms"] = int(pre.sum())
-        out["fa_rate"] = float(pre.mean()) if pre.size else 0.0
-        later = np.flatnonzero(flags[fault_onset:])
-        out["detection_delay_steps"] = int(later[0]) if later.size else None
-        out["detection_censor_steps"] = int(n - fault_onset)   # a never-flagged seed is censored here
+    fa, rate, delay = _flag_bookkeeping(run.flag, fault_onset)
+    out["false_alarms"] = fa
+    out["fa_rate"] = rate
+    out["detection_delay_steps"] = delay
+    out["detection_censor_steps"] = None if fault_onset is None else int(n - fault_onset)   # never-flagged seeds are censored here
 
     # Evidence-side channel: the same bookkeeping per sensor for the innovation CUSUM.
     # It shares detection_censor_steps. Not applicable when the estimator records no
@@ -126,17 +123,54 @@ def evaluate(
     out["cusum_fa_rate"] = []
     out["cusum_detection_delay_steps"] = []
     for i in range(alarms.shape[1]):
-        a = alarms[:, i]
-        if fault_onset is None:
-            out["cusum_false_alarms"].append(int(a.sum()))
-            out["cusum_fa_rate"].append(float(a.mean()))
-            out["cusum_detection_delay_steps"].append(None)
-        else:
-            pre = a[:fault_onset]
-            out["cusum_false_alarms"].append(int(pre.sum()))
-            out["cusum_fa_rate"].append(float(pre.mean()) if pre.size else 0.0)
-            later = np.flatnonzero(a[fault_onset:])
-            out["cusum_detection_delay_steps"].append(int(later[0]) if later.size else None)
+        fa, rate, delay = _flag_bookkeeping(alarms[:, i], fault_onset)
+        out["cusum_false_alarms"].append(fa)
+        out["cusum_fa_rate"].append(rate)
+        out["cusum_detection_delay_steps"].append(delay)
+
+    # Augmented-state outputs: alpha against the hidden parameter ratio over the steps
+    # where the pump is commanded on (alpha is unobservable elsewhere), L against the
+    # hidden leak everywhere, and the flags with the same onset rule as above. The flag
+    # names come from the record, so a flag that fires in a scenario whose fault is
+    # something else (a sensor bias the model can only read as a pump-scale change) is
+    # counted as a detection of the broken conjunction, exactly as the constraint flag
+    # is; the table says which flag fired.
+    out["aug"] = _evaluate_aug(run, truth, fault_onset, windows) if run.extra is not None else None
+    return out
+
+
+def _flag_bookkeeping(flags: np.ndarray, fault_onset: int | None) -> tuple[int, float, int | None]:
+    """(false alarms, false-alarm rate per step, delay of the first flag after onset or None).
+    Without an onset every flag is a false alarm and there is no delay."""
+    flags = np.asarray(flags, dtype=bool)
+    if fault_onset is None:
+        return int(flags.sum()), float(flags.mean()), None
+    pre = flags[:fault_onset]
+    later = np.flatnonzero(flags[fault_onset:])
+    return int(pre.sum()), float(pre.mean()) if pre.size else 0.0, int(later[0]) if later.size else None
+
+
+def _evaluate_aug(run: RunResult, truth: Truth, fault_onset: int | None, windows: dict[str, tuple[int, int]]) -> dict:
+    ex = run.extra
+    u = np.asarray(truth.u_commanded, dtype=float)
+    on = u != 0.0
+    alpha_true = np.full(u.shape, np.nan)
+    alpha_true[on] = np.asarray(truth.u_actual, dtype=float)[on] / u[on]
+    e_alpha = np.where(on, ex["alpha_hat"] - alpha_true, np.nan)     # NaN where the pump is off
+    e_L = ex["L_hat"] - np.asarray(truth.leak, dtype=float)
+    out = {
+        "alpha_rmse_pump_on": _rms(e_alpha),
+        "alpha_rmse_pump_on_by_window": _by_window(e_alpha, windows),
+        "L_rmse": _rms(e_L),
+        "L_rmse_by_window": _by_window(e_L, windows),
+        "alpha_hat_end": float(ex["alpha_hat"][-1]), "alpha_sd_end": float(ex["alpha_sd"][-1]),
+        "L_hat_end": float(ex["L_hat"][-1]), "L_sd_end": float(ex["L_sd"][-1]),
+        "flags": {},
+    }
+    for key in ex:
+        if key.startswith("flag_"):
+            fa, rate, delay = _flag_bookkeeping(ex[key], fault_onset)
+            out["flags"][key[len("flag_"):]] = {"false_alarms": fa, "fa_rate": rate, "detection_delay_steps": delay}
     return out
 
 

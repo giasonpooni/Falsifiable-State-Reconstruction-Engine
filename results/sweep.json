@@ -5,8 +5,8 @@
     "numpy": "2.5.3",
     "platform": "Windows-11-10.0.26200-SP0",
     "machine": "AMD64",
-    "source_sha256": "93f1aba6cc1e2a1ca3a959b276c8846b7850d752c7bd93aa953a307ff1b8b9b3",
-    "git_head": "3015a7007fd8ea2a19ef270edac86a8f45ca0c98",
+    "source_sha256": "e870574f197f1ec165abf84e2ae0883d05f29bdb8a3e77c86e09ab960729702b",
+    "git_head": "b05ffed8b2b1697da57a8ef9b1fc631041ec872e",
     "source_dirty": true,
     "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
   },
@@ -24,7 +24,7 @@
       ],
       "unit": "kg",
       "window": "steady",
-      "note": "The declared total is wrong by delta. The joint hypothesis is false from step 0 for delta > 0."
+      "note": "The declared total is wrong by delta. The joint hypothesis is false from step 0 for delta > 0. kf_aug reads the constraint only through its consistency flag and never projects, so its row is the same at every delta."
     },
     "sensor_bias": {
       "base": "bias_quant_delay",
@@ -48,7 +48,8 @@
       ],
       "unit": "kg/s",
       "window": "leak_and_after",
-      "note": "Leak from reservoir 2 over steps 300-500; total lost = 200 x rate."
+      "aug_flag": "L",
+      "note": "Leak from reservoir 2 over steps 300-500; total lost = 200 x rate. kf_aug L det = seeds whose L flag (|L\u0302| / \u03c3_L > 3.29, 3 consecutive reports) fired within 100 steps of onset."
     },
     "uncertain_total": {
       "base": "closed_noise",
@@ -87,12 +88,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 399.26750177983195,
-            "sd": 13.670121529004524
+            "mean": 344.13250687066466,
+            "sd": 13.111219486875374
           },
           "latency_us_p99": {
-            "mean": 692.1984285581855,
-            "sd": 88.85773310608035
+            "mean": 516.0209108726121,
+            "sd": 57.37659556351207
           },
           "rmse_by_window": {
             "steady": {
@@ -205,6 +206,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -238,12 +240,12 @@
             "sd": 0.04150006543681312
           },
           "latency_us_p50": {
-            "mean": 602.3500027367845,
-            "sd": 22.291160406824865
+            "mean": 520.1099993428215,
+            "sd": 20.111239236811777
           },
           "latency_us_p99": {
-            "mean": 1019.5216573192736,
-            "sd": 138.95020607064694
+            "mean": 740.1316002360544,
+            "sd": 78.96533561706154
           },
           "rmse_by_window": {
             "steady": {
@@ -356,6 +358,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -389,12 +392,12 @@
             "sd": 0.04150006543681312
           },
           "latency_us_p50": {
-            "mean": 608.4499967982993,
-            "sd": 40.36905100769462
+            "mean": 630.1499961409718,
+            "sd": 487.32048728538524
           },
           "latency_us_p99": {
-            "mean": 1174.056846357416,
-            "sd": 476.14091216648325
+            "mean": 947.1758047002365,
+            "sd": 864.4131584048691
           },
           "rmse_by_window": {
             "steady": {
@@ -504,6 +507,223 @@
                 "median_censored": null,
                 "censor_at": null,
                 "applicable": false
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf_aug": {
+          "rmse_all": {
+            "mean": 0.3612840077672135,
+            "sd": 0.05039096268732621
+          },
+          "coverage95": {
+            "mean": 0.9780833333333334,
+            "sd": 0.01963873276363327
+          },
+          "nz_rms_all": {
+            "mean": 0.8224595486906908,
+            "sd": 0.11794487183469844
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.39381383578532014,
+            "sd": 0.06993325447052809
+          },
+          "mean_abs_res_post": null,
+          "mean_correction_norm": null,
+          "latency_us_p50": {
+            "mean": 371.03500217199326,
+            "sd": 16.872918290842275
+          },
+          "latency_us_p99": {
+            "mean": 592.8309633163734,
+            "sd": 321.76483382469524
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.32481648283794423,
+              "sd": 0.06665541149239464
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9784999999999998,
+              "sd": 0.027492157308045013
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.8006793286359116,
+              "sd": 0.164936486269667
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.8006793286359116,
+              "sd": 0.164936486269667
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0012889440633960369,
+                "sd": 0.025194907917976846
+              },
+              {
+                "mean": 0.0047634923657915735,
+                "sd": 0.016576516202099788
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.3188151899265316,
+                "sd": 0.07827503315605294
+              },
+              "null": {
+                "mean": 0.3271305378879118,
+                "sd": 0.072365610466042
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.3188151899265316,
+                "sd": 0.07827503315605294
+              },
+              "null": {
+                "mean": 0.3271305378879118,
+                "sd": 0.072365610466042
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": null,
+            "median_censored": null,
+            "censor_at": null,
+            "applicable": false
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            }
+          },
+          "aug": {
+            "alpha_rmse_pump_on": {
+              "mean": 0.024658453204175434,
+              "sd": 0.008351809636465266
+            },
+            "alpha_rmse_pump_on_by_window": {
+              "steady": null
+            },
+            "L_rmse": {
+              "mean": 0.006824100285983721,
+              "sd": 0.001113465227094268
+            },
+            "L_rmse_by_window": {
+              "steady": {
+                "mean": 0.006564939688543492,
+                "sd": 0.0013287041377846585
+              }
+            },
+            "alpha_hat_end": {
+              "mean": 1.0018253994296478,
+              "sd": 0.012714334120677465
+            },
+            "alpha_sd_end": {
+              "mean": 0.04146129074050718,
+              "sd": 3.7969645745592254e-05
+            },
+            "L_hat_end": {
+              "mean": -0.0008678989597206291,
+              "sd": 0.006400672244507144
+            },
+            "L_sd_end": {
+              "mean": 0.014368304724076223,
+              "sd": 6.177384157513789e-05
+            },
+            "flags": {
+              "alpha": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": null,
+                  "median_censored": null,
+                  "censor_at": null,
+                  "applicable": false
+                }
+              },
+              "L": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": null,
+                  "median_censored": null,
+                  "censor_at": null,
+                  "applicable": false
+                }
               }
             }
           },
@@ -536,12 +756,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 431.33249564561993,
-            "sd": 22.39488591268612
+            "mean": 337.74001349229366,
+            "sd": 12.502767419115814
           },
           "latency_us_p99": {
-            "mean": 742.3975053825413,
-            "sd": 93.14978923789327
+            "mean": 490.22785649867717,
+            "sd": 79.47724952798895
           },
           "rmse_by_window": {
             "steady": {
@@ -654,6 +874,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -687,12 +908,12 @@
             "sd": 0.061385450563606246
           },
           "latency_us_p50": {
-            "mean": 650.9000057121739,
-            "sd": 31.40765843269537
+            "mean": 516.7700088350102,
+            "sd": 18.07160166660037
           },
           "latency_us_p99": {
-            "mean": 1143.6710539855992,
-            "sd": 174.31505175041494
+            "mean": 762.597940629348,
+            "sd": 111.1444117464509
           },
           "rmse_by_window": {
             "steady": {
@@ -805,6 +1026,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -838,12 +1060,12 @@
             "sd": 0.061385450563606246
           },
           "latency_us_p50": {
-            "mean": 647.630007006228,
-            "sd": 32.36760863068098
+            "mean": 512.9025055794045,
+            "sd": 15.805096048626075
           },
           "latency_us_p99": {
-            "mean": 1103.800747543573,
-            "sd": 117.93489957203373
+            "mean": 747.9751514038071,
+            "sd": 136.02461226638388
           },
           "rmse_by_window": {
             "steady": {
@@ -956,6 +1178,223 @@
               }
             }
           },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf_aug": {
+          "rmse_all": {
+            "mean": 0.3612840077672135,
+            "sd": 0.05039096268732621
+          },
+          "coverage95": {
+            "mean": 0.9780833333333334,
+            "sd": 0.01963873276363327
+          },
+          "nz_rms_all": {
+            "mean": 0.8224595486906908,
+            "sd": 0.11794487183469844
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.4629780395184381,
+            "sd": 0.08225388577246408
+          },
+          "mean_abs_res_post": null,
+          "mean_correction_norm": null,
+          "latency_us_p50": {
+            "mean": 361.0324958572164,
+            "sd": 15.45674345614873
+          },
+          "latency_us_p99": {
+            "mean": 527.8608519583938,
+            "sd": 51.67557416999975
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.32481648283794423,
+              "sd": 0.06665541149239464
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9784999999999998,
+              "sd": 0.027492157308045013
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.8006793286359116,
+              "sd": 0.164936486269667
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.8006793286359116,
+              "sd": 0.164936486269667
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0012889440633960369,
+                "sd": 0.025194907917976846
+              },
+              {
+                "mean": 0.0047634923657915735,
+                "sd": 0.016576516202099788
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.3188151899265316,
+                "sd": 0.07827503315605294
+              },
+              "null": {
+                "mean": 0.3271305378879118,
+                "sd": 0.072365610466042
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.3188151899265316,
+                "sd": 0.07827503315605294
+              },
+              "null": {
+                "mean": 0.3271305378879118,
+                "sd": 0.072365610466042
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": 600.0,
+            "median_censored": true,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": {
+            "alpha_rmse_pump_on": {
+              "mean": 0.024658453204175434,
+              "sd": 0.008351809636465266
+            },
+            "alpha_rmse_pump_on_by_window": {
+              "steady": null
+            },
+            "L_rmse": {
+              "mean": 0.006824100285983721,
+              "sd": 0.001113465227094268
+            },
+            "L_rmse_by_window": {
+              "steady": {
+                "mean": 0.006564939688543492,
+                "sd": 0.0013287041377846585
+              }
+            },
+            "alpha_hat_end": {
+              "mean": 1.0018253994296478,
+              "sd": 0.012714334120677465
+            },
+            "alpha_sd_end": {
+              "mean": 0.04146129074050718,
+              "sd": 3.7969645745592254e-05
+            },
+            "L_hat_end": {
+              "mean": -0.0008678989597206291,
+              "sd": 0.006400672244507144
+            },
+            "L_sd_end": {
+              "mean": 0.014368304724076223,
+              "sd": 6.177384157513789e-05
+            },
+            "flags": {
+              "alpha": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 600.0,
+                  "median_censored": true,
+                  "censor_at": 600,
+                  "applicable": true
+                }
+              },
+              "L": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 600.0,
+                  "median_censored": true,
+                  "censor_at": 600,
+                  "applicable": true
+                }
+              }
+            }
+          },
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -985,12 +1424,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 415.34000483807176,
-            "sd": 23.64738331361235
+            "mean": 352.0024998579174,
+            "sd": 7.731186903529373
           },
           "latency_us_p99": {
-            "mean": 702.5910991360431,
-            "sd": 146.31009482967502
+            "mean": 501.10160786425683,
+            "sd": 54.2127060028096
           },
           "rmse_by_window": {
             "steady": {
@@ -1103,6 +1542,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -1136,12 +1576,12 @@
             "sd": 0.07042614189119811
           },
           "latency_us_p50": {
-            "mean": 626.6049982514232,
-            "sd": 30.580979905072994
+            "mean": 526.2550082989037,
+            "sd": 10.949713367323094
           },
           "latency_us_p99": {
-            "mean": 1040.0537063251245,
-            "sd": 106.5610655064994
+            "mean": 823.0375520070081,
+            "sd": 536.9796692328567
           },
           "rmse_by_window": {
             "steady": {
@@ -1254,6 +1694,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -1287,12 +1728,12 @@
             "sd": 0.0709197582699462
           },
           "latency_us_p50": {
-            "mean": 625.1600076211616,
-            "sd": 29.000743507515594
+            "mean": 635.9599996358156,
+            "sd": 465.91691186430893
           },
           "latency_us_p99": {
-            "mean": 1015.4972455929965,
-            "sd": 116.24315151850011
+            "mean": 916.1862006876614,
+            "sd": 696.8918193239078
           },
           "rmse_by_window": {
             "steady": {
@@ -1405,9 +1846,226 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.3,
             "sd": 1.341640786499874
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf_aug": {
+          "rmse_all": {
+            "mean": 0.3612840077672135,
+            "sd": 0.05039096268732621
+          },
+          "coverage95": {
+            "mean": 0.9780833333333334,
+            "sd": 0.01963873276363327
+          },
+          "nz_rms_all": {
+            "mean": 0.8224595486906908,
+            "sd": 0.11794487183469844
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.6160367163974773,
+            "sd": 0.09159937164620055
+          },
+          "mean_abs_res_post": null,
+          "mean_correction_norm": null,
+          "latency_us_p50": {
+            "mean": 376.57500943169,
+            "sd": 12.826614684616215
+          },
+          "latency_us_p99": {
+            "mean": 527.4674931424669,
+            "sd": 54.46327743903389
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.32481648283794423,
+              "sd": 0.06665541149239464
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9784999999999998,
+              "sd": 0.027492157308045013
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.8006793286359116,
+              "sd": 0.164936486269667
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.8006793286359116,
+              "sd": 0.164936486269667
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0012889440633960369,
+                "sd": 0.025194907917976846
+              },
+              {
+                "mean": 0.0047634923657915735,
+                "sd": 0.016576516202099788
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.3188151899265316,
+                "sd": 0.07827503315605294
+              },
+              "null": {
+                "mean": 0.3271305378879118,
+                "sd": 0.072365610466042
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.3188151899265316,
+                "sd": 0.07827503315605294
+              },
+              "null": {
+                "mean": 0.3271305378879118,
+                "sd": 0.072365610466042
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 3,
+            "within": 100,
+            "detected_within": 1,
+            "median_delay": 600.0,
+            "median_censored": true,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": {
+            "alpha_rmse_pump_on": {
+              "mean": 0.024658453204175434,
+              "sd": 0.008351809636465266
+            },
+            "alpha_rmse_pump_on_by_window": {
+              "steady": null
+            },
+            "L_rmse": {
+              "mean": 0.006824100285983721,
+              "sd": 0.001113465227094268
+            },
+            "L_rmse_by_window": {
+              "steady": {
+                "mean": 0.006564939688543492,
+                "sd": 0.0013287041377846585
+              }
+            },
+            "alpha_hat_end": {
+              "mean": 1.0018253994296478,
+              "sd": 0.012714334120677465
+            },
+            "alpha_sd_end": {
+              "mean": 0.04146129074050718,
+              "sd": 3.7969645745592254e-05
+            },
+            "L_hat_end": {
+              "mean": -0.0008678989597206291,
+              "sd": 0.006400672244507144
+            },
+            "L_sd_end": {
+              "mean": 0.014368304724076223,
+              "sd": 6.177384157513789e-05
+            },
+            "flags": {
+              "alpha": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 600.0,
+                  "median_censored": true,
+                  "censor_at": 600,
+                  "applicable": true
+                }
+              },
+              "L": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 600.0,
+                  "median_censored": true,
+                  "censor_at": 600,
+                  "applicable": true
+                }
+              }
+            }
+          },
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
           },
           "solver_failures": 0,
           "n_seeds": 20
@@ -1434,12 +2092,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 438.7625027447939,
-            "sd": 18.21609036835728
+            "mean": 361.6900008637458,
+            "sd": 25.192830527445402
           },
           "latency_us_p99": {
-            "mean": 757.707232609391,
-            "sd": 81.70806949054105
+            "mean": 479.4135554693638,
+            "sd": 72.26248391623878
           },
           "rmse_by_window": {
             "steady": {
@@ -1552,6 +2210,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -1585,12 +2244,12 @@
             "sd": 0.08012568347214899
           },
           "latency_us_p50": {
-            "mean": 668.4925057925284,
-            "sd": 27.31608828299313
+            "mean": 539.4349893322214,
+            "sd": 25.133520925943227
           },
           "latency_us_p99": {
-            "mean": 1206.913352885749,
-            "sd": 254.07804931849162
+            "mean": 728.6634937627239,
+            "sd": 95.01185227728212
           },
           "rmse_by_window": {
             "steady": {
@@ -1703,6 +2362,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -1736,12 +2396,12 @@
             "sd": 0.06590329878346703
           },
           "latency_us_p50": {
-            "mean": 668.7749992124736,
-            "sd": 24.611166591072614
+            "mean": 538.8425022829324,
+            "sd": 27.537968519641804
           },
           "latency_us_p99": {
-            "mean": 1162.386949989013,
-            "sd": 98.41841982901637
+            "mean": 730.6722248322328,
+            "sd": 98.2325615214487
           },
           "rmse_by_window": {
             "steady": {
@@ -1854,9 +2514,226 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 38.05,
             "sd": 36.53041270820217
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf_aug": {
+          "rmse_all": {
+            "mean": 0.3612840077672135,
+            "sd": 0.05039096268732621
+          },
+          "coverage95": {
+            "mean": 0.9780833333333334,
+            "sd": 0.01963873276363327
+          },
+          "nz_rms_all": {
+            "mean": 0.8224595486906908,
+            "sd": 0.11794487183469844
+          },
+          "mean_abs_res_pre": {
+            "mean": 1.0501645151405052,
+            "sd": 0.10675527745477763
+          },
+          "mean_abs_res_post": null,
+          "mean_correction_norm": null,
+          "latency_us_p50": {
+            "mean": 390.84500167518854,
+            "sd": 25.769155294328748
+          },
+          "latency_us_p99": {
+            "mean": 546.3967301184312,
+            "sd": 79.94828698396319
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.32481648283794423,
+              "sd": 0.06665541149239464
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9784999999999998,
+              "sd": 0.027492157308045013
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.8006793286359116,
+              "sd": 0.164936486269667
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.8006793286359116,
+              "sd": 0.164936486269667
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0012889440633960369,
+                "sd": 0.025194907917976846
+              },
+              {
+                "mean": 0.0047634923657915735,
+                "sd": 0.016576516202099788
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.3188151899265316,
+                "sd": 0.07827503315605294
+              },
+              "null": {
+                "mean": 0.3271305378879118,
+                "sd": 0.072365610466042
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.3188151899265316,
+                "sd": 0.07827503315605294
+              },
+              "null": {
+                "mean": 0.3271305378879118,
+                "sd": 0.072365610466042
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 15,
+            "within": 100,
+            "detected_within": 2,
+            "median_delay": 307.0,
+            "median_censored": false,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": {
+            "alpha_rmse_pump_on": {
+              "mean": 0.024658453204175434,
+              "sd": 0.008351809636465266
+            },
+            "alpha_rmse_pump_on_by_window": {
+              "steady": null
+            },
+            "L_rmse": {
+              "mean": 0.006824100285983721,
+              "sd": 0.001113465227094268
+            },
+            "L_rmse_by_window": {
+              "steady": {
+                "mean": 0.006564939688543492,
+                "sd": 0.0013287041377846585
+              }
+            },
+            "alpha_hat_end": {
+              "mean": 1.0018253994296478,
+              "sd": 0.012714334120677465
+            },
+            "alpha_sd_end": {
+              "mean": 0.04146129074050718,
+              "sd": 3.7969645745592254e-05
+            },
+            "L_hat_end": {
+              "mean": -0.0008678989597206291,
+              "sd": 0.006400672244507144
+            },
+            "L_sd_end": {
+              "mean": 0.014368304724076223,
+              "sd": 6.177384157513789e-05
+            },
+            "flags": {
+              "alpha": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 600.0,
+                  "median_censored": true,
+                  "censor_at": 600,
+                  "applicable": true
+                }
+              },
+              "L": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 600.0,
+                  "median_censored": true,
+                  "censor_at": 600,
+                  "applicable": true
+                }
+              }
+            }
+          },
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
           },
           "solver_failures": 0,
           "n_seeds": 20
@@ -1883,12 +2760,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 425.55500695016235,
-            "sd": 24.221482082284087
+            "mean": 354.34249439276755,
+            "sd": 6.192534336360117
           },
           "latency_us_p99": {
-            "mean": 726.5002384083343,
-            "sd": 101.21698415971724
+            "mean": 508.76140809850756,
+            "sd": 52.48888353847299
           },
           "rmse_by_window": {
             "steady": {
@@ -2001,6 +2878,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -2034,12 +2912,12 @@
             "sd": 0.08162751253664911
           },
           "latency_us_p50": {
-            "mean": 638.9300076989457,
-            "sd": 32.18088413998841
+            "mean": 531.6424911143258,
+            "sd": 17.641290010922205
           },
           "latency_us_p99": {
-            "mean": 1109.3009369214992,
-            "sd": 140.74675925233134
+            "mean": 730.1465817727146,
+            "sd": 83.9397580041744
           },
           "rmse_by_window": {
             "steady": {
@@ -2152,6 +3030,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -2185,12 +3064,12 @@
             "sd": 0.06832102213854827
           },
           "latency_us_p50": {
-            "mean": 575.5500111263245,
-            "sd": 98.11237837270916
+            "mean": 467.7849996369332,
+            "sd": 79.65068741895094
           },
           "latency_us_p99": {
-            "mean": 1016.1658987635743,
-            "sd": 181.50162945624237
+            "mean": 659.807893913239,
+            "sd": 81.44582683695565
           },
           "rmse_by_window": {
             "steady": {
@@ -2303,9 +3182,226 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 288.65,
             "sd": 80.3605526427776
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf_aug": {
+          "rmse_all": {
+            "mean": 0.3612840077672135,
+            "sd": 0.05039096268732621
+          },
+          "coverage95": {
+            "mean": 0.9780833333333334,
+            "sd": 0.01963873276363327
+          },
+          "nz_rms_all": {
+            "mean": 0.8224595486906908,
+            "sd": 0.11794487183469844
+          },
+          "mean_abs_res_pre": {
+            "mean": 1.5385226583016807,
+            "sd": 0.11492110716519557
+          },
+          "mean_abs_res_post": null,
+          "mean_correction_norm": null,
+          "latency_us_p50": {
+            "mean": 376.1849948205054,
+            "sd": 10.403949090629071
+          },
+          "latency_us_p99": {
+            "mean": 515.3242493979631,
+            "sd": 49.129612109260385
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.32481648283794423,
+              "sd": 0.06665541149239464
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9784999999999998,
+              "sd": 0.027492157308045013
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.8006793286359116,
+              "sd": 0.164936486269667
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.8006793286359116,
+              "sd": 0.164936486269667
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0012889440633960369,
+                "sd": 0.025194907917976846
+              },
+              {
+                "mean": 0.0047634923657915735,
+                "sd": 0.016576516202099788
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.3188151899265316,
+                "sd": 0.07827503315605294
+              },
+              "null": {
+                "mean": 0.3271305378879118,
+                "sd": 0.072365610466042
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.3188151899265316,
+                "sd": 0.07827503315605294
+              },
+              "null": {
+                "mean": 0.3271305378879118,
+                "sd": 0.072365610466042
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 20,
+            "within": 100,
+            "detected_within": 7,
+            "median_delay": 120.5,
+            "median_censored": false,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": {
+            "alpha_rmse_pump_on": {
+              "mean": 0.024658453204175434,
+              "sd": 0.008351809636465266
+            },
+            "alpha_rmse_pump_on_by_window": {
+              "steady": null
+            },
+            "L_rmse": {
+              "mean": 0.006824100285983721,
+              "sd": 0.001113465227094268
+            },
+            "L_rmse_by_window": {
+              "steady": {
+                "mean": 0.006564939688543492,
+                "sd": 0.0013287041377846585
+              }
+            },
+            "alpha_hat_end": {
+              "mean": 1.0018253994296478,
+              "sd": 0.012714334120677465
+            },
+            "alpha_sd_end": {
+              "mean": 0.04146129074050718,
+              "sd": 3.7969645745592254e-05
+            },
+            "L_hat_end": {
+              "mean": -0.0008678989597206291,
+              "sd": 0.006400672244507144
+            },
+            "L_sd_end": {
+              "mean": 0.014368304724076223,
+              "sd": 6.177384157513789e-05
+            },
+            "flags": {
+              "alpha": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 600.0,
+                  "median_censored": true,
+                  "censor_at": 600,
+                  "applicable": true
+                }
+              },
+              "L": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 600.0,
+                  "median_censored": true,
+                  "censor_at": 600,
+                  "applicable": true
+                }
+              }
+            }
+          },
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
           },
           "solver_failures": 0,
           "n_seeds": 20
@@ -2332,12 +3428,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 439.7025011712685,
-            "sd": 53.97316458465199
+            "mean": 351.8400015309453,
+            "sd": 7.646293467607041
           },
           "latency_us_p99": {
-            "mean": 786.7437056847847,
-            "sd": 281.157916092422
+            "mean": 523.9865073235704,
+            "sd": 46.181577365541436
           },
           "rmse_by_window": {
             "steady": {
@@ -2450,6 +3546,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -2483,12 +3580,12 @@
             "sd": 0.0818613096313242
           },
           "latency_us_p50": {
-            "mean": 652.167500811629,
-            "sd": 61.58065527140264
+            "mean": 529.9725075019524,
+            "sd": 13.317074213604387
           },
           "latency_us_p99": {
-            "mean": 1096.720984438434,
-            "sd": 185.83796258179768
+            "mean": 700.3433552454223,
+            "sd": 58.98700621506576
           },
           "rmse_by_window": {
             "steady": {
@@ -2601,6 +3698,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -2634,12 +3732,12 @@
             "sd": 0.29519268664385334
           },
           "latency_us_p50": {
-            "mean": 444.38250188250095,
-            "sd": 50.22972380244427
+            "mean": 357.26748465094715,
+            "sd": 5.70462481649225
           },
           "latency_us_p99": {
-            "mean": 897.5308178341941,
-            "sd": 273.9114475600499
+            "mean": 582.7522395993583,
+            "sd": 28.465438681180608
           },
           "rmse_by_window": {
             "steady": {
@@ -2752,9 +3850,226 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 524.3,
             "sd": 35.12698767554506
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf_aug": {
+          "rmse_all": {
+            "mean": 0.3612840077672135,
+            "sd": 0.05039096268732621
+          },
+          "coverage95": {
+            "mean": 0.9780833333333334,
+            "sd": 0.01963873276363327
+          },
+          "nz_rms_all": {
+            "mean": 0.8224595486906908,
+            "sd": 0.11794487183469844
+          },
+          "mean_abs_res_pre": {
+            "mean": 2.036789164454947,
+            "sd": 0.11544763093894295
+          },
+          "mean_abs_res_post": null,
+          "mean_correction_norm": null,
+          "latency_us_p50": {
+            "mean": 377.3650067159906,
+            "sd": 9.256523419720635
+          },
+          "latency_us_p99": {
+            "mean": 482.5380447437054,
+            "sd": 42.704010439035635
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.32481648283794423,
+              "sd": 0.06665541149239464
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9784999999999998,
+              "sd": 0.027492157308045013
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.8006793286359116,
+              "sd": 0.164936486269667
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.8006793286359116,
+              "sd": 0.164936486269667
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0012889440633960369,
+                "sd": 0.025194907917976846
+              },
+              {
+                "mean": 0.0047634923657915735,
+                "sd": 0.016576516202099788
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.3188151899265316,
+                "sd": 0.07827503315605294
+              },
+              "null": {
+                "mean": 0.3271305378879118,
+                "sd": 0.072365610466042
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.3188151899265316,
+                "sd": 0.07827503315605294
+              },
+              "null": {
+                "mean": 0.3271305378879118,
+                "sd": 0.072365610466042
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 20,
+            "within": 100,
+            "detected_within": 18,
+            "median_delay": 39.5,
+            "median_censored": false,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": {
+            "alpha_rmse_pump_on": {
+              "mean": 0.024658453204175434,
+              "sd": 0.008351809636465266
+            },
+            "alpha_rmse_pump_on_by_window": {
+              "steady": null
+            },
+            "L_rmse": {
+              "mean": 0.006824100285983721,
+              "sd": 0.001113465227094268
+            },
+            "L_rmse_by_window": {
+              "steady": {
+                "mean": 0.006564939688543492,
+                "sd": 0.0013287041377846585
+              }
+            },
+            "alpha_hat_end": {
+              "mean": 1.0018253994296478,
+              "sd": 0.012714334120677465
+            },
+            "alpha_sd_end": {
+              "mean": 0.04146129074050718,
+              "sd": 3.7969645745592254e-05
+            },
+            "L_hat_end": {
+              "mean": -0.0008678989597206291,
+              "sd": 0.006400672244507144
+            },
+            "L_sd_end": {
+              "mean": 0.014368304724076223,
+              "sd": 6.177384157513789e-05
+            },
+            "flags": {
+              "alpha": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 600.0,
+                  "median_censored": true,
+                  "censor_at": 600,
+                  "applicable": true
+                }
+              },
+              "L": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 600.0,
+                  "median_censored": true,
+                  "censor_at": 600,
+                  "applicable": true
+                }
+              }
+            }
+          },
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
           },
           "solver_failures": 0,
           "n_seeds": 20
@@ -2781,12 +4096,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 463.3999982615933,
-            "sd": 24.737102173467136
+            "mean": 424.534993362613,
+            "sd": 310.3161074197704
           },
           "latency_us_p99": {
-            "mean": 836.8961532250976,
-            "sd": 173.3926145638928
+            "mean": 592.240797181148,
+            "sd": 379.493229876578
           },
           "rmse_by_window": {
             "steady": {
@@ -2899,6 +4214,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -2932,12 +4248,12 @@
             "sd": 0.08211558042294116
           },
           "latency_us_p50": {
-            "mean": 691.8174942256883,
-            "sd": 38.38043606390092
+            "mean": 641.6349875507876,
+            "sd": 463.59408580297827
           },
           "latency_us_p99": {
-            "mean": 1229.691795480903,
-            "sd": 139.19606188862596
+            "mean": 854.7136605484409,
+            "sd": 699.6129140498931
           },
           "rmse_by_window": {
             "steady": {
@@ -3050,6 +4366,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -3083,12 +4400,12 @@
             "sd": 0.8355775958824423
           },
           "latency_us_p50": {
-            "mean": 459.61250143591315,
-            "sd": 29.250477164919126
+            "mean": 354.4950042851269,
+            "sd": 8.879494526633216
           },
           "latency_us_p99": {
-            "mean": 813.2346479105761,
-            "sd": 107.67960173414082
+            "mean": 563.4439940331504,
+            "sd": 18.548864501122978
           },
           "rmse_by_window": {
             "steady": {
@@ -3201,9 +4518,226 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 591.7,
             "sd": 2.677390717215472
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf_aug": {
+          "rmse_all": {
+            "mean": 0.3612840077672135,
+            "sd": 0.05039096268732621
+          },
+          "coverage95": {
+            "mean": 0.9780833333333334,
+            "sd": 0.01963873276363327
+          },
+          "nz_rms_all": {
+            "mean": 0.8224595486906908,
+            "sd": 0.11794487183469844
+          },
+          "mean_abs_res_pre": {
+            "mean": 4.035117324647363,
+            "sd": 0.11555606198572302
+          },
+          "mean_abs_res_post": null,
+          "mean_correction_norm": null,
+          "latency_us_p50": {
+            "mean": 379.16500004939735,
+            "sd": 8.219961985582243
+          },
+          "latency_us_p99": {
+            "mean": 487.6058709924108,
+            "sd": 44.24373118926312
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.32481648283794423,
+              "sd": 0.06665541149239464
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9784999999999998,
+              "sd": 0.027492157308045013
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.8006793286359116,
+              "sd": 0.164936486269667
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.8006793286359116,
+              "sd": 0.164936486269667
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0012889440633960369,
+                "sd": 0.025194907917976846
+              },
+              {
+                "mean": 0.0047634923657915735,
+                "sd": 0.016576516202099788
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.3188151899265316,
+                "sd": 0.07827503315605294
+              },
+              "null": {
+                "mean": 0.3271305378879118,
+                "sd": 0.072365610466042
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.3188151899265316,
+                "sd": 0.07827503315605294
+              },
+              "null": {
+                "mean": 0.3271305378879118,
+                "sd": 0.072365610466042
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 20,
+            "within": 100,
+            "detected_within": 20,
+            "median_delay": 8.0,
+            "median_censored": false,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": {
+            "alpha_rmse_pump_on": {
+              "mean": 0.024658453204175434,
+              "sd": 0.008351809636465266
+            },
+            "alpha_rmse_pump_on_by_window": {
+              "steady": null
+            },
+            "L_rmse": {
+              "mean": 0.006824100285983721,
+              "sd": 0.001113465227094268
+            },
+            "L_rmse_by_window": {
+              "steady": {
+                "mean": 0.006564939688543492,
+                "sd": 0.0013287041377846585
+              }
+            },
+            "alpha_hat_end": {
+              "mean": 1.0018253994296478,
+              "sd": 0.012714334120677465
+            },
+            "alpha_sd_end": {
+              "mean": 0.04146129074050718,
+              "sd": 3.7969645745592254e-05
+            },
+            "L_hat_end": {
+              "mean": -0.0008678989597206291,
+              "sd": 0.006400672244507144
+            },
+            "L_sd_end": {
+              "mean": 0.014368304724076223,
+              "sd": 6.177384157513789e-05
+            },
+            "flags": {
+              "alpha": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 600.0,
+                  "median_censored": true,
+                  "censor_at": 600,
+                  "applicable": true
+                }
+              },
+              "L": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 600.0,
+                  "median_censored": true,
+                  "censor_at": 600,
+                  "applicable": true
+                }
+              }
+            }
+          },
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
           },
           "solver_failures": 0,
           "n_seeds": 20
@@ -3232,12 +4766,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 455.34500386565924,
-            "sd": 11.31334459835075
+            "mean": 369.7400097735226,
+            "sd": 8.066640640195057
           },
           "latency_us_p99": {
-            "mean": 747.5259159109555,
-            "sd": 43.555377950157485
+            "mean": 506.1792940832673,
+            "sd": 60.27017039995555
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -3396,6 +4930,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -3429,12 +4964,12 @@
             "sd": 0.06099933414484296
           },
           "latency_us_p50": {
-            "mean": 684.5350086223334,
-            "sd": 19.085357826226623
+            "mean": 556.0449993936345,
+            "sd": 14.050230671862106
           },
           "latency_us_p99": {
-            "mean": 1277.7094511548057,
-            "sd": 688.2125059982359
+            "mean": 927.0687134121541,
+            "sd": 712.843565936252
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -3593,6 +5128,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -3626,12 +5162,12 @@
             "sd": 0.05942356481575993
           },
           "latency_us_p50": {
-            "mean": 682.0824957685545,
-            "sd": 13.213433012485451
+            "mean": 553.5674950806424,
+            "sd": 12.696565528368216
           },
           "latency_us_p99": {
-            "mean": 1117.8964512655511,
-            "sd": 75.89417529816315
+            "mean": 913.5538038099181,
+            "sd": 629.2843690417297
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -3790,6 +5326,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 1.05,
             "sd": 3.2359005904970175
@@ -3819,12 +5356,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 500.1525074476376,
-            "sd": 25.898631549031368
+            "mean": 370.15250127296895,
+            "sd": 11.225499507491982
           },
           "latency_us_p99": {
-            "mean": 1221.2625946267503,
-            "sd": 903.6200690350598
+            "mean": 512.2616934240795,
+            "sd": 61.78548445140319
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -3983,6 +5520,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -4016,12 +5554,12 @@
             "sd": 0.06861833952769242
           },
           "latency_us_p50": {
-            "mean": 737.6099994871765,
-            "sd": 22.599436831034158
+            "mean": 550.7250054506585,
+            "sd": 13.885074628162224
           },
           "latency_us_p99": {
-            "mean": 1374.8815678991377,
-            "sd": 431.7565122268106
+            "mean": 753.166193666402,
+            "sd": 68.62381164851561
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -4180,6 +5718,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -4213,12 +5752,12 @@
             "sd": 0.06272899543882147
           },
           "latency_us_p50": {
-            "mean": 734.7775070229545,
-            "sd": 24.676892236618787
+            "mean": 556.8475025938824,
+            "sd": 15.531929312741868
           },
           "latency_us_p99": {
-            "mean": 1347.9447943973353,
-            "sd": 415.36244332220934
+            "mean": 732.5227432302197,
+            "sd": 46.17305526645913
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -4377,6 +5916,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 9.4,
             "sd": 18.73471306650333
@@ -4406,12 +5946,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 459.48499464429915,
-            "sd": 31.14333296627559
+            "mean": 372.33751208987087,
+            "sd": 11.12934226057198
           },
           "latency_us_p99": {
-            "mean": 855.6194540578869,
-            "sd": 259.9125383433722
+            "mean": 642.5568137201479,
+            "sd": 460.9228996299459
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -4570,6 +6110,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -4603,12 +6144,12 @@
             "sd": 0.06909646247735392
           },
           "latency_us_p50": {
-            "mean": 683.555006980896,
-            "sd": 50.081327812059854
+            "mean": 559.8274961812422,
+            "sd": 13.334261675709215
           },
           "latency_us_p99": {
-            "mean": 1339.2038630554448,
-            "sd": 562.7950871683175
+            "mean": 775.8918812614863,
+            "sd": 98.0004335312427
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -4767,6 +6308,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -4800,12 +6342,12 @@
             "sd": 0.09269653529386945
           },
           "latency_us_p50": {
-            "mean": 610.8675035648048,
-            "sd": 89.79223983258949
+            "mean": 531.7149945767596,
+            "sd": 319.49786443342043
           },
           "latency_us_p99": {
-            "mean": 1078.3797565964046,
-            "sd": 341.3380109903075
+            "mean": 799.701520882081,
+            "sd": 595.4352604130902
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -4964,6 +6506,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 285.3,
             "sd": 46.7356507671775
@@ -4993,12 +6536,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 457.48501433990896,
-            "sd": 20.441360167827188
+            "mean": 452.48500537127256,
+            "sd": 336.0355252024275
           },
           "latency_us_p99": {
-            "mean": 842.5231049768624,
-            "sd": 256.8711023787866
+            "mean": 647.739256324712,
+            "sd": 526.3227386169949
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -5157,6 +6700,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -5190,12 +6734,12 @@
             "sd": 0.06929582649383768
           },
           "latency_us_p50": {
-            "mean": 679.7099922550842,
-            "sd": 26.430866325014637
+            "mean": 562.0949930744246,
+            "sd": 16.626972841139455
           },
           "latency_us_p99": {
-            "mean": 1188.6264905333514,
-            "sd": 122.03770292398794
+            "mean": 809.3075632350517,
+            "sd": 93.03186672777481
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -5354,6 +6898,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -5387,12 +6932,12 @@
             "sd": 0.056667697797155914
           },
           "latency_us_p50": {
-            "mean": 495.235004927963,
-            "sd": 69.95271984685033
+            "mean": 397.9949979111552,
+            "sd": 45.58987804347142
           },
           "latency_us_p99": {
-            "mean": 1255.882718134671,
-            "sd": 445.47918266199474
+            "mean": 775.3022558754309,
+            "sd": 372.6373433198869
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -5551,6 +7096,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 361.95,
             "sd": 9.02321567140183
@@ -5582,12 +7128,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 422.4574920954183,
-            "sd": 30.255917971350424
+            "mean": 354.7249943949282,
+            "sd": 10.534194364131732
           },
           "latency_us_p99": {
-            "mean": 813.8087380211797,
-            "sd": 337.58610575698435
+            "mean": 521.1494919494726,
+            "sd": 65.14812389024021
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -5746,6 +7292,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -5779,12 +7326,12 @@
             "sd": 0.05568177244336322
           },
           "latency_us_p50": {
-            "mean": 647.082511568442,
-            "sd": 44.728799328238345
+            "mean": 646.784997661598,
+            "sd": 478.23742202255266
           },
           "latency_us_p99": {
-            "mean": 1295.3455008100707,
-            "sd": 591.6482597870593
+            "mean": 930.6300505995748,
+            "sd": 667.3873364649597
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -5943,6 +7490,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -5976,12 +7524,12 @@
             "sd": 0.055241215128700796
           },
           "latency_us_p50": {
-            "mean": 632.1925058728084,
-            "sd": 28.41514371860639
+            "mean": 539.7950066253543,
+            "sd": 12.93315554869418
           },
           "latency_us_p99": {
-            "mean": 1082.0273778517728,
-            "sd": 97.48605695558113
+            "mean": 855.5850436096077,
+            "sd": 475.0120672863816
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -6140,9 +7688,280 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.95,
             "sd": 1.8488972531299783
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf_aug": {
+          "rmse_all": {
+            "mean": 0.36457245268493754,
+            "sd": 0.04244940363091285
+          },
+          "coverage95": {
+            "mean": 0.9827916666666665,
+            "sd": 0.011991941129224394
+          },
+          "nz_rms_all": {
+            "mean": 0.8135643112443519,
+            "sd": 0.0813375755542114
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.5783608195358282,
+            "sd": 0.09455675625052237
+          },
+          "mean_abs_res_post": null,
+          "mean_correction_norm": null,
+          "latency_us_p50": {
+            "mean": 377.99499405082315,
+            "sd": 11.389632863913622
+          },
+          "latency_us_p99": {
+            "mean": 538.6517853476106,
+            "sd": 67.89404328419458
+          },
+          "rmse_by_window": {
+            "pre_leak": {
+              "mean": 0.4159198116583146,
+              "sd": 0.0741525495590428
+            },
+            "leak_and_after": {
+              "mean": 0.2993689284697229,
+              "sd": 0.03859560139925184
+            }
+          },
+          "coverage95_by_window": {
+            "pre_leak": {
+              "mean": 0.9756666666666666,
+              "sd": 0.02719541585037548
+            },
+            "leak_and_after": {
+              "mean": 0.9899166666666668,
+              "sd": 0.010888523385678502
+            }
+          },
+          "nz_rms_by_window": {
+            "pre_leak": {
+              "mean": 0.8738306393536897,
+              "sd": 0.12415578353982919
+            },
+            "leak_and_after": {
+              "mean": 0.7417151211635802,
+              "sd": 0.09164328121530421
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "pre_leak": {
+              "mean": 0.8738306393536897,
+              "sd": 0.12415578353982919
+            },
+            "leak_and_after": {
+              "mean": 0.7417151211635802,
+              "sd": 0.09164328121530421
+            }
+          },
+          "innov_z_mean_by_window": {
+            "pre_leak": [
+              {
+                "mean": -0.0026244001194998057,
+                "sd": 0.03767257559849764
+              },
+              {
+                "mean": 0.0019312332457270816,
+                "sd": 0.013526982606871537
+              }
+            ],
+            "leak_and_after": [
+              {
+                "mean": 0.0017397623991572328,
+                "sd": 0.0187528418252879
+              },
+              {
+                "mean": -0.0005557092505893672,
+                "sd": 0.013285012734976587
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "pre_leak": {
+              "row": {
+                "mean": 0.402507047919389,
+                "sd": 0.09591646222005769
+              },
+              "null": {
+                "mean": 0.4209883501369502,
+                "sd": 0.09427192860629949
+              }
+            },
+            "leak_and_after": {
+              "row": {
+                "mean": 0.30420803394399,
+                "sd": 0.05433501007328816
+              },
+              "null": {
+                "mean": 0.28786986255345465,
+                "sd": 0.06372246716016329
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "pre_leak": {
+              "row": {
+                "mean": 0.402507047919389,
+                "sd": 0.09591646222005769
+              },
+              "null": {
+                "mean": 0.4209883501369502,
+                "sd": 0.09427192860629949
+              }
+            },
+            "leak_and_after": {
+              "row": {
+                "mean": 0.30420803394399,
+                "sd": 0.05433501007328816
+              },
+              "null": {
+                "mean": 0.28786986255345465,
+                "sd": 0.06372246716016329
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 4,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": 300.0,
+            "median_censored": true,
+            "censor_at": 300,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.05,
+                "max": 1,
+                "rate": 0.0001666666666666667
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 300.0,
+                "median_censored": true,
+                "censor_at": 300,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 300.0,
+                "median_censored": true,
+                "censor_at": 300,
+                "applicable": true
+              }
+            }
+          },
+          "aug": {
+            "alpha_rmse_pump_on": {
+              "mean": 0.02661622770741288,
+              "sd": 0.0081238746244985
+            },
+            "alpha_rmse_pump_on_by_window": {
+              "pre_leak": {
+                "mean": 0.02661622770741288,
+                "sd": 0.0081238746244985
+              },
+              "leak_and_after": null
+            },
+            "L_rmse": {
+              "mean": 0.007159147451465249,
+              "sd": 0.001258647169659548
+            },
+            "L_rmse_by_window": {
+              "pre_leak": {
+                "mean": 0.00787991388032246,
+                "sd": 0.0022118848700948043
+              },
+              "leak_and_after": {
+                "mean": 0.006137012013098733,
+                "sd": 0.001082384518898821
+              }
+            },
+            "alpha_hat_end": {
+              "mean": 0.9997680480203801,
+              "sd": 0.013070805316299814
+            },
+            "alpha_sd_end": {
+              "mean": 0.04147268757712392,
+              "sd": 4.335432185156696e-05
+            },
+            "L_hat_end": {
+              "mean": 0.00022480560633031878,
+              "sd": 0.004932932435598921
+            },
+            "L_sd_end": {
+              "mean": 0.014400895860293842,
+              "sd": 8.233737061112353e-05
+            },
+            "flags": {
+              "alpha": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 300.0,
+                  "median_censored": true,
+                  "censor_at": 300,
+                  "applicable": true
+                }
+              },
+              "L": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 300.0,
+                  "median_censored": true,
+                  "censor_at": 300,
+                  "applicable": true
+                }
+              }
+            }
+          },
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
           },
           "solver_failures": 0,
           "n_seeds": 20
@@ -6169,12 +7988,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 411.9024990359321,
-            "sd": 29.577972300508538
+            "mean": 356.3225007383153,
+            "sd": 13.2761658129246
           },
           "latency_us_p99": {
-            "mean": 715.8011452993376,
-            "sd": 118.24509031784778
+            "mean": 523.558692948427,
+            "sd": 82.01717033155572
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -6333,6 +8152,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -6366,12 +8186,12 @@
             "sd": 0.06196035501065074
           },
           "latency_us_p50": {
-            "mean": 618.1275268318132,
-            "sd": 37.56569429940102
+            "mean": 535.8099937438965,
+            "sd": 19.640423410668173
           },
           "latency_us_p99": {
-            "mean": 1072.4529845174397,
-            "sd": 158.40584647798056
+            "mean": 766.8471551151013,
+            "sd": 120.86527071154917
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -6530,6 +8350,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -6563,12 +8384,12 @@
             "sd": 0.05045478079509781
           },
           "latency_us_p50": {
-            "mean": 623.1425009900704,
-            "sd": 46.19333924386547
+            "mean": 593.3475098572671,
+            "sd": 270.7650272343305
           },
           "latency_us_p99": {
-            "mean": 1253.8209478952917,
-            "sd": 518.5557918548747
+            "mean": 882.9106102348303,
+            "sd": 627.2429953139102
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -6727,9 +8548,280 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 100.8,
             "sd": 22.446661925082477
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf_aug": {
+          "rmse_all": {
+            "mean": 0.3654490505718621,
+            "sd": 0.04280821642236292
+          },
+          "coverage95": {
+            "mean": 0.9826250000000002,
+            "sd": 0.012083030849208483
+          },
+          "nz_rms_all": {
+            "mean": 0.8154076526516786,
+            "sd": 0.08271161525095393
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.8945718841754553,
+            "sd": 0.10088913601283019
+          },
+          "mean_abs_res_post": null,
+          "mean_correction_norm": null,
+          "latency_us_p50": {
+            "mean": 458.5449874866754,
+            "sd": 331.30095975701505
+          },
+          "latency_us_p99": {
+            "mean": 926.0919470689253,
+            "sd": 1202.5713517699144
+          },
+          "rmse_by_window": {
+            "pre_leak": {
+              "mean": 0.4159198116583146,
+              "sd": 0.0741525495590428
+            },
+            "leak_and_after": {
+              "mean": 0.30150468141823333,
+              "sd": 0.03933414683871449
+            }
+          },
+          "coverage95_by_window": {
+            "pre_leak": {
+              "mean": 0.9756666666666666,
+              "sd": 0.02719541585037548
+            },
+            "leak_and_after": {
+              "mean": 0.9895833333333334,
+              "sd": 0.012174114519236499
+            }
+          },
+          "nz_rms_by_window": {
+            "pre_leak": {
+              "mean": 0.8738306393536897,
+              "sd": 0.12415578353982919
+            },
+            "leak_and_after": {
+              "mean": 0.7459608050021609,
+              "sd": 0.09231608710308309
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "pre_leak": {
+              "mean": 0.8738306393536897,
+              "sd": 0.12415578353982919
+            },
+            "leak_and_after": {
+              "mean": 0.7459608050021609,
+              "sd": 0.09231608710308309
+            }
+          },
+          "innov_z_mean_by_window": {
+            "pre_leak": [
+              {
+                "mean": -0.0026244001194998057,
+                "sd": 0.03767257559849764
+              },
+              {
+                "mean": 0.0019312332457270816,
+                "sd": 0.013526982606871537
+              }
+            ],
+            "leak_and_after": [
+              {
+                "mean": 0.0017710219841410532,
+                "sd": 0.01875286241751923
+              },
+              {
+                "mean": -0.001284211321409513,
+                "sd": 0.013269313837596311
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "pre_leak": {
+              "row": {
+                "mean": 0.402507047919389,
+                "sd": 0.09591646222005769
+              },
+              "null": {
+                "mean": 0.4209883501369502,
+                "sd": 0.09427192860629949
+              }
+            },
+            "leak_and_after": {
+              "row": {
+                "mean": 0.3070927160718474,
+                "sd": 0.055135181783228376
+              },
+              "null": {
+                "mean": 0.28915090090789025,
+                "sd": 0.06446300384546857
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "pre_leak": {
+              "row": {
+                "mean": 0.402507047919389,
+                "sd": 0.09591646222005769
+              },
+              "null": {
+                "mean": 0.4209883501369502,
+                "sd": 0.09427192860629949
+              }
+            },
+            "leak_and_after": {
+              "row": {
+                "mean": 0.3070927160718474,
+                "sd": 0.055135181783228376
+              },
+              "null": {
+                "mean": 0.28915090090789025,
+                "sd": 0.06446300384546857
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 20,
+            "within": 100,
+            "detected_within": 1,
+            "median_delay": 165.5,
+            "median_censored": false,
+            "censor_at": 300,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.05,
+                "max": 1,
+                "rate": 0.0001666666666666667
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 300.0,
+                "median_censored": true,
+                "censor_at": 300,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 300.0,
+                "median_censored": true,
+                "censor_at": 300,
+                "applicable": true
+              }
+            }
+          },
+          "aug": {
+            "alpha_rmse_pump_on": {
+              "mean": 0.02661622770741288,
+              "sd": 0.0081238746244985
+            },
+            "alpha_rmse_pump_on_by_window": {
+              "pre_leak": {
+                "mean": 0.02661622770741288,
+                "sd": 0.0081238746244985
+              },
+              "leak_and_after": null
+            },
+            "L_rmse": {
+              "mean": 0.007673574122020604,
+              "sd": 0.001246237779680946
+            },
+            "L_rmse_by_window": {
+              "pre_leak": {
+                "mean": 0.00787991388032246,
+                "sd": 0.0022118848700948043
+              },
+              "leak_and_after": {
+                "mean": 0.007249115621434732,
+                "sd": 0.001225970275286654
+              }
+            },
+            "alpha_hat_end": {
+              "mean": 1.0005570273986257,
+              "sd": 0.013071725935245831
+            },
+            "alpha_sd_end": {
+              "mean": 0.04147268757712392,
+              "sd": 4.335432185156696e-05
+            },
+            "L_hat_end": {
+              "mean": 0.0006606231956087364,
+              "sd": 0.004937382151458018
+            },
+            "L_sd_end": {
+              "mean": 0.014400895860293842,
+              "sd": 8.233737061112353e-05
+            },
+            "flags": {
+              "alpha": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 300.0,
+                  "median_censored": true,
+                  "censor_at": 300,
+                  "applicable": true
+                }
+              },
+              "L": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 300.0,
+                  "median_censored": true,
+                  "censor_at": 300,
+                  "applicable": true
+                }
+              }
+            }
+          },
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
           },
           "solver_failures": 0,
           "n_seeds": 20
@@ -6756,12 +8848,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 391.11500955186784,
-            "sd": 14.111046768637957
+            "mean": 359.2449880670756,
+            "sd": 9.642419831571317
           },
           "latency_us_p99": {
-            "mean": 679.0086004766634,
-            "sd": 132.8573203381635
+            "mean": 503.30134568503127,
+            "sd": 74.93031200987598
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -6920,6 +9012,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -6953,12 +9046,12 @@
             "sd": 0.06276118726711727
           },
           "latency_us_p50": {
-            "mean": 696.1500068427995,
-            "sd": 475.551282453338
+            "mean": 541.9724999228492,
+            "sd": 17.35456215883584
           },
           "latency_us_p99": {
-            "mean": 1378.1168055720623,
-            "sd": 1917.3702276200065
+            "mean": 738.7636122293768,
+            "sd": 95.80270851374748
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -7117,6 +9210,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -7150,12 +9244,12 @@
             "sd": 0.04744632752628897
           },
           "latency_us_p50": {
-            "mean": 570.9100048989058,
-            "sd": 18.252128503583208
+            "mean": 538.5550000937656,
+            "sd": 23.269503090348273
           },
           "latency_us_p99": {
-            "mean": 1062.9442001227287,
-            "sd": 617.661878044867
+            "mean": 837.6528586959464,
+            "sd": 509.708712696605
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -7314,9 +9408,280 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 183.4,
             "sd": 17.500075187808402
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf_aug": {
+          "rmse_all": {
+            "mean": 0.3703791156200146,
+            "sd": 0.044184206027197824
+          },
+          "coverage95": {
+            "mean": 0.9804583333333333,
+            "sd": 0.013183020600899579
+          },
+          "nz_rms_all": {
+            "mean": 0.8259878228624178,
+            "sd": 0.08699782867850138
+          },
+          "mean_abs_res_pre": {
+            "mean": 1.550935100165843,
+            "sd": 0.10035241160007836
+          },
+          "mean_abs_res_post": null,
+          "mean_correction_norm": null,
+          "latency_us_p50": {
+            "mean": 456.46499493159354,
+            "sd": 338.6008668509626
+          },
+          "latency_us_p99": {
+            "mean": 641.313231375534,
+            "sd": 538.3381912724461
+          },
+          "rmse_by_window": {
+            "pre_leak": {
+              "mean": 0.4159198116583146,
+              "sd": 0.0741525495590428
+            },
+            "leak_and_after": {
+              "mean": 0.31293166166373326,
+              "sd": 0.04509005160315695
+            }
+          },
+          "coverage95_by_window": {
+            "pre_leak": {
+              "mean": 0.9756666666666666,
+              "sd": 0.02719541585037548
+            },
+            "leak_and_after": {
+              "mean": 0.9852500000000001,
+              "sd": 0.01674782869753185
+            }
+          },
+          "nz_rms_by_window": {
+            "pre_leak": {
+              "mean": 0.8738306393536897,
+              "sd": 0.12415578353982919
+            },
+            "leak_and_after": {
+              "mean": 0.7687904158889329,
+              "sd": 0.10067944812511224
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "pre_leak": {
+              "mean": 0.8738306393536897,
+              "sd": 0.12415578353982919
+            },
+            "leak_and_after": {
+              "mean": 0.7687904158889329,
+              "sd": 0.10067944812511224
+            }
+          },
+          "innov_z_mean_by_window": {
+            "pre_leak": [
+              {
+                "mean": -0.0026244001194998057,
+                "sd": 0.03767257559849764
+              },
+              {
+                "mean": 0.0019312332457270816,
+                "sd": 0.013526982606871537
+              }
+            ],
+            "leak_and_after": [
+              {
+                "mean": 0.0018335411541040008,
+                "sd": 0.018752903734458898
+              },
+              {
+                "mean": -0.0027412154630515476,
+                "sd": 0.013240883665286377
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "pre_leak": {
+              "row": {
+                "mean": 0.402507047919389,
+                "sd": 0.09591646222005769
+              },
+              "null": {
+                "mean": 0.4209883501369502,
+                "sd": 0.09427192860629949
+              }
+            },
+            "leak_and_after": {
+              "row": {
+                "mean": 0.3193630375673421,
+                "sd": 0.06227713185737631
+              },
+              "null": {
+                "mean": 0.29955062503074703,
+                "sd": 0.06733668867580149
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "pre_leak": {
+              "row": {
+                "mean": 0.402507047919389,
+                "sd": 0.09591646222005769
+              },
+              "null": {
+                "mean": 0.4209883501369502,
+                "sd": 0.09427192860629949
+              }
+            },
+            "leak_and_after": {
+              "row": {
+                "mean": 0.3193630375673421,
+                "sd": 0.06227713185737631
+              },
+              "null": {
+                "mean": 0.29955062503074703,
+                "sd": 0.06733668867580149
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 20,
+            "within": 100,
+            "detected_within": 10,
+            "median_delay": 100.5,
+            "median_censored": false,
+            "censor_at": 300,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.05,
+                "max": 1,
+                "rate": 0.0001666666666666667
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 300.0,
+                "median_censored": true,
+                "censor_at": 300,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 300.0,
+                "median_censored": true,
+                "censor_at": 300,
+                "applicable": true
+              }
+            }
+          },
+          "aug": {
+            "alpha_rmse_pump_on": {
+              "mean": 0.02661622770741288,
+              "sd": 0.0081238746244985
+            },
+            "alpha_rmse_pump_on_by_window": {
+              "pre_leak": {
+                "mean": 0.02661622770741288,
+                "sd": 0.0081238746244985
+              },
+              "leak_and_after": null
+            },
+            "L_rmse": {
+              "mean": 0.009600568465428817,
+              "sd": 0.0011978190655414127
+            },
+            "L_rmse_by_window": {
+              "pre_leak": {
+                "mean": 0.00787991388032246,
+                "sd": 0.0022118848700948043
+              },
+              "leak_and_after": {
+                "mean": 0.010886671154449483,
+                "sd": 0.0013793320900449735
+              }
+            },
+            "alpha_hat_end": {
+              "mean": 1.002134986155119,
+              "sd": 0.013073569760680425
+            },
+            "alpha_sd_end": {
+              "mean": 0.04147268757712392,
+              "sd": 4.335432185156696e-05
+            },
+            "L_hat_end": {
+              "mean": 0.0015322583741666277,
+              "sd": 0.004946418966571133
+            },
+            "L_sd_end": {
+              "mean": 0.014400895860293842,
+              "sd": 8.233737061112353e-05
+            },
+            "flags": {
+              "alpha": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 300.0,
+                  "median_censored": true,
+                  "censor_at": 300,
+                  "applicable": true
+                }
+              },
+              "L": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 300.0,
+                  "median_censored": true,
+                  "censor_at": 300,
+                  "applicable": true
+                }
+              }
+            }
+          },
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
           },
           "solver_failures": 0,
           "n_seeds": 20
@@ -7343,12 +9708,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 387.320012669079,
-            "sd": 15.845730102414505
+            "mean": 358.1675060559064,
+            "sd": 10.339210959858805
           },
           "latency_us_p99": {
-            "mean": 630.7601443841122,
-            "sd": 83.83541531242177
+            "mean": 517.4892104696481,
+            "sd": 69.22582362846869
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -7507,6 +9872,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -7540,12 +9906,12 @@
             "sd": 0.06267255232874508
           },
           "latency_us_p50": {
-            "mean": 582.0300022605807,
-            "sd": 23.741477855231835
+            "mean": 544.2624998977408,
+            "sd": 12.218436788413385
           },
           "latency_us_p99": {
-            "mean": 931.4654947374945,
-            "sd": 149.9236402981333
+            "mean": 762.3139726347288,
+            "sd": 92.97701483520035
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -7704,6 +10070,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -7737,12 +10104,12 @@
             "sd": 0.055956454709563515
           },
           "latency_us_p50": {
-            "mean": 628.2374873990193,
-            "sd": 264.5251307143583
+            "mean": 635.1400021230802,
+            "sd": 475.4138683865826
           },
           "latency_us_p99": {
-            "mean": 1060.3427664609624,
-            "sd": 668.8858687996149
+            "mean": 883.1908612628464,
+            "sd": 809.9513423899228
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -7901,9 +10268,280 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 234.8,
             "sd": 8.281876217633933
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf_aug": {
+          "rmse_all": {
+            "mean": 0.40866251391700387,
+            "sd": 0.051110558460188055
+          },
+          "coverage95": {
+            "mean": 0.9644166666666669,
+            "sd": 0.020893946911578466
+          },
+          "nz_rms_all": {
+            "mean": 0.908844217793965,
+            "sd": 0.10567142636183477
+          },
+          "mean_abs_res_pre": {
+            "mean": 3.5353290100144887,
+            "sd": 0.09974127566810467
+          },
+          "mean_abs_res_post": null,
+          "mean_correction_norm": null,
+          "latency_us_p50": {
+            "mean": 383.4724862826988,
+            "sd": 9.814870232503216
+          },
+          "latency_us_p99": {
+            "mean": 605.4746935842556,
+            "sd": 327.4061060544665
+          },
+          "rmse_by_window": {
+            "pre_leak": {
+              "mean": 0.4159198116583146,
+              "sd": 0.0741525495590428
+            },
+            "leak_and_after": {
+              "mean": 0.3952925586646324,
+              "sd": 0.06885746356537036
+            }
+          },
+          "coverage95_by_window": {
+            "pre_leak": {
+              "mean": 0.9756666666666666,
+              "sd": 0.02719541585037548
+            },
+            "leak_and_after": {
+              "mean": 0.9531666666666666,
+              "sd": 0.03345110772735538
+            }
+          },
+          "nz_rms_by_window": {
+            "pre_leak": {
+              "mean": 0.8738306393536897,
+              "sd": 0.12415578353982919
+            },
+            "leak_and_after": {
+              "mean": 0.935644654850344,
+              "sd": 0.1434794979611939
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "pre_leak": {
+              "mean": 0.8738306393536897,
+              "sd": 0.12415578353982919
+            },
+            "leak_and_after": {
+              "mean": 0.935644654850344,
+              "sd": 0.1434794979611939
+            }
+          },
+          "innov_z_mean_by_window": {
+            "pre_leak": [
+              {
+                "mean": -0.0026244001194998057,
+                "sd": 0.03767257559849764
+              },
+              {
+                "mean": 0.0019312332457270816,
+                "sd": 0.013526982606871537
+              }
+            ],
+            "leak_and_after": [
+              {
+                "mean": 0.0020210986639950554,
+                "sd": 0.01875302874507758
+              },
+              {
+                "mean": -0.007112227887975259,
+                "sd": 0.013179544540340564
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "pre_leak": {
+              "row": {
+                "mean": 0.402507047919389,
+                "sd": 0.09591646222005769
+              },
+              "null": {
+                "mean": 0.4209883501369502,
+                "sd": 0.09427192860629949
+              }
+            },
+            "leak_and_after": {
+              "row": {
+                "mean": 0.4015752035156597,
+                "sd": 0.09282963498270884
+              },
+              "null": {
+                "mean": 0.38207909240761906,
+                "sd": 0.0800488562104116
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "pre_leak": {
+              "row": {
+                "mean": 0.402507047919389,
+                "sd": 0.09591646222005769
+              },
+              "null": {
+                "mean": 0.4209883501369502,
+                "sd": 0.09427192860629949
+              }
+            },
+            "leak_and_after": {
+              "row": {
+                "mean": 0.4015752035156597,
+                "sd": 0.09282963498270884
+              },
+              "null": {
+                "mean": 0.38207909240761906,
+                "sd": 0.0800488562104116
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 20,
+            "within": 100,
+            "detected_within": 20,
+            "median_delay": 53.5,
+            "median_censored": false,
+            "censor_at": 300,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.05,
+                "max": 1,
+                "rate": 0.0001666666666666667
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 300.0,
+                "median_censored": true,
+                "censor_at": 300,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 3,
+                "within": 100,
+                "detected_within": 1,
+                "median_delay": 300.0,
+                "median_censored": true,
+                "censor_at": 300,
+                "applicable": true
+              }
+            }
+          },
+          "aug": {
+            "alpha_rmse_pump_on": {
+              "mean": 0.02661622770741288,
+              "sd": 0.0081238746244985
+            },
+            "alpha_rmse_pump_on_by_window": {
+              "pre_leak": {
+                "mean": 0.02661622770741288,
+                "sd": 0.0081238746244985
+              },
+              "leak_and_after": null
+            },
+            "L_rmse": {
+              "mean": 0.018322744349021546,
+              "sd": 0.0010858884105866547
+            },
+            "L_rmse_by_window": {
+              "pre_leak": {
+                "mean": 0.00787991388032246,
+                "sd": 0.0022118848700948043
+              },
+              "leak_and_after": {
+                "mean": 0.0245955534951906,
+                "sd": 0.0014524771707463812
+              }
+            },
+            "alpha_hat_end": {
+              "mean": 1.0068688624245963,
+              "sd": 0.013079121924177973
+            },
+            "alpha_sd_end": {
+              "mean": 0.04147268757712392,
+              "sd": 4.335432185156696e-05
+            },
+            "L_hat_end": {
+              "mean": 0.004147163909838881,
+              "sd": 0.004974619380787704
+            },
+            "L_sd_end": {
+              "mean": 0.014400895860293842,
+              "sd": 8.233737061112353e-05
+            },
+            "flags": {
+              "alpha": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 0,
+                  "within": 100,
+                  "detected_within": 0,
+                  "median_delay": 300.0,
+                  "median_censored": true,
+                  "censor_at": 300,
+                  "applicable": true
+                }
+              },
+              "L": {
+                "false_alarms": {
+                  "mean": 0.0,
+                  "max": 0,
+                  "rate": 0.0
+                },
+                "detection": {
+                  "n": 20,
+                  "detected_any": 20,
+                  "within": 100,
+                  "detected_within": 9,
+                  "median_delay": 103.0,
+                  "median_censored": false,
+                  "censor_at": 300,
+                  "applicable": true
+                }
+              }
+            }
+          },
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
           },
           "solver_failures": 0,
           "n_seeds": 20
@@ -7932,12 +10570,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 455.53499658126384,
-            "sd": 310.11767835967356
+            "mean": 357.4449976440519,
+            "sd": 9.842353824634476
           },
           "latency_us_p99": {
-            "mean": 721.4676475268786,
-            "sd": 516.5093029956355
+            "mean": 508.85435892269015,
+            "sd": 65.74092824547003
           },
           "rmse_by_window": {
             "steady": {
@@ -8050,6 +10688,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -8083,12 +10722,12 @@
             "sd": 0.05321473238680636
           },
           "latency_us_p50": {
-            "mean": 579.2100069811568,
-            "sd": 22.190551738120753
+            "mean": 646.912504453212,
+            "sd": 482.9462704974366
           },
           "latency_us_p99": {
-            "mean": 912.991282471921,
-            "sd": 97.09118921095461
+            "mean": 963.1105539738198,
+            "sd": 782.5856709436911
           },
           "rmse_by_window": {
             "steady": {
@@ -8201,6 +10840,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -8234,12 +10874,12 @@
             "sd": 0.05321473238680636
           },
           "latency_us_p50": {
-            "mean": 586.7724976269528,
-            "sd": 22.447132368291005
+            "mean": 538.087499444373,
+            "sd": 17.52169333087084
           },
           "latency_us_p99": {
-            "mean": 1062.981362978462,
-            "sd": 569.866796290354
+            "mean": 767.4453097279181,
+            "sd": 124.24431172098105
           },
           "rmse_by_window": {
             "steady": {
@@ -8352,6 +10992,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -8385,12 +11026,12 @@
             "sd": 0.050943675245228894
           },
           "latency_us_p50": {
-            "mean": 594.4325064774603,
-            "sd": 408.50106470685677
+            "mean": 464.2024985514581,
+            "sd": 12.759192344685951
           },
           "latency_us_p99": {
-            "mean": 1050.111860793549,
-            "sd": 908.1330863905276
+            "mean": 656.4565587323157,
+            "sd": 70.57792306852822
           },
           "rmse_by_window": {
             "steady": {
@@ -8503,6 +11144,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -8532,12 +11174,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 461.745000211522,
-            "sd": 307.44429397800445
+            "mean": 355.6674928404391,
+            "sd": 10.865301193044392
           },
           "latency_us_p99": {
-            "mean": 1006.5211491892109,
-            "sd": 1273.2115229689311
+            "mean": 496.07534892857063,
+            "sd": 64.53515234433632
           },
           "rmse_by_window": {
             "steady": {
@@ -8650,6 +11292,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -8683,12 +11326,12 @@
             "sd": 0.1111886328567825
           },
           "latency_us_p50": {
-            "mean": 591.3950008107349,
-            "sd": 20.0486353481073
+            "mean": 539.662514347583,
+            "sd": 14.591680465595877
           },
           "latency_us_p99": {
-            "mean": 1134.4667488592675,
-            "sd": 765.4009579961291
+            "mean": 779.3612565146757,
+            "sd": 104.30543698040644
           },
           "rmse_by_window": {
             "steady": {
@@ -8801,6 +11444,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -8834,12 +11478,12 @@
             "sd": 0.1045159805565406
           },
           "latency_us_p50": {
-            "mean": 577.1374824689701,
-            "sd": 20.985691299113284
+            "mean": 540.0374939199537,
+            "sd": 11.609999743822035
           },
           "latency_us_p99": {
-            "mean": 922.4204466445369,
-            "sd": 96.10934248988443
+            "mean": 908.3930110791696,
+            "sd": 688.9432968738629
           },
           "rmse_by_window": {
             "steady": {
@@ -8952,6 +11596,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 2.25,
             "sd": 10.062305898749054
@@ -8985,12 +11630,12 @@
             "sd": 0.07853305450736321
           },
           "latency_us_p50": {
-            "mean": 497.9400022421032,
-            "sd": 18.945703151078465
+            "mean": 555.4300034418702,
+            "sd": 405.94720663047514
           },
           "latency_us_p99": {
-            "mean": 887.842915486544,
-            "sd": 295.5528736757044
+            "mean": 788.3364383014848,
+            "sd": 562.8088954339081
           },
           "rmse_by_window": {
             "steady": {
@@ -9103,6 +11748,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -9132,12 +11778,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 377.6774799916893,
-            "sd": 12.684602897241128
+            "mean": 360.0475029088557,
+            "sd": 7.756955527868754
           },
           "latency_us_p99": {
-            "mean": 593.388794455677,
-            "sd": 65.96144560650147
+            "mean": 579.4576545595189,
+            "sd": 336.36715462602706
           },
           "rmse_by_window": {
             "steady": {
@@ -9250,6 +11896,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -9283,12 +11930,12 @@
             "sd": 0.1920145434982823
           },
           "latency_us_p50": {
-            "mean": 574.3149929912761,
-            "sd": 15.627264579911921
+            "mean": 650.2849952084944,
+            "sd": 486.6740610132798
           },
           "latency_us_p99": {
-            "mean": 867.468752490822,
-            "sd": 98.54015279898586
+            "mean": 929.0452554705549,
+            "sd": 666.1724060528178
           },
           "rmse_by_window": {
             "steady": {
@@ -9401,6 +12048,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -9434,12 +12082,12 @@
             "sd": 0.16709385321363884
           },
           "latency_us_p50": {
-            "mean": 671.0024870699272,
-            "sd": 455.817995749084
+            "mean": 542.3649825388566,
+            "sd": 11.64684227446489
           },
           "latency_us_p99": {
-            "mean": 1047.0353728742336,
-            "sd": 789.0852265916934
+            "mean": 777.6392383384516,
+            "sd": 82.45840320361063
           },
           "rmse_by_window": {
             "steady": {
@@ -9552,6 +12200,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 11.2,
             "sd": 30.79405274091941
@@ -9585,12 +12234,12 @@
             "sd": 0.08958840464200654
           },
           "latency_us_p50": {
-            "mean": 486.18000000715256,
-            "sd": 12.223990414882305
+            "mean": 465.5800177715719,
+            "sd": 12.852166147790069
           },
           "latency_us_p99": {
-            "mean": 894.2359907086935,
-            "sd": 647.3778199291313
+            "mean": 645.2603040961546,
+            "sd": 64.50624855927751
           },
           "rmse_by_window": {
             "steady": {
@@ -9703,6 +12352,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -9732,12 +12382,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 387.94250576756895,
-            "sd": 18.518799164031627
+            "mean": 359.4524983782321,
+            "sd": 6.028087085251086
           },
           "latency_us_p99": {
-            "mean": 702.883950085379,
-            "sd": 172.32176401504657
+            "mean": 513.36724095745,
+            "sd": 67.66269054575757
           },
           "rmse_by_window": {
             "steady": {
@@ -9850,6 +12500,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -9883,12 +12534,12 @@
             "sd": 0.408043133410429
           },
           "latency_us_p50": {
-            "mean": 577.5749945314601,
-            "sd": 16.978741175168118
+            "mean": 542.7149968454614,
+            "sd": 15.498212295790536
           },
           "latency_us_p99": {
-            "mean": 959.9744528532026,
-            "sd": 165.25872061117929
+            "mean": 778.0328802182337,
+            "sd": 86.16951140649158
           },
           "rmse_by_window": {
             "steady": {
@@ -10001,6 +12652,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -10034,12 +12686,12 @@
             "sd": 0.3124164682794557
           },
           "latency_us_p50": {
-            "mean": 668.3299958240241,
-            "sd": 489.1793119246194
+            "mean": 522.3699903581291,
+            "sd": 57.55557712233073
           },
           "latency_us_p99": {
-            "mean": 1373.0486534186634,
-            "sd": 1959.5389597179849
+            "mean": 855.9990976355036,
+            "sd": 644.0699954620014
           },
           "rmse_by_window": {
             "steady": {
@@ -10152,6 +12804,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 71.6,
             "sd": 159.5956733353646
@@ -10185,12 +12838,12 @@
             "sd": 0.07556801075525006
           },
           "latency_us_p50": {
-            "mean": 490.8424860332161,
-            "sd": 14.060974317151938
+            "mean": 546.997509081848,
+            "sd": 402.6458034660151
           },
           "latency_us_p99": {
-            "mean": 913.9830744243224,
-            "sd": 397.8499321614324
+            "mean": 761.3520538434384,
+            "sd": 530.4089999933149
           },
           "rmse_by_window": {
             "steady": {
@@ -10303,6 +12956,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -10332,12 +12986,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 378.37499694433063,
-            "sd": 10.02789445984603
+            "mean": 358.5050086257979,
+            "sd": 9.080195590591355
           },
           "latency_us_p99": {
-            "mean": 661.8219143711028,
-            "sd": 302.89916272080575
+            "mean": 522.8394544683397,
+            "sd": 67.66920880740922
           },
           "rmse_by_window": {
             "steady": {
@@ -10450,6 +13104,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -10483,12 +13138,12 @@
             "sd": 0.8284111321657709
           },
           "latency_us_p50": {
-            "mean": 567.5525200786069,
-            "sd": 19.0669455299968
+            "mean": 541.7900043539703,
+            "sd": 13.230035347142273
           },
           "latency_us_p99": {
-            "mean": 897.0651183626612,
-            "sd": 104.55249632043727
+            "mean": 923.8203510176388,
+            "sd": 667.771908119397
           },
           "rmse_by_window": {
             "steady": {
@@ -10601,6 +13256,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0
@@ -10634,12 +13290,12 @@
             "sd": 1.4075114403682831
           },
           "latency_us_p50": {
-            "mean": 518.6225025681779,
-            "sd": 85.80640838296519
+            "mean": 566.0750000970438,
+            "sd": 293.8833926708786
           },
           "latency_us_p99": {
-            "mean": 848.3441947610112,
-            "sd": 221.3306602894104
+            "mean": 835.4478037217632,
+            "sd": 479.57262047939724
           },
           "rmse_by_window": {
             "steady": {
@@ -10752,6 +13408,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 183.0,
             "sd": 236.62940156331067
@@ -10785,12 +13442,12 @@
             "sd": 0.04661764938460581
           },
           "latency_us_p50": {
-            "mean": 575.095001840964,
-            "sd": 410.8668726703166
+            "mean": 464.2099956981838,
+            "sd": 12.617154711044448
           },
           "latency_us_p99": {
-            "mean": 1050.8800617535594,
-            "sd": 1245.6395887656286
+            "mean": 672.4846524302845,
+            "sd": 72.87334878267646
           },
           "rmse_by_window": {
             "steady": {
@@ -10903,6 +13560,7 @@
               }
             }
           },
+          "aug": null,
           "held_steps": {
             "mean": 0.0,
             "sd": 0.0

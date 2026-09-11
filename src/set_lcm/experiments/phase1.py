@@ -1,4 +1,4 @@
-"""Phase 1 experiment grid: 6 scenarios x 5 estimator variants x N seeds.
+"""Phase 1 experiment grid: 6 scenarios x 6 estimator variants x N seeds.
 
 Every scenario declares the same constraint (closed boundary, m1 + m2 = 100 kg).
 In four of them that constraint is true throughout; in the other two something
@@ -112,6 +112,9 @@ SPECS = [
     EstimatorSpec("kf+soft(1/lam=4)", "kf", "soft", lam=0.25),
     EstimatorSpec("kf+hard", "kf", "hard"),
     EstimatorSpec("kf+hard+guard", "kf", "hard", guard=True),
+    # mode None: the consistency stat is still computed on the mass marginal and its flag
+    # recorded, but nothing is ever projected; alpha and L are outputs with their own flags
+    EstimatorSpec("kf_aug", "kf_aug", None),
 ]
 
 
@@ -202,6 +205,30 @@ def aggregate(per_seed: list[dict]) -> dict:
                 }
         else:
             a["cusum"] = None
+        # augmented-state outputs: parameter errors and one flag summary per extra component
+        if all(m.get("aug") is not None for m in ms):
+            augs = [m["aug"] for m in ms]
+            a["aug"] = {
+                "alpha_rmse_pump_on": _ms([g["alpha_rmse_pump_on"] for g in augs]),
+                "alpha_rmse_pump_on_by_window": {w: _ms([g["alpha_rmse_pump_on_by_window"][w] for g in augs]) for w in windows},
+                "L_rmse": _ms([g["L_rmse"] for g in augs]),
+                "L_rmse_by_window": {w: _ms([g["L_rmse_by_window"][w] for g in augs]) for w in windows},
+                "alpha_hat_end": _ms([g["alpha_hat_end"] for g in augs]),
+                "alpha_sd_end": _ms([g["alpha_sd_end"] for g in augs]),
+                "L_hat_end": _ms([g["L_hat_end"] for g in augs]),
+                "L_sd_end": _ms([g["L_sd_end"] for g in augs]),
+                "flags": {},
+            }
+            for name in augs[0]["flags"]:
+                fa_i = [g["flags"][name]["false_alarms"] for g in augs]
+                a["aug"]["flags"][name] = {
+                    "false_alarms": {"mean": float(np.mean(fa_i)), "max": int(max(fa_i)),
+                                     "rate": float(np.mean([g["flags"][name]["fa_rate"] for g in augs]))},
+                    "detection": _detection_summary([g["flags"][name]["detection_delay_steps"] for g in augs],
+                                                    ms[0]["detection_censor_steps"]),
+                }
+        else:
+            a["aug"] = None
         a["held_steps"] = _ms([m["status_counts"].get("model_inconsistent", 0) for m in ms])
         a["solver_failures"] = int(sum(m["solver_failures"] for m in ms))
         a["n_seeds"] = len(ms)
@@ -268,7 +295,8 @@ def _det_cells(det: dict) -> tuple[str, str]:
 
 
 def table(name: str, sc: Scenario, agg: dict) -> str:
-    """Two tables per scenario: accuracy/calibration per window, then reconciliation/detection."""
+    """Two tables per scenario: accuracy/calibration per window, then reconciliation/detection;
+    a third, for estimators that carry augmented state, with the parameter outputs."""
     win = list(sc.windows)
 
     head1 = ["estimator"]
@@ -311,9 +339,31 @@ def table(name: str, sc: Scenario, agg: dict) -> str:
             f"{a['latency_us_p50']['mean']:.0f}",
         ])
 
-    return "\n".join([f"### {name}", "", sc.note, "",
-                      "Accuracy and calibration per window:", "", *_row(rows1), "",
-                      "Reconciliation and detection:", "", *_row(rows2), ""])
+    parts = [f"### {name}", "", sc.note, "",
+             "Accuracy and calibration per window:", "", *_row(rows1), "",
+             "Reconciliation and detection:", "", *_row(rows2), ""]
+
+    aug = {est: a["aug"] for est, a in agg.items() if a.get("aug") is not None}
+    if aug:
+        per_w = " / ".join(win)
+        head3 = ["estimator", "alpha RMSE (pump on)", f"alpha RMSE (pump on) {per_w}", "L RMSE", f"L RMSE {per_w}",
+                 "alpha flag (k/n, median)", "L flag (k/n, median)", "FA max (alpha / L)", "σ_α / σ_L at run end"]
+        rows3 = [head3, ["---"] * len(head3)]
+        for est, g in aug.items():
+            fl = g["flags"]
+            rows3.append([
+                est, fms(g["alpha_rmse_pump_on"], 3),
+                " / ".join(fm(g["alpha_rmse_pump_on_by_window"][w], 3) for w in win),
+                fms(g["L_rmse"], 4),
+                " / ".join(fm(g["L_rmse_by_window"][w], 4) for w in win),
+                ", ".join(_det_cells(fl["alpha"]["detection"])),
+                ", ".join(_det_cells(fl["L"]["detection"])),
+                f"{fl['alpha']['false_alarms']['max']} / {fl['L']['false_alarms']['max']}",
+                f"{fm(g['alpha_sd_end'], 3)} / {fm(g['L_sd_end'], 4)}",
+            ])
+        parts += ["Augmented-state outputs (pump scale alpha, boundary flux L in kg/s):", "", *_row(rows3), ""]
+
+    return "\n".join(parts)
 
 
 LEGEND = (
@@ -335,7 +385,18 @@ LEGEND = (
     "innovation z = (y − H x_pred)/√Sᵢᵢ, updated when the observation is ingested and stamped at that "
     "report step, so its delay includes arrival delay; cells are (seeds alarmed within N steps of onset, "
     "censored median delay) and CUSUM FA max is the worst-seed count of pre-onset alarms per sensor. "
-    "It reads no constraint; hold-last has no prediction, hence no innovation and no CUSUM."
+    "It reads no constraint; hold-last has no prediction, hence no innovation and no CUSUM. "
+    "Augmented-state outputs (kf_aug only): the filter's state is [m1, m2, alpha, L] with alpha the pump "
+    "scale (m1' = m1 − αu dt, m2' = m2 + αu dt − L dt; prior α ~ N(1, 0.1²), L ~ N(0, 0.02²), random walks "
+    "1e-3 and 2e-3 kg/s per step); its RMSE / cov95 / nz rows above are the mass marginal, never projected. "
+    "alpha RMSE (pump on) = RMS of α̂ − u_actual/u_commanded over the steps where the pump is commanded on "
+    "(α is unobservable when u = 0; u_actual is the hidden parameter rate, so the per-step pump fluctuation "
+    "counts as process noise, not as α error). L RMSE = RMS of L̂ − leak (kg/s) over the run / window. "
+    "alpha flag / L flag = |α̂ − 1| / σ_α > 3.29 and |L̂| / σ_L > 3.29 (two-sided 0.001) for 3 consecutive "
+    "reports; cells and FA max as for the constraint flag, with the same onset. σ_α / σ_L at run end = the "
+    "filter's own reported sd of each parameter at the last step (mean over seeds). These flags name a "
+    "parameter, not a cause: a sensor bias that the filter can only explain through the pump will raise the "
+    "alpha flag."
 )
 
 
