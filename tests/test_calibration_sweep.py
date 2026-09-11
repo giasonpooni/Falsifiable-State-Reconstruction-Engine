@@ -23,6 +23,19 @@ def test_threshold_sweep_small():
     assert r["held"] > 100
 
 
+def test_cusum_null_small():
+    r = calibration.cusum_null(n_seeds=2, hs=(8.0,))
+    assert set(r["windows"]) == set(calibration.NULL_WINDOWS)
+    assert r["shipped_h"] == 8.0 and r["hs"] == [8.0]
+    for w in r["windows"].values():
+        assert set(w["by_h"]) == {"8", "inf"}
+        assert w["by_h"]["inf"]["alarms"] == [0, 0]                # no reset, no alarm
+        assert all(m >= 0.0 for m in w["by_h"]["inf"]["max_stat"])
+        assert w["by_h"]["8"]["max_stat"][0] <= w["by_h"]["inf"]["max_stat"][0] + 1e-12
+    assert r["smallest_h_zero_alarms"] in (8.0, None)
+    assert r["total_alarms_by_h"]["8"] == r["shipped_h_alarms"]
+
+
 def test_sweep_declared_total_error_small():
     r = sweep.run_axis("declared_total_error", n_seeds=2, points=(0.0, 4.0))
     assert set(r) == {0.0, 4.0}

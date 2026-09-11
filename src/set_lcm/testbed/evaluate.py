@@ -4,7 +4,8 @@ Per run it reports: reconstruction error (overall, per window, and decomposed
 along row(A) / null(A)); calibration as 95 % interval coverage and as the RMS
 normalised error e_i / sigma_i (target 1.0), both per window; constraint
 residuals pre/post; correction magnitude; the detectability of the scenario's
-declared fault direction; false alarms and (censorable) detection delay; solver
+declared fault direction; false alarms and (censorable) detection delay for
+the constraint flag and, per sensor, for the innovation CUSUM; solver
 failures; latency.
 
 NEES (e^T P^-1 e) is deliberately absent: after a hard projection P is
@@ -112,11 +113,40 @@ def evaluate(
         later = np.flatnonzero(flags[fault_onset:])
         out["detection_delay_steps"] = int(later[0]) if later.size else None
         out["detection_censor_steps"] = int(n - fault_onset)   # a never-flagged seed is censored here
+
+    # Evidence-side channel: the same bookkeeping per sensor for the innovation CUSUM.
+    # It shares detection_censor_steps. Not applicable when the estimator records no
+    # innovation (hold-last) or the channel is switched off. The mean normalised
+    # innovation per window (over the window's SAMPLING steps) is what the CUSUM has to
+    # work with: a shift below k cannot accumulate.
+    alarms = run.cusum_alarm
+    out["cusum_applicable"] = bool(run.spec.cusum is not None and np.isfinite(run.innov_z).any())
+    out["innov_z_mean_by_window"] = {name: _nanmean_cols(run.innov_z[lo:hi]) for name, (lo, hi) in windows.items()}
+    out["cusum_false_alarms"] = []
+    out["cusum_fa_rate"] = []
+    out["cusum_detection_delay_steps"] = []
+    for i in range(alarms.shape[1]):
+        a = alarms[:, i]
+        if fault_onset is None:
+            out["cusum_false_alarms"].append(int(a.sum()))
+            out["cusum_fa_rate"].append(float(a.mean()))
+            out["cusum_detection_delay_steps"].append(None)
+        else:
+            pre = a[:fault_onset]
+            out["cusum_false_alarms"].append(int(pre.sum()))
+            out["cusum_fa_rate"].append(float(pre.mean()) if pre.size else 0.0)
+            later = np.flatnonzero(a[fault_onset:])
+            out["cusum_detection_delay_steps"].append(int(later[0]) if later.size else None)
     return out
 
 
 def _nanmean_abs(a: np.ndarray) -> float | None:
     return None if np.all(np.isnan(a)) else float(np.nanmean(np.abs(a)))
+
+
+def _nanmean_cols(a: np.ndarray) -> list[float | None]:
+    """Column means ignoring NaN; None for an all-NaN column (sensor dark or no innovation)."""
+    return [None if np.all(np.isnan(col)) else float(np.nanmean(col)) for col in np.asarray(a, dtype=float).T]
 
 
 def _nanmean_norm(a: np.ndarray) -> float | None:

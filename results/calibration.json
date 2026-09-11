@@ -5,8 +5,8 @@
     "numpy": "2.5.3",
     "platform": "Windows-11-10.0.26200-SP0",
     "machine": "AMD64",
-    "source_sha256": "78dfa2ab02494646541cf5081385760efd0476354fffab0b2dbba5b441dfd05a",
-    "git_head": "d3d240c5cf35bf9cadb4cf185aebcfa763b21330",
+    "source_sha256": "93f1aba6cc1e2a1ca3a959b276c8846b7850d752c7bd93aa953a307ff1b8b9b3",
+    "git_head": "3015a7007fd8ea2a19ef270edac86a8f45ca0c98",
     "source_dirty": true,
     "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
   },
@@ -255,5 +255,352 @@
       "nz": 4.03447088625352,
       "held": 227.75
     }
-  ]
+  ],
+  "cusum_null": {
+    "k": 0.5,
+    "hs": [
+      4.0,
+      6.0,
+      8.0,
+      10.0
+    ],
+    "shipped_h": 8.0,
+    "windows": {
+      "closed_noise": {
+        "window": [
+          0,
+          600
+        ],
+        "n_seeds": 20,
+        "n_steps_per_sensor": 12000,
+        "by_h": {
+          "4": {
+            "alarms": [
+              63,
+              34
+            ],
+            "seeds_with_alarm": [
+              19,
+              19
+            ],
+            "max_stat": [
+              5.617459246131487,
+              5.439831994469413
+            ]
+          },
+          "6": {
+            "alarms": [
+              7,
+              2
+            ],
+            "seeds_with_alarm": [
+              6,
+              2
+            ],
+            "max_stat": [
+              7.113782871452686,
+              6.728666829713621
+            ]
+          },
+          "8": {
+            "alarms": [
+              0,
+              0
+            ],
+            "seeds_with_alarm": [
+              0,
+              0
+            ],
+            "max_stat": [
+              7.546142962058273,
+              7.729427341370542
+            ]
+          },
+          "10": {
+            "alarms": [
+              0,
+              0
+            ],
+            "seeds_with_alarm": [
+              0,
+              0
+            ],
+            "max_stat": [
+              7.546142962058273,
+              7.729427341370542
+            ]
+          },
+          "inf": {
+            "alarms": [
+              0,
+              0
+            ],
+            "seeds_with_alarm": [
+              0,
+              0
+            ],
+            "max_stat": [
+              7.546142962058273,
+              7.729427341370542
+            ]
+          }
+        }
+      },
+      "closed_blackout_pumpbias": {
+        "window": [
+          0,
+          50
+        ],
+        "n_seeds": 20,
+        "n_steps_per_sensor": 1000,
+        "by_h": {
+          "4": {
+            "alarms": [
+              4,
+              4
+            ],
+            "seeds_with_alarm": [
+              4,
+              4
+            ],
+            "max_stat": [
+              4.418693638753391,
+              5.137425691407829
+            ]
+          },
+          "6": {
+            "alarms": [
+              1,
+              1
+            ],
+            "seeds_with_alarm": [
+              1,
+              1
+            ],
+            "max_stat": [
+              6.00291305002216,
+              6.049069132340784
+            ]
+          },
+          "8": {
+            "alarms": [
+              0,
+              0
+            ],
+            "seeds_with_alarm": [
+              0,
+              0
+            ],
+            "max_stat": [
+              6.042162319360976,
+              6.049069132340784
+            ]
+          },
+          "10": {
+            "alarms": [
+              0,
+              0
+            ],
+            "seeds_with_alarm": [
+              0,
+              0
+            ],
+            "max_stat": [
+              6.042162319360976,
+              6.049069132340784
+            ]
+          },
+          "inf": {
+            "alarms": [
+              0,
+              0
+            ],
+            "seeds_with_alarm": [
+              0,
+              0
+            ],
+            "max_stat": [
+              6.042162319360976,
+              6.049069132340784
+            ]
+          }
+        }
+      },
+      "leak_stale_constraint": {
+        "window": [
+          0,
+          300
+        ],
+        "n_seeds": 20,
+        "n_steps_per_sensor": 6000,
+        "by_h": {
+          "4": {
+            "alarms": [
+              23,
+              36
+            ],
+            "seeds_with_alarm": [
+              15,
+              16
+            ],
+            "max_stat": [
+              5.087156865726307,
+              5.9015496086976
+            ]
+          },
+          "6": {
+            "alarms": [
+              2,
+              4
+            ],
+            "seeds_with_alarm": [
+              2,
+              4
+            ],
+            "max_stat": [
+              7.0868789771203025,
+              6.628252632643415
+            ]
+          },
+          "8": {
+            "alarms": [
+              1,
+              1
+            ],
+            "seeds_with_alarm": [
+              1,
+              1
+            ],
+            "max_stat": [
+              8.163864789026565,
+              8.312427443350616
+            ]
+          },
+          "10": {
+            "alarms": [
+              0,
+              0
+            ],
+            "seeds_with_alarm": [
+              0,
+              0
+            ],
+            "max_stat": [
+              9.123287445475093,
+              8.312427443350616
+            ]
+          },
+          "inf": {
+            "alarms": [
+              0,
+              0
+            ],
+            "seeds_with_alarm": [
+              0,
+              0
+            ],
+            "max_stat": [
+              9.123287445475093,
+              8.312427443350616
+            ]
+          }
+        }
+      },
+      "bias_quant_delay": {
+        "window": [
+          0,
+          200
+        ],
+        "n_seeds": 20,
+        "n_steps_per_sensor": 4000,
+        "by_h": {
+          "4": {
+            "alarms": [
+              20,
+              19
+            ],
+            "seeds_with_alarm": [
+              14,
+              11
+            ],
+            "max_stat": [
+              5.550183743894767,
+              5.346797034008349
+            ]
+          },
+          "6": {
+            "alarms": [
+              0,
+              0
+            ],
+            "seeds_with_alarm": [
+              0,
+              0
+            ],
+            "max_stat": [
+              5.996584068587607,
+              5.9067738997243895
+            ]
+          },
+          "8": {
+            "alarms": [
+              0,
+              0
+            ],
+            "seeds_with_alarm": [
+              0,
+              0
+            ],
+            "max_stat": [
+              5.996584068587607,
+              5.9067738997243895
+            ]
+          },
+          "10": {
+            "alarms": [
+              0,
+              0
+            ],
+            "seeds_with_alarm": [
+              0,
+              0
+            ],
+            "max_stat": [
+              5.996584068587607,
+              5.9067738997243895
+            ]
+          },
+          "inf": {
+            "alarms": [
+              0,
+              0
+            ],
+            "seeds_with_alarm": [
+              0,
+              0
+            ],
+            "max_stat": [
+              5.996584068587607,
+              5.9067738997243895
+            ]
+          }
+        }
+      }
+    },
+    "total_alarms_by_h": {
+      "4": 203,
+      "6": 17,
+      "8": 2,
+      "10": 0
+    },
+    "total_sensor_steps": 46000,
+    "fa_rate_by_h": {
+      "4": 0.0044130434782608694,
+      "6": 0.00036956521739130437,
+      "8": 4.347826086956522e-05,
+      "10": 0.0
+    },
+    "smallest_h_zero_alarms": 10.0,
+    "shipped_h_alarms": 2
+  }
 }

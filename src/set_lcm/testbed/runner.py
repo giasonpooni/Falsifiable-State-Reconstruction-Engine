@@ -5,6 +5,13 @@ What the estimator side is allowed to see: the observations (only once each
 has arrived, per Observation.arrival_t), the commanded input, a DECLARED prior
 for the initial state, and the declared constraint set. Truth.m is never read
 here; Truth is passed only for its public fields (t, u_commanded).
+
+Two detection channels run side by side and never talk to each other: the
+constraint-side consistency flag (debounced chi-square exceedance, on the
+report clock) and the evidence-side per-sensor CUSUM on the estimator's
+normalised innovation (updated on the ingest clock, alarms stamped at the
+report step of ingestion). The reconciliation stage acts on the mass marginal
+only and reads neither channel except through the guard.
 """
 from __future__ import annotations
 
@@ -15,6 +22,7 @@ import numpy as np
 
 from ..lcm import chi2_quantile, consistency_stat, is_feasible, reconcile
 from ..schema import ConstraintSet, Observation, Status
+from .cusum import Cusum, CusumConfig
 from .estimators import ESTIMATORS, KFConfig
 from .simulator import Truth
 
@@ -28,6 +36,9 @@ class EstimatorSpec:
     guard: bool = False       # if True, hold projection while the consistency stat is exceeded
     threshold_q: float = 0.999
     debounce: int = 3         # consecutive exceedances before the guard acts
+    # Evidence-side channel: per-sensor two-sided CUSUM on the normalised innovation,
+    # run on the ingest clock. None switches it off (cusum_stat NaN, no alarms).
+    cusum: CusumConfig | None = CusumConfig()
 
 
 @dataclass
@@ -45,6 +56,17 @@ class RunResult:
     res_post: np.ndarray     # (N, rows)  NaN where no projection applied
     corr: np.ndarray         # (N, 2)     NaN where no projection applied
     latency_s: np.ndarray    # (N,)
+    # Innovation record, indexed by SAMPLING step j (NaN where the sensor was missing,
+    # where the estimator has no prediction, or where the observation never arrived).
+    innov: np.ndarray        # (N, 2)  nu = y - H x_pred
+    innov_var: np.ndarray    # (N, 2)  S_ii
+    innov_z: np.ndarray      # (N, 2)  nu / sqrt(S_ii)
+    # CUSUM on z, indexed by REPORT step k: the statistic after the last observation
+    # ingested at step k (before the reset an alarm applies; NaN if the channel is off),
+    # and whether an alarm was raised while ingesting at step k. Because the alarm is
+    # stamped at the report step, its delay includes the observation's arrival delay.
+    cusum_stat: np.ndarray   # (N, 2)
+    cusum_alarm: np.ndarray  # (N, 2) bool
 
 
 def run(
@@ -73,6 +95,9 @@ def run(
     res_post = np.full((n, rows), np.nan)
     corr = np.full((n, 2), np.nan)
     lat = np.zeros(n)
+    cusum = Cusum(spec.cusum) if spec.cusum is not None else None
+    cusum_stat = np.full((n, 2), np.nan)
+    cusum_alarm = np.zeros((n, 2), dtype=bool)
 
     streak = 0
     next_obs = 0   # index of the first observation that has not yet arrived
@@ -82,6 +107,10 @@ def run(
         while next_obs < n and obs[next_obs].arrival_t <= tk:
             est.ingest(obs[next_obs], next_obs)
             next_obs += 1
+            if cusum is not None:
+                cusum_alarm[k] |= cusum.update(est.innov_z[-1])
+        if cusum is not None:
+            cusum_stat[k] = cusum.stat
         xr, Pr = est.report(k)
 
         s = consistency_stat(xr, Pr, cs) if feasible else np.nan
@@ -108,4 +137,13 @@ def run(
         if se.correction is not None:
             corr[k] = se.correction
 
-    return RunResult(spec, x, P, xu, Pu, status, stat, thr, flag, res_pre, res_post, corr, lat)
+    # innovation record: sampling steps that never arrived within the run stay NaN
+    innov = np.full((n, 2), np.nan); innov_var = np.full((n, 2), np.nan); innov_z = np.full((n, 2), np.nan)
+    if est.innov:
+        j = len(est.innov)
+        innov[:j] = np.asarray(est.innov)
+        innov_var[:j] = np.asarray(est.innov_var)
+        innov_z[:j] = np.asarray(est.innov_z)
+
+    return RunResult(spec, x, P, xu, Pu, status, stat, thr, flag, res_pre, res_post, corr, lat,
+                     innov, innov_var, innov_z, cusum_stat, cusum_alarm)

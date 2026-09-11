@@ -11,6 +11,16 @@ substitutes for sampling time, and nothing is read before it has arrived.
 
 Both estimators are initialised from a DECLARED prior (mean and std), never
 from the simulator's state.
+
+Every estimator also keeps an innovation record, one row per ingested
+sampling step j and one column per sensor:
+
+    innov[j]      nu   = y - H x_pred          (NaN where the sensor is missing)
+    innov_var[j]  S_ii = (H P_pred H^T + R)_ii
+    innov_z[j]    z    = nu / sqrt(S_ii)
+
+The runner copies these into RunResult and runs the per-sensor CUSUM on z.
+Hold-last has no prediction and records NaN.
 """
 from __future__ import annotations
 
@@ -48,6 +58,9 @@ class KalmanFilter:
         self._P = self.P0.copy()
         self.xf: list[np.ndarray] = []
         self.Pf: list[np.ndarray] = []
+        self.innov: list[np.ndarray] = []
+        self.innov_var: list[np.ndarray] = []
+        self.innov_z: list[np.ndarray] = []
 
     def predict(self, x, P, k):
         return x + B * self.u[k] * self.dt, P + self.Q
@@ -58,17 +71,25 @@ class KalmanFilter:
         if j > 0:
             self._x, self._P = self.predict(self._x, self._P, j - 1)
         m = obs.mask
+        nu_full = np.full(2, np.nan)
+        s_full = np.full(2, np.nan)
         if m.any():
             H = np.eye(2)[m]
             y = obs.y[m]
             R = obs.R[np.ix_(m, m)]
             S = H @ self._P @ H.T + R
             K = self._P @ H.T @ np.linalg.inv(S)
-            self._x = self._x + K @ (y - H @ self._x)
+            nu = y - H @ self._x                               # innovation against the prediction
+            self._x = self._x + K @ nu
             I_KH = np.eye(2) - K @ H
             self._P = I_KH @ self._P @ I_KH.T + K @ R @ K.T   # Joseph form
+            nu_full[m] = nu
+            s_full[m] = np.diag(S)
         self.xf.append(self._x.copy())
         self.Pf.append(self._P.copy())
+        self.innov.append(nu_full)
+        self.innov_var.append(s_full)
+        self.innov_z.append(nu_full / np.sqrt(s_full))
 
     def report(self, k: int) -> tuple[np.ndarray, np.ndarray]:
         j = len(self.xf) - 1
@@ -95,6 +116,10 @@ class HoldLast:
         self._x = self.x0.copy()
         self._var = self.var0.copy()
         self.hist: list[tuple[np.ndarray, np.ndarray]] = []
+        # no prediction, hence no innovation: the record is NaN throughout
+        self.innov: list[np.ndarray] = []
+        self.innov_var: list[np.ndarray] = []
+        self.innov_z: list[np.ndarray] = []
 
     def ingest(self, obs: Observation, j: int) -> None:
         if j != len(self.hist):
@@ -104,6 +129,10 @@ class HoldLast:
         self._x[m] = obs.y[m]
         self._var[m] = np.diag(obs.R)[m]
         self.hist.append((self._x.copy(), self._var.copy()))
+        nan2 = np.full(2, np.nan)
+        self.innov.append(nan2.copy())
+        self.innov_var.append(nan2.copy())
+        self.innov_z.append(nan2.copy())
 
     def report(self, k: int) -> tuple[np.ndarray, np.ndarray]:
         j = len(self.hist) - 1

@@ -1,6 +1,6 @@
 # In-loop null of the consistency statistic
 
-Generated with Python 3.13.5, numpy 2.5.3 on Windows-11-10.0.26200-SP0; source sha256 78dfa2ab0249, git d3d240c5cf (source dirty). Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.5, numpy 2.5.3 on Windows-11-10.0.26200-SP0; source sha256 93f1aba6cc1e, git 3015a7007f (source dirty). Latency columns are wall-clock on this machine and are not a claim.
 
 Unconstrained KF, 20 seeds, statistic r²/(A P Aᵀ) computed from the filter's own reported P over windows where the joint hypothesis holds. Under an exact χ²(1) null the mean would be 1.0 and the exceedances would equal the nominal tail probabilities. The lag-1 autocorrelation gives an AR(1) integrated autocorrelation time τ; the number of effectively independent samples is n/τ.
 
@@ -26,3 +26,18 @@ Pre-onset false-alarm rate per step, seeds detected within 100 steps of onset, c
 | 0.999 | 1 | 8.3e-04 | 4 | 20/20 | 64 | 1.11 | 0.55 | 3.82 | 237 |
 | 0.999 | 3 | 1.7e-04 | 1 | 20/20 | 66 | 1.12 | 0.55 | 3.87 | 235 |
 | 0.999 | 10 | 0.0e+00 | 0 | 20/20 | 73 | 1.14 | 0.54 | 4.03 | 228 |
+
+# Null of the evidence-side CUSUM (kf, per sensor)
+
+Two-sided CUSUM on the normalised innovation z = (y − H x_pred)/√Sᵢᵢ with k = 0.5, unconstrained KF, 20 seeds, over the same nominal windows. Cells are alarms s1 / s2 (seeds with at least one alarm s1 / s2) and, in the last column, the largest statistic either sensor reached with no reset (h = ∞). An alarm resets its channel, so the statistic and the alarm count at a given h come from a run at that h, not from thresholding one trace.
+
+| window | sensor-steps | h = 4 | h = 6 | h = 8 | h = 10 | max stat (h = ∞) s1 / s2 |
+| --- | --- | --- | --- | --- | --- | --- |
+| closed_noise [0, 600] | 12000 | 63 / 34 (19 / 19) | 7 / 2 (6 / 2) | 0 / 0 (0 / 0) | 0 / 0 (0 / 0) | 7.55 / 7.73 |
+| closed_blackout_pumpbias [0, 50] | 1000 | 4 / 4 (4 / 4) | 1 / 1 (1 / 1) | 0 / 0 (0 / 0) | 0 / 0 (0 / 0) | 6.04 / 6.05 |
+| leak_stale_constraint [0, 300] | 6000 | 23 / 36 (15 / 16) | 2 / 4 (2 / 4) | 1 / 1 (1 / 1) | 0 / 0 (0 / 0) | 9.12 / 8.31 |
+| bias_quant_delay [0, 200] | 4000 | 20 / 19 (14 / 11) | 0 / 0 (0 / 0) | 0 / 0 (0 / 0) | 0 / 0 (0 / 0) | 6.00 / 5.91 |
+
+Totals over all nominal windows, both sensors (46000 sensor-steps): h = 4: 203 alarms (4.4e-03 per sensor-step), h = 6: 17 alarms (3.7e-04 per sensor-step), h = 8: 2 alarms (4.3e-05 per sensor-step), h = 10: 0 alarms (0.0e+00 per sensor-step).
+The smallest h in {4, 6, 8, 10} with zero alarms over all nominal windows and 20 seeds is h = 10.
+The shipped default h = 8 is kept: its 2 nominal alarms are 4.3e-05 per sensor-step, against 1.7e-04 per step for the constraint guard at its shipped q = 0.999, debounce 3 (sweep above), and the grid's 'CUSUM FA max' column reports the per-sensor count in every scenario so they are never hidden. A larger h buys silence on this sample — the largest un-reset excursion was 9.12 — at a delay cost of (h − 8) / (z̄ − k) steps for a sustained shift z̄, i.e. a few steps for the 3 kg bias and more for the slowly building leak lag; zero alarms at a larger h is a statement about this sample, not a bound.

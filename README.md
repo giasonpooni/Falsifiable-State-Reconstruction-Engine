@@ -69,11 +69,12 @@ is 0.55 ± 0.18 vs 0.92 ± 0.44 kg.
 | `src/set_lcm/lcm/` | Hard (KKT closed form) and soft (penalty) linear-equality projection weighted by `P⁻¹`; feasibility check and reduction of dependent rows; SPD / singularity guards; χ² consistency statistic; `reconcile()` that never mutates its input. |
 | `src/set_lcm/testbed/simulator.py` | Two-reservoir material transfer. Hidden `m`, hidden leak; public commanded pump rate and declared initial total. |
 | `src/set_lcm/testbed/degrade.py` | Noise, random dropout, sensor blackout, undeclared bias, quantization (declared into `R`), arrival delay written into `arrival_t`. Seed-controlled. |
-| `src/set_lcm/testbed/estimators.py` | Hold-last baseline; linear Kalman filter with a *diagonal* Q (closure is the constraint's declared claim, not the filter's). Both start from a declared prior and report by predicting forward from the last *arrived* observation. |
-| `src/set_lcm/testbed/runner.py` | Runs a (scenario, estimator) pair step by step, ingesting observations only once `arrival_t ≤ t_k`; debounced consistency flag; optional guard that *holds* projection and reports `MODEL_INCONSISTENT`. |
-| `src/set_lcm/testbed/evaluate.py` | RMSE (overall and windowed), 95 % interval coverage, residuals, correction magnitude, false alarms, detection delay, solver failures, latency. Only reader of truth. |
+| `src/set_lcm/testbed/estimators.py` | Hold-last baseline; linear Kalman filter with a *diagonal* Q (closure is the constraint's declared claim, not the filter's). Both start from a declared prior and report by predicting forward from the last *arrived* observation. The filter records, per ingested step and sensor, the innovation, its variance and the normalised innovation; hold-last records NaN. |
+| `src/set_lcm/testbed/cusum.py` | Per-sensor two-sided CUSUM on the normalised innovation (`CusumConfig(k=0.5, h=8.0)`): the evidence side's own detector, reading no constraint. |
+| `src/set_lcm/testbed/runner.py` | Runs a (scenario, estimator) pair step by step, ingesting observations only once `arrival_t ≤ t_k`; debounced consistency flag; optional guard that *holds* projection and reports `MODEL_INCONSISTENT`; runs the CUSUM on the ingest clock and stamps its alarms at the report step of ingestion. |
+| `src/set_lcm/testbed/evaluate.py` | RMSE (overall and windowed), 95 % interval coverage, residuals, correction magnitude, false alarms and detection delay for the constraint flag and per sensor for the CUSUM, mean normalised innovation per window, solver failures, latency. Only reader of truth. |
 | `src/set_lcm/experiments/phase1.py` | The scenario grid, estimator specs, multi-seed aggregation and report writer; `run_experiments.py` is a thin CLI over it. |
-| `src/set_lcm/experiments/calibration.py` | In-loop null of the consistency statistic (mean, tail quantiles, empirical vs nominal exceedance, autocorrelation time) and a threshold × debounce sweep of the guard. |
+| `src/set_lcm/experiments/calibration.py` | In-loop null of the consistency statistic (mean, tail quantiles, empirical vs nominal exceedance, autocorrelation time), a threshold × debounce sweep of the guard, and the null of the CUSUM channel over the same windows for h ∈ {4, 6, 8, 10}. |
 | `src/set_lcm/experiments/sweep.py` | Fault-magnitude sweep on four axes (declared-total error, sensor bias, leak rate, uncertain declared total with soft λ = 1/σ_b²). |
 
 ## Scenarios
@@ -103,6 +104,54 @@ which conjunct failed — a stale constraint, an undeclared sensor bias, a wrong
 parameter, and under-modelled process noise all produce flags. Each scenario's
 `fault_onset` is the first step at which the conjunction is false; flags before it are
 false alarms, flags after it are detections.
+
+## An evidence-side channel
+
+The consistency flag is one test of one joint hypothesis, and it is structurally blind
+to anything in null(A). The slice now carries a second detector that is independent
+of the constraint: every Kalman ingest records, per sensor, the innovation
+ν = y − H x_pred, its variance Sᵢᵢ and the normalised innovation z = ν/√Sᵢᵢ (hold-last
+has no prediction and records NaN), and the runner runs a two-sided CUSUM on z per
+sensor — g⁺ ← max(0, g⁺ + z − k), g⁻ ← max(0, g⁻ − z − k), alarm and reset when
+max(g⁺, g⁻) > h, with k = 0.5 and h = 8 (`CusumConfig` on `EstimatorSpec`, on by
+default). It is updated when an observation is ingested and the alarm is stamped at
+that report step, so its delay includes arrival delay. `RunResult` gains `innov`,
+`innov_var`, `innov_z` on the sampling clock and `cusum_stat`, `cusum_alarm` on the
+report clock; the evaluator scores it per sensor with the same false-alarm and
+censored-delay rules as the flag; the reconciliation stage never reads it. From
+`results/summary.md` (20 seeds; cells are seeds alarmed within 100 steps of onset and
+the censored median delay):
+
+- **Sensor bias.** In `bias_quant_delay` the channel on the biased sensor 1 alarms in
+  20/20 seeds at a median 14 steps against the constraint test's 20/20 at 36, and it
+  names the sensor, which the constraint test cannot (a leak and a biased sensor
+  produce the same flag). Sensor 2's channel reads 0/20, "> 400"; `CUSUM FA max` is
+  0 / 0.
+- **Leak.** In `leak_stale_constraint` sensor 2's channel alarms in 20/20 seeds at a
+  median 60 steps (constraint test: 20/20 at 66), from the evidence alone: the filter
+  lags the drain and sensor 2's mean normalised innovation over the leak window is
+  −0.67 (`z̄ s1/s2` column). Sensor 1 stays at 0/20. The worst seed raised one
+  pre-leak alarm on each sensor (`CUSUM FA max` 1 / 1): one in 6,000 sensor-steps.
+- **What it does not see.** The pump-rate error in `closed_blackout_pumpbias` shifts
+  sensor 1's normalised innovation by −0.38 per step during the blackout and −0.40 in
+  recovery — below k = 0.5, so the statistic has nothing to accumulate: 2/20 seeds
+  within 100 steps, median "> 550", against the constraint test's 0/20 (d(f) = 0).
+  Sensor 2's channel fires only once that sensor returns and sees what the dark
+  reservoir accumulated (z̄ = +0.58 in the recovery window): 1/20 within 100 steps, a
+  median 164 steps after onset, i.e. 14 after the blackout ends. A per-step shift
+  below k is invisible to a CUSUM tuned for a half-sigma shift, whatever h is; the
+  same for the zero-mean valve (2/20 and 1/20, both censored).
+- **Its null is measured, not assumed.** `results/calibration.md` runs the channel
+  over the same nominal windows as the consistency statistic (46,000 sensor-steps,
+  20 seeds) for h ∈ {4, 6, 8, 10}: 203, 17, 2 and 0 alarms. The smallest h with zero
+  alarms on this sample is 10; the largest un-reset excursion is 9.12. h = 8 stays the
+  shipped default: its 2 alarms are 4.3e-5 per sensor-step, a quarter of the
+  constraint guard's own pre-onset rate (1.7e-4 per step at q = 0.999, debounce 3),
+  and zero alarms at h = 10 is a statement about this sample, not a bound. Across the
+  whole grid the only pre-onset alarms at h = 8 are those two and one in
+  `closed_wrong_prior` (`CUSUM FA max` 1 / 0), which is not the wrong prior showing
+  through: the settle-window z̄ there is −0.07 / +0.03, and the alarm falls in the
+  steady state.
 
 ## What the Phase 1 results do and do not show
 

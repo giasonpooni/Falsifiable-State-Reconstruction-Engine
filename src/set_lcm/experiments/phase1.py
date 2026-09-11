@@ -139,9 +139,12 @@ def _ms(vals) -> dict | None:
 
 
 def _detection(ms: list[dict]) -> dict:
+    """Censored summary of the constraint flag's per-seed detection delays."""
+    return _detection_summary([m["detection_delay_steps"] for m in ms], ms[0]["detection_censor_steps"])
+
+
+def _detection_summary(delays: list[int | None], censor: int | None) -> dict:
     """Censored summary of per-seed detection delays. Never a mean over survivors."""
-    delays = [m["detection_delay_steps"] for m in ms]
-    censor = ms[0]["detection_censor_steps"]
     n = len(delays)
     if censor is None:
         return {"n": n, "detected_any": 0, "within": DETECT_WITHIN, "detected_within": 0,
@@ -172,6 +175,9 @@ def aggregate(per_seed: list[dict]) -> dict:
         windows = list(ms[0]["rmse_by_window"])
         for key in ("rmse_by_window", "coverage95_by_window", "nz_rms_by_window", "nz_rms_unproj_by_window"):
             a[key] = {w: _ms([m[key][w] for m in ms]) for w in windows}
+        a["innov_z_mean_by_window"] = {
+            w: [_ms([m["innov_z_mean_by_window"][w][i] for m in ms]) for i in range(len(ms[0]["innov_z_mean_by_window"][w]))]
+            for w in windows}
         for key in ("rms_err_by_direction", "rms_err_unproj_by_direction"):
             if key in ms[0]:
                 a[key] = {w: {d: _ms([m[key][w][d] for m in ms]) for d in ("row", "null")} for w in windows}
@@ -183,6 +189,19 @@ def aggregate(per_seed: list[dict]) -> dict:
         a["false_alarms"] = {"mean": float(np.mean(fa)), "max": int(max(fa)),
                              "rate": float(np.mean([m["fa_rate"] for m in ms]))}
         a["detection"] = _detection(ms)
+        # evidence-side channel, summarised per sensor exactly like the constraint flag
+        if all(m["cusum_applicable"] for m in ms):
+            a["cusum"] = {}
+            for i in range(len(ms[0]["cusum_false_alarms"])):
+                fa_i = [m["cusum_false_alarms"][i] for m in ms]
+                a["cusum"][f"s{i + 1}"] = {
+                    "false_alarms": {"mean": float(np.mean(fa_i)), "max": int(max(fa_i)),
+                                     "rate": float(np.mean([m["cusum_fa_rate"][i] for m in ms]))},
+                    "detection": _detection_summary([m["cusum_detection_delay_steps"][i] for m in ms],
+                                                    ms[0]["detection_censor_steps"]),
+                }
+        else:
+            a["cusum"] = None
         a["held_steps"] = _ms([m["status_counts"].get("model_inconsistent", 0) for m in ms])
         a["solver_failures"] = int(sum(m["solver_failures"] for m in ms))
         a["n_seeds"] = len(ms)
@@ -239,33 +258,48 @@ def _row(rows_: list[list[str]]) -> list[str]:
     return ["| " + " | ".join(r) + " |" for r in rows_]
 
 
+def _det_cells(det: dict) -> tuple[str, str]:
+    """(k/n detected within DETECT_WITHIN, censored median delay) as table cells."""
+    if not det["applicable"]:
+        return "—", "—"
+    within = f"{det['detected_within']}/{det['n']}"
+    med = f"> {det['censor_at']}" if det["median_censored"] else f"{det['median_delay']:.0f}"
+    return within, med
+
+
 def table(name: str, sc: Scenario, agg: dict) -> str:
     """Two tables per scenario: accuracy/calibration per window, then reconciliation/detection."""
     win = list(sc.windows)
 
     head1 = ["estimator"]
     for w in win:
-        head1 += [f"RMSE {w}", f"cov95 {w}", f"nz {w}", f"err row/null {w}"]
+        head1 += [f"RMSE {w}", f"cov95 {w}", f"nz {w}", f"err row/null {w}", f"z̄ s1/s2 {w}"]
     rows1 = [head1, ["---"] * len(head1)]
     for est, a in agg.items():
         r = [est]
         for w in win:
             d = a.get("rms_err_by_direction", {}).get(w)
+            z = a["innov_z_mean_by_window"][w]
             r += [fms(a["rmse_by_window"][w]), fm(a["coverage95_by_window"][w]), fm(a["nz_rms_by_window"][w]),
-                  "—" if d is None else f"{fm(d['row'])} / {fm(d['null'])}"]
+                  "—" if d is None else f"{fm(d['row'])} / {fm(d['null'])}",
+                  " / ".join("—" if zi is None else f"{zi['mean']:+.2f}" for zi in z)]
         rows1.append(r)
 
     head2 = ["estimator", "RMSE all", "cov95 all", "nz all", "|res| post", "|corr|", "FA (max / rate)",
-             f"detected ≤{DETECT_WITHIN} (k/n)", "median delay", "held steps", "d(f)", "lat p50 µs (this machine)"]
+             f"detected ≤{DETECT_WITHIN} (k/n)", "median delay", "held steps", "d(f)",
+             "CUSUM s1 (k/n, median)", "CUSUM s2 (k/n, median)", "CUSUM FA max (s1 / s2)",
+             "lat p50 µs (this machine)"]
     rows2 = [head2, ["---"] * len(head2)]
     for est, a in agg.items():
-        det = a["detection"]
-        if det["applicable"]:
-            within = f"{det['detected_within']}/{det['n']}"
-            med = f"> {det['censor_at']}" if det["median_censored"] else f"{det['median_delay']:.0f}"
-        else:
-            within, med = "—", "—"
+        within, med = _det_cells(a["detection"])
         dfa = a.get("detectability")
+        cus = a.get("cusum")
+        if cus is None:
+            cusum_cells = ["—", "—", "—"]
+        else:
+            cusum_cells = [", ".join(_det_cells(cus[s]["detection"])) if cus[s]["detection"]["applicable"] else "—"
+                           for s in ("s1", "s2")]
+            cusum_cells.append(f"{cus['s1']['false_alarms']['max']} / {cus['s2']['false_alarms']['max']}")
         rows2.append([
             est, fms(a["rmse_all"]), fm(a["coverage95"]), fm(a["nz_rms_all"]),
             "—" if a["mean_abs_res_post"] is None else f"{a['mean_abs_res_post']['mean']:.1e}",
@@ -273,6 +307,7 @@ def table(name: str, sc: Scenario, agg: dict) -> str:
             f"{a['false_alarms']['max']} / {a['false_alarms']['rate']:.1e}",
             within, med, f"{a['held_steps']['mean']:.0f}",
             "—" if dfa is None else f"{dfa['mean']:.3g}",
+            *cusum_cells,
             f"{a['latency_us_p50']['mean']:.0f}",
         ])
 
@@ -285,7 +320,9 @@ LEGEND = (
     "RMSE in kg over both reservoirs. cov95 = fraction of steps where truth lies inside the reported "
     "±1.96σ interval. nz = RMS of the normalised error eᵢ/σᵢ (1.0 when calibrated; >1 over-confident). "
     "err row/null = RMS error of the reported state along row(A) and null(A) (for A = [1, 1]: the sum "
-    "direction and the difference direction). |res| post = mean |A x − b| after projection. "
+    "direction and the difference direction). z̄ s1/s2 = mean normalised innovation (y − H x_pred)/√Sᵢᵢ per "
+    "sensor over the window's sampling steps (0 when the filter's prediction is unbiased; — where the sensor "
+    "is dark or the estimator has no prediction). |res| post = mean |A x − b| after projection. "
     "A flag rejects the joint hypothesis (constraint ∧ model ∧ calibrated uncertainty); onset = first "
     "step at which that hypothesis is false. FA = worst-seed count / mean per-step rate of flags before "
     "onset (whole run if no onset). detected ≤N = seeds flagged within N steps of onset; median delay is "
@@ -293,7 +330,12 @@ LEGEND = (
     "median itself is censored). held = mean steps the guard reported model_inconsistent. "
     "d(f) = fᵀAᵀ(APAᵀ)⁻¹Af for the scenario's fault direction on the unprojected P at the end of the "
     "first post-onset window; 0 means the consistency test is structurally blind to that fault. "
-    "Flags use χ²(rank A)(0.999) with a 3-step debounce."
+    "Flags use χ²(rank A)(0.999) with a 3-step debounce. "
+    "CUSUM sᵢ = the evidence-side channel: a two-sided CUSUM (k = 0.5, h = 8) on sensor i's normalised "
+    "innovation z = (y − H x_pred)/√Sᵢᵢ, updated when the observation is ingested and stamped at that "
+    "report step, so its delay includes arrival delay; cells are (seeds alarmed within N steps of onset, "
+    "censored median delay) and CUSUM FA max is the worst-seed count of pre-onset alarms per sensor. "
+    "It reads no constraint; hold-last has no prediction, hence no innovation and no CUSUM."
 )
 
 
