@@ -9,7 +9,8 @@ import numpy as np
 import pytest
 
 from set_lcm.lcm import (
-    chi2_quantile, consistency_stat, is_feasible, project_hard, project_soft, reconcile, reduced,
+    chi2_quantile, consistency_stat, constraint_bases, detectability, is_feasible,
+    project_hard, project_soft, reconcile, reduced,
 )
 from set_lcm.schema import ConstraintSet, Status
 
@@ -149,3 +150,33 @@ def test_duplicated_constraint_row_uses_rank_and_projects_identically():
     assert consistency_stat(x, P, cs) == pytest.approx(consistency_stat(x, P, SUM100))
     se = reconcile(x, P, cs, mode="hard")
     assert se.status is Status.OK and se.residual_pre.shape == (2,)
+
+
+# ---------------------------------------------------------------------------
+# Detectability: what a sum constraint can and cannot see
+# ---------------------------------------------------------------------------
+
+def test_constraint_bases_for_sum_constraint():
+    v_row, v_null = constraint_bases(SUM100)
+    assert v_row.shape == (1, 2) and v_null.shape == (1, 2)
+    np.testing.assert_allclose(np.abs(v_row[0]), [1, 1] / np.sqrt(2))
+    np.testing.assert_allclose(np.abs(v_null[0]), [1, 1] / np.sqrt(2))
+    assert abs(v_row[0] @ v_null[0]) < 1e-12
+    assert abs(SUM100.A @ v_null[0]) < 1e-12          # null vector is annihilated by A
+
+
+@pytest.mark.parametrize("P", [np.diag([4.0, 4.0]), np.diag([0.1, 3.0]), np.array([[2.0, 0.5], [0.5, 1.0]])])
+def test_difference_direction_is_exactly_undetectable_by_a_sum_constraint(P):
+    """f = (-1, 1) lies in null(A) for A = [1, 1]: d(f) is identically zero, whatever P."""
+    assert detectability((-1.0, 1.0), P, SUM100) == 0.0
+    assert detectability((0.0, -1.0), P, SUM100) > 0.0
+    assert detectability((1.0, 0.0), P, SUM100) > 0.0
+
+
+def test_detectability_scales_the_statistic():
+    """An error c f shifts the consistency statistic by exactly c^2 d(f) from a consistent state."""
+    P = np.diag([0.1, 0.3]); x_true = np.array([60.0, 40.0])
+    for f, c in (((0.0, -1.0), 2.0), ((1.0, 0.0), -1.5), ((0.3, 0.9), 0.7)):
+        d = detectability(f, P, SUM100)
+        shifted = consistency_stat(x_true + c * np.asarray(f), P, SUM100)
+        assert shifted == pytest.approx(c * c * d)

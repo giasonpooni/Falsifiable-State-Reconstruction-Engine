@@ -89,27 +89,48 @@ The tables in `results/summary.md` are real, but several of the obvious readings
 of them are wrong. An adversarial review of this slice established the following;
 the first round of work in this repository addresses them.
 
+Triples below are (RMSE kg, cov95, nz) over the named window, from `results/summary.md`.
+nz is the RMS normalised error eᵢ/σᵢ: 1.0 when calibrated, above 1 over-confident.
+
 - **"A true constraint cuts KF RMSE 0.28 → 0.20 kg" is not a finding.** It is the
   analytic 1/√2 of averaging two equal-noise sensors, already reproduced in
-  `tests/test_lcm.py`.
-- **A stale constraint is the negative control that matters.** After a 10 kg leak,
-  hard projection reports 3.80 kg RMSE against 1.07 unconstrained while its
-  post-projection residual is 1e-16: numerically perfect, physically wrong. The guard
-  flags at ~65 steps, holds projection, and lands at 1.12.
+  `tests/test_lcm.py`. In `closed_noise`'s steady window: kf 0.23 / 0.99 / 0.73 →
+  kf+hard 0.16 / 0.98 / 0.72. The error along row(A) goes to 0.00 exactly; the error
+  along null(A) stays 0.23.
+- **A stale constraint is the negative control that matters.** In the leak window of
+  `leak_stale_constraint`: kf 1.07 / 0.60 / 3.35, kf+hard 3.80 / 0.09 / 16.9 with a
+  post-projection residual of 5e-16 — numerically perfect, physically wrong, and
+  reported with roughly seventeen times the confidence it deserves. The guard flags
+  in 20/20 seeds (median 66 steps after onset), holds projection, and lands at
+  1.12 / 0.55 / 3.87.
 - **Hard projection is over-confident by construction.** It sets `A P Aᵀ = 0`, i.e. it
-  asserts the constraint is exactly true. Its in-window coverage is 0.02–0.09 in
-  every fault window; the whole-run cov95 column (0.36–0.67) hides that.
+  asserts the constraint is exactly true. In-window it reads 1.00 / 0.02 / 3.75
+  (pump-bias blackout), 1.41 / 0.05 / 5.88 (post-bias) and 3.80 / 0.09 / 16.9 (leak);
+  the whole-run cov95 column (0.67, 0.36, 0.53) hides that. In the bias scenario
+  kf+hard has the *lowest* post-bias RMSE of any variant and the worst calibration —
+  RMSE alone would pick the wrong estimator.
 - **The consistency statistic is not χ²(1) in the loop.** Its steady-state mean is
   ≈0.42, deflated because the diagonal Q asserts sum-direction process noise that
-  the closed simulator never generates. The pre-fault count of one flagged step in
-  6,000 is therefore a property of a deflated statistic, not of the guard.
+  the closed simulator never generates; the same shows as nz = 0.73 for the
+  unconstrained KF in `closed_noise` (under-confident by ~1.4×). The pre-fault count
+  of one flagged step in 6,000 is therefore a property of a deflated statistic, not
+  of the guard.
 - **A single sum constraint is blind to the difference direction.** For
-  `A = [1, 1]` and a pump or valve fault along `[−1, 1]`, the detectability
-  `fᵀAᵀ(APAᵀ)⁻¹Af` is exactly zero. Those faults are structurally undetectable by
-  this test — coverage collapses with no flag in 18–19 of 20 seeds — not "missed".
+  `A = [1, 1]` and the pump or valve fault along `(−1, 1)`, the detectability
+  `d(f) = fᵀAᵀ(APAᵀ)⁻¹Af` is exactly 0 for every estimator in every seed (`d(f)`
+  column). Those faults are structurally undetectable by this test — 0/20 seeds flag
+  within 100 steps and the censored median delay is "> 550" — while calibration
+  collapses: kf in the pump-bias blackout reads 1.31 / 0.21 / 2.90 with error
+  0.71 along row(A) versus 1.70 along null(A). For the leak and the sensor bias,
+  d(f) is 4.9 and 4.4 and 20/20 seeds flag.
+- **The projection is oblique.** The `P⁻¹`-weighted correction moves along `P Aᵀ`,
+  which has a null(A) component whenever `P` is anisotropic. In the pump-bias
+  blackout the null-direction error goes 1.70 → 1.41 under hard projection; in
+  `closed_noise`, where `P` is nearly isotropic, it is unchanged (0.23 → 0.23).
 - **The guard has a dead band.** A declared-total error of 0.5–1.5 kg already makes
   hard projection worse than the unconstrained filter and does not trip the guard.
-  The leak (10 kg) and bias (3 kg) scenarios only show the easy regime.
+  The leak (10 kg) and bias (3 kg) scenarios only show the easy regime. (Measured
+  during review; the sweep that reproduces it in-repo is the next stage.)
 - **Two truth leaks, now closed.** The estimator used to be initialised from the
   simulator's exact initial mass and delay was passed out of band. It is now
   initialised from a declared prior (`closed_wrong_prior` exercises a wrong one), and

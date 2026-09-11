@@ -41,7 +41,7 @@ from ..schema import ConstraintSet, StateEstimate, Status
 
 __all__ = [
     "chi2_quantile", "is_feasible", "residual", "reduced", "consistency_stat",
-    "project_hard", "project_soft", "reconcile", "check_spd",
+    "detectability", "constraint_bases", "project_hard", "project_soft", "reconcile", "check_spd",
 ]
 
 # Upper quantiles of chi^2(dof). Enough for Phase 1; scipy would replace this table.
@@ -124,6 +124,33 @@ def consistency_stat(x: np.ndarray, P: np.ndarray, cs: ConstraintSet) -> float:
     r = A @ x - b
     S = _S(A, P)
     return float(r @ np.linalg.pinv(S) @ r)
+
+
+def detectability(f, P: np.ndarray, cs: ConstraintSet) -> float:
+    """How visible a unit error along direction f is to the consistency statistic:
+
+        d(f) = f^T A^T (A P A^T)^-1 A f
+
+    An error e = c f shifts the statistic by c^2 d(f). d(f) = 0 exactly when f lies in
+    null(A): the constraint test is structurally blind to it, whatever P is. For a
+    single sum constraint A = [1, 1] that is every fault that moves mass between the
+    reservoirs (pump-rate error, valve transfer).
+    """
+    check_spd(P)
+    A, _ = reduced(cs)
+    Af = A @ np.asarray(f, dtype=float).reshape(-1)
+    S = _S(A, P)
+    return float(Af @ np.linalg.pinv(S) @ Af)
+
+
+def constraint_bases(cs: ConstraintSet) -> tuple[np.ndarray, np.ndarray]:
+    """Orthonormal bases of row(A) and null(A) from the SVD of A: (V_row, V_null),
+    each with basis vectors as rows. For A = [1, 1]: [1, 1]/sqrt2 and [1, -1]/sqrt2."""
+    A = np.atleast_2d(np.asarray(cs.A, dtype=float))
+    _, s, Vt = np.linalg.svd(A, full_matrices=True)
+    tol = s.max() * max(A.shape) * np.finfo(float).eps if s.size else 0.0
+    r = int((s > tol).sum())
+    return Vt[:r], Vt[r:]
 
 
 def project_hard(x: np.ndarray, P: np.ndarray, cs: ConstraintSet) -> tuple[np.ndarray, np.ndarray]:
