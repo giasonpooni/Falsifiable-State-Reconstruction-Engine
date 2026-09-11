@@ -262,19 +262,25 @@ unprojected state. From `results/summary.md` (20 seeds; RMSE kg / cov95 / nz):
 | kf_aug | 0.32 / 0.98 / 0.80 | 0.40 / 0.95 / 0.94 | 20/20, 54 |
 | oracle (bound) | 0.10 / 0.92 / 1.02 | 0.11 / 0.88 / 1.08 | 20/20, 14 |
 
-What the numbers say. LCM's estimator value when the constraint is true is recovered by a
-filter that encodes closure in Q: `kf_closedq` reads 0.11 against `kf+hard`'s 0.16 on the
-nominal system — the 1/√2 sensor-averaging gain and more, because its declared σ_q also
-makes its difference-direction process noise 0.014 kg per step against `kf`'s untuned 0.05
-— and the row on top of that Q buys only the exact total (0.11 → 0.08, row error 0.08 → 0.00),
-which is the same knowledge that makes both confidently wrong when b is stale (3.44 and
-4.17, cov95 0.13 and 0.10). What a filter with closure in Q does not have is anything to
+What the numbers say. On the nominal system, LCM's estimator value when the constraint is
+true is recovered by a filter that encodes closure in Q: `kf_closedq` reads 0.11 against
+`kf+hard`'s 0.16 in `closed_noise` (and 0.10 against 0.16 in `closed_wrong_prior`) — the 1/√2
+sensor-averaging gain and more, because its declared σ_q also makes its difference-direction
+process noise 0.014 kg per step against `kf`'s untuned 0.05 — and the row on top of that Q
+buys only the exact total (0.11 → 0.08, row error 0.08 → 0.00), which is the same knowledge
+that makes both confidently wrong when b is stale (3.44 and 4.17, cov95 0.13 and 0.10). That
+recovery does not extend to the two scenarios where the constraint is true but the filter's
+model is not: over the pump-bias blackout `kf_closedq` reads 1.56 / 0.00 / 7.64 against
+`kf+hard`'s 1.00 / 0.02 / 3.75, and over the noisy-valve blackout 0.91 / 0.31 / 4.54 against
+0.55 / 0.67 / 1.96 — the row corrects the sum direction whatever Q says, and the small
+structural Q is what lags there. What a filter with closure in Q does not have is anything to
 stop enforcing: its own consistency statistic still rejects the stale constraint (15/20
 within 100 steps), but nothing acts on it, whereas `kf+hard+guard` flags 20/20, holds
 projection for 235 steps and lands at 1.12 / 0.55. Feeding the projection back destroys
-that test: `kf+hard+fb+guard` has the same RMSE as `kf+hard` everywhere (3.80 / 0.09 in
-the leak window, and 1.41 / 0.05 post-bias in `bias_quant_delay`) and never flags (0/20 in
-both), because a filter that has been told the constraint every step no longer disagrees
+that test: `kf+hard+fb+guard` has the same RMSE as `kf+hard` wherever the constraint is
+tested (3.80 / 0.09 in the leak window, and 1.41 / 0.05 post-bias in `bias_quant_delay`;
+where the two differ at all it is by a few hundredths, 0.96 against 1.00 over the pump-bias
+blackout) and never flags (0/20 in both), because a filter that has been told the constraint every step no longer disagrees
 with it — its residual and its A P Aᵀ shrink together — so the retained unprojected state is
 what the consistency test runs on, not an implementation detail. The bound row is a bound
 only where its model is exact: the oracle is below everything in the leak window (0.11
@@ -284,9 +290,9 @@ exact total, which is knowledge of the *state* that a perfect model of the *inpu
 supply; and on the noisy valve, whose transfer it does not model, it is not a bound at all
 (1.03 / 0.25 / 6.26 over the blackout against `kf+hard`'s 0.55 / 0.67 / 1.96). The smaller
 structural Q also has a price the nominal window hides: in `closed_blackout_pumpbias`
-`kf_closedq` lags the null-direction fault more than `kf` (1.56 / 0.00 / 7.64 over the
-blackout against 1.31 / 0.21 / 2.90) and is still at 0.68 / 0.20 in the steady window where
-`kf` has forgotten it (0.24 / 0.99). On the `declared_total_error` axis of
+`kf_closedq` lags the null-direction fault more than even the unconstrained `kf` (1.56 / 0.00 / 7.64
+over the blackout against 1.31 / 0.21 / 2.90) and is still at 0.68 / 0.20 in the steady window
+where `kf` has forgotten it (0.24 / 0.99). On the `declared_total_error` axis of
 `results/sweep.md` the fed-back guard is dead at every δ > 0 (0/20 detected and, per
 `results/sweep.json`, 0 steps held; RMSE 2.01 / 0.00 / 8.91 at δ = 4 kg, the same as
 `kf+hard`, where `kf+hard+guard` hands back 0.23 / 0.99 / 0.73), and `kf_closedq` reads

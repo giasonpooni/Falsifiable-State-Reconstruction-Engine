@@ -24,7 +24,10 @@ state at j, so the projection of that state -- same mode, same constraint --
 is what goes back, which keeps the feedback on the estimator's own clock. P*
 is rank-deficient along the constraint; the next predict adds Q, so the
 reported covariance the kernel sees at k + 1 is SPD again (asserted in
-tests). While the guard holds (model_inconsistent) nothing is fed back.
+tests). While the guard holds (model_inconsistent) nothing is fed back, and
+each ingested step is fed back at most once: if the ingest clock stalls (a
+late observation blocks the sampling order for several report steps) the
+state at j already carries the projection and is not projected again.
 RunResult.x_unproj for a fed-back estimator is what that estimator reported,
 which already carries every earlier projection; nothing in the record is
 overwritten. A consequence the results make measurable: a fed-back filter
@@ -171,6 +174,7 @@ def run(
 
     streak = 0
     next_obs = 0   # index of the first observation that has not yet arrived
+    fed_j = -1     # last ingested sampling step whose state has already received a projection
     for k in range(n):
         t0 = perf_counter()
         tk = float(truth.t[k])
@@ -202,8 +206,13 @@ def run(
             xr, Pr, cs, mode=spec.mode, lam=spec.lam, hold=hold, threshold=thr,
             stat=s if feasible else None, t=tk, model_version=est.model_version,
         )
-        if spec.feedback and se.status is Status.OK and next_obs > 0:
-            _feed_back(est, se, cs, spec, k, j=next_obs - 1)
+        if spec.feedback and se.status is Status.OK and next_obs > 0 and next_obs - 1 != fed_j:
+            # Feed back once per ingested step. If the ingest clock has stalled (a late
+            # observation blocks the sampling order), the state at j already carries the
+            # projection and is rank-deficient; projecting it again would be refused by
+            # the kernel's SPD check, and there is nothing new to feed back anyway.
+            fed_j = next_obs - 1
+            _feed_back(est, se, cs, spec, k, j=fed_j)
         lat[k] = perf_counter() - t0
 
         x[k], P[k] = se.x, se.P

@@ -256,6 +256,33 @@ def test_feedback_is_not_better_and_kills_the_consistency_test():
     assert b["kf+hard+guard"]["detection"]["detected_any"] == TEST_SEEDS
 
 
+def test_feedback_survives_a_stalled_ingest_clock():
+    """One observation arrives late and, because ingestion is in sampling order, blocks
+    the ones behind it: the filter's last ingested step j stays put for several report
+    steps. The state at j has already received its projection and is rank-deficient, so
+    it must not be projected again (the kernel's SPD check would refuse it); the reports
+    in the stall are predictions from that fed-back state and still get projected."""
+    sc = SCENARIOS["closed_noise"]
+    truth = simulate(sc.sim)
+    obs = observe(truth, sc.deg)
+    obs[100] = replace(obs[100], arrival_t=float(truth.t[104]))   # blocks obs 100..103 until step 104
+    m0, m0_std = declared_prior(sc, sc.sim)
+    cs = constraint_for(truth)
+    rr = run(truth, obs, cs, spec("kf+hard+fb"), m0, m0_std)
+    assert all(s is Status.OK for s in rr.status)
+    for k in range(len(obs)):
+        check_spd(rr.P_unproj[k])
+    assert np.abs(rr.x @ A.T - cs.b).max() < 1e-9
+    # the stalled reports 100..103 are predictions from the fed-back state at 99: sum-direction
+    # uncertainty is A Q A^T per predicted step, growing with the stall length
+    aqa = float((A @ KalmanFilter((0.0, 0.0), 1.0, 1.0, truth.u_commanded).Q @ A.T)[0, 0])
+    for k in range(100, 104):
+        assert float((A @ rr.P_unproj[k] @ A.T)[0, 0]) == pytest.approx((k - 99) * aqa, rel=1e-6)
+    # on the shipped scenarios the clock never stalls, so the record is unchanged
+    plain = run(truth, observe(truth, sc.deg), cs, spec("kf+hard+fb"), m0, m0_std)
+    assert np.array_equal(rr.x[:100], plain.x[:100])
+
+
 def test_feedback_into_kf_aug_and_hold_last_raises():
     for kind in ("kf_aug", "hold_last"):
         with pytest.raises(NotImplementedError):
