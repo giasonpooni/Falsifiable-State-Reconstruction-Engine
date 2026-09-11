@@ -67,7 +67,7 @@ is 0.55 ± 0.18 vs 0.92 ± 0.44 kg.
 |---|---|
 | `src/set_lcm/schema/` | `Observation`, `ConstraintSet` (`dof` = rows, `rank` = χ² dof), `StateEstimate` envelope with `status`, unprojected state, correction, residuals pre/post, consistency stat. |
 | `src/set_lcm/lcm/` | Hard (KKT closed form) and soft (penalty) linear-equality projection weighted by `P⁻¹`; feasibility check and reduction of dependent rows; SPD / singularity guards; χ² consistency statistic; `reconcile()` that never mutates its input. |
-| `src/set_lcm/testbed/simulator.py` | Two-reservoir material transfer. Hidden `m`, hidden leak, hidden actual pump rate; public commanded pump rate and declared initial total. |
+| `src/set_lcm/testbed/simulator.py` | Two-reservoir material transfer. Hidden `m`, hidden leak, hidden actual pump *parameter* rate (`u_actual`: the per-step pump fluctuation is process noise, not part of it); public commanded pump rate and declared initial total. |
 | `src/set_lcm/testbed/degrade.py` | Noise, random dropout, sensor blackout, undeclared bias, quantization (declared into `R`), arrival delay written into `arrival_t`. Seed-controlled. |
 | `src/set_lcm/testbed/estimators.py` | Hold-last baseline; linear Kalman filter with a *diagonal* Q (closure is the constraint's declared claim, not the filter's); an augmented-state filter `kf_aug` with x = [m1, m2, α, L] — pump scale and boundary flux as states with their own uncertainty — run as a time-varying *linear* KF (`AugConfig`). All start from a declared prior and report by predicting forward from the last *arrived* observation. The filters record, per ingested step and sensor, the innovation, its variance and the normalised innovation; hold-last records NaN. |
 | `src/set_lcm/testbed/cusum.py` | Per-sensor two-sided CUSUM on the normalised innovation (`CusumConfig(k=0.5, h=8.0)`): the evidence side's own detector, reading no constraint. |
@@ -208,8 +208,9 @@ ratio over the steps where the pump is commanded on and L against the hidden lea
   reads 0.30 / 0.99 / 0.74, 0.30 / 0.99 / 0.75 and 0.31 / 0.99 / 0.77 at the three small
   leaks where the guard reads 0.41 / 0.66 / 1.81, 0.52 / 0.64 / 2.28 and 0.59 / 0.65 / 2.37
   and even the unconstrained filter degrades to 0.47 / 0.77 / 1.47 at 0.02 kg/s. A 1–4 kg
-  leak that neither test can reject is absorbed by L̂ without a flag, which is the point:
-  the parameter is estimated, not merely tested.
+  leak that the L flag never rejects, and the guard rejects in at most 3/20 seeds, is
+  absorbed by L̂ without a flag, which is the point: the parameter is estimated, not merely
+  tested.
 - **What it costs.** Two extra states are two extra ways to be wrong. On the nominal
   system (`closed_noise`) kf_aug reads 0.32 / 0.98 / 0.80 in steady state against kf
   0.23 / 0.99 / 0.73 and kf+hard 0.16 / 0.98 / 0.72: a 40 % RMSE premium for freedom it
