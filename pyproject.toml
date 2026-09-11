@@ -1,0 +1,16 @@
+[project]
+name = "falsifiable-state-reconstruction-engine"
+version = "0.1.0"
+description = "State estimates that ship with the statistic that can reject them. Phase 1: SET + LCM on a two-reservoir material-transfer system."
+requires-python = ">=3.12"
+dependencies = ["numpy>=2.0"]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
