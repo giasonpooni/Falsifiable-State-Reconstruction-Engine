@@ -1,0 +1,1346 @@
+From ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 12 Sep 2026 17:09:04 +0000
+Subject: [PATCH] A fourth source: USGS daily values, where the quantity is a
+ statistic
+
+The `daily` collection of the USGS Water Data OGC API, as an adapter, a
+per-value extractor, a binding, 15 tests and docs/PHASE_45_USGS_DAILY_VALUES.md.
+
+The endpoint was read before the module was written, not after: items come back
+in no time order, `value` is a string, `time` is a bare date with no zone
+anywhere in the response, paging is by opaque cursor, and nothing states a
+per-value uncertainty.
+
+Two refusals are the point of the phase.
+
+A paged window is refused, not stitched. A RawDocument is one HTTP response
+byte for byte in every adapter here; stitching pages would fabricate bytes no
+server sent, and one document per page would make identity depend on `limit`
+and on server-side cursor state. Instead the window is bounded (366 days
+against a page limit of 10000) so a daily series is always one response, and
+fetch() raises if a `next` link ever appears. It does not quietly return the
+first page: a silent truncation is a lost day of water that nothing downstream
+could detect.
+
+And the date keeps its silence. Writing 2023-01-07 as a local-standard-time
+instant, or calling it a UTC day, would have been one line. Legacy NWIS practice
+says the former; this API does not. measurement_time is the bare date, verbatim,
+and what a day means is a declaration for whoever consumes it -- the same
+discipline Phase 32 applied to uncertainty, applied to time.
+
+`method` carries the verbatim statistic_id, per Phase 31. It is load-bearing
+here rather than decorative: a daily mean, maximum and minimum of one parameter
+at one site on one day are three quantities that are otherwise identical in
+content.
+
+The binding takes no scientific parameters at all. NOAA's must carry datum and
+units to both halves because its response echoes neither; USGS states every
+dimension in each item, so the extractor reads what the adapter requested and
+there is nothing that can drift.
+
+Three of this repository's own checks refused the first draft, and all three
+were right:
+
+- test_no_extractor_declares_a_conditions_key. The draft built a conditions
+  FrozenMapping of parameter_code and statistic_id. The values came from the
+  response, but the decision that those two fields ARE the conditions came from
+  the extractor, and section 20 forbids exactly that. Removed: the source states
+  no measurement conditions, so none are recorded, and `method` already
+  distinguishes the statistics.
+- test_an_anchor_has_landed_and_this_guard_is_retired. The new fixture is now
+  declared, so an undeclared one still fails.
+- test_bitemporality_is_recorded_as_half_present_and_still_is. Valid time now
+  sits in two extractors' content rather than one. The recorded position is
+  updated to say so, because two extractors each inventing a content key for
+  valid time is what "not a platform dimension" looks like; the list stays exact
+  so a third is noticed.
+
+Suite: 2553 passed, with only the six failures this checkout already had before
+this branch (they need full git history, which a shallow clone does not have).
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ daf/adapters/usgs_daily_values.py             | 248 +++++++++++++
+ daf/extractors/usgs_daily_values.py           | 184 ++++++++++
+ daf/orchestration/bindings.py                 |  78 ++++
+ docs/PHASE_45_USGS_DAILY_VALUES.md            | 157 ++++++++
+ ...ily_values_09147000_20230101_20230105.json | 158 +++++++++
+ tests/test_corpus_anchor_preregistration.py   |   1 +
+ tests/test_platform_target.py                 |  13 +-
+ tests/test_usgs_daily_values.py               | 335 ++++++++++++++++++
+ uv.lock                                       |   8 +
+ 9 files changed, 1178 insertions(+), 4 deletions(-)
+ create mode 100644 daf/adapters/usgs_daily_values.py
+ create mode 100644 daf/extractors/usgs_daily_values.py
+ create mode 100644 docs/PHASE_45_USGS_DAILY_VALUES.md
+ create mode 100644 tests/fixtures/usgs_daily_values_09147000_20230101_20230105.json
+ create mode 100644 tests/test_usgs_daily_values.py
+ create mode 100644 uv.lock
+
+diff --git a/daf/adapters/usgs_daily_values.py b/daf/adapters/usgs_daily_values.py
+new file mode 100644
+index 0000000..a4dc1f2
+--- /dev/null
++++ b/daf/adapters/usgs_daily_values.py
+@@ -0,0 +1,248 @@
++"""Real `scout.interface.SourceAdapter` against the USGS Water Data OGC API's
++`daily` collection (https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily).
++
++A FOURTH acquisition topology, and the first that is a *statistic* rather than a
++measurement (see `docs/PHASE_45_USGS_DAILY_VALUES.md` for the full record):
++
++    EDGAR (Phase G)        USGS events (Phase H)    NOAA (Phase I)         USGS daily (Phase 45)
++    --------------------   ---------------------    --------------------   ---------------------
++    unit = one whole       unit = one individual    unit = one bounded     unit = one bounded
++      daily index FILE       event RECORD             TIME WINDOW of         TIME WINDOW of one
++                                                      many readings          SERIES -- each item
++                                                                             has its own id, but
++                                                                             that id is a row id
++                                                                             that CHANGES on
++                                                                             revision
++    locator IS the         locator is NOT the       locator IS the         locator IS the cursor
++      cursor                 cursor                   cursor                 again
++    never revised          records get revised      windows get            values get revised:
++                                                      re-fetched with        Provisional ->
++                                                      different bytes        Approved, and a
++                                                                             value may change
++
++INVESTIGATED, NOT ASSUMED. The live endpoint was read before this module was written:
++
++- Items come back in NO time order. A window's readings must be sorted by the consumer;
++  nothing here reorders the bytes, and the extractor emits candidates in the order the
++  response carries them.
++- `value` is a STRING ("68160"), not a number.
++- Paging is by opaque cursor in `links[rel="next"]`, and `limit` goes up to 10000.
++- `properties.time` is a BARE DATE ("2023-01-07") with NO time zone. The API's own
++  description defines it only as the date an observation represents. This adapter does
++  not assign it a zone, an instant or UTC day bounds: the date is preserved verbatim as
++  the source wrote it, and what a day means is a question for whoever reads it. Legacy
++  NWIS practice is the site's local standard-time day; this API does not say so, and
++  DAF does not put words in a source's mouth.
++- Each item carries `approval_status` ("Approved"/"Provisional") and `qualifier`. These
++  are REVISION metadata, exactly like NOAA's `q` flag, and the extractor keeps them out
++  of `Observation.content` (see the extractor's docstring).
++- Nothing in the response states a per-value uncertainty, so none is emitted and none is
++  invented. A consumer that needs one must declare it, with its own citation.
++
++ONE WINDOW IS ONE ARTIFACT, AND PAGING IS REFUSED, NOT STITCHED. A `RawDocument` here is
++one HTTP response preserved byte-for-byte, as EDGAR/USGS-events/NOAA all are. A daily
++series yields at most 366 items a year, far under the API's 10000 `limit`, so a window
++within `MAX_WINDOW_DAYS` is always a single response. If the API nevertheless returns a
++`next` link, the adapter RAISES: stitching pages into one synthetic document would
++fabricate bytes no server ever sent, and silently dropping the tail would lose data. The
++error names the window and says to shorten it.
++
++Trailing-safety-window catch-up, the same idiom as the NOAA adapter and for the same
++root cause in a different guise: `revision_lookback_days` re-requests the trailing days
++of the previous window, because an already-acquired day can later flip from Provisional
++to Approved (and its value can change with it). A re-fetched window whose bytes are
++unchanged is one artifact version already in the pool, so the plan reports DUPLICATE and
++the catch-up terminates on its own.
++"""
++
++from __future__ import annotations
++
++import datetime
++import json
++import re
++import time
++import urllib.error
++import urllib.parse
++import urllib.request
++from dataclasses import dataclass, field
++from typing import Any, Callable, Optional, Tuple
++
++from scout.interface import RawDocument
++
++DAILY_ITEMS_BASE = "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items"
++
++# USGS asks every automated client to identify itself -- a public identification
++# string, not a credential. Same policy as `daf.adapters.usgs_earthquakes`.
++USGS_USER_AGENT = "Data-Acquisition-Fabric research-adapter contact@example.com"
++
++_TRANSIENT_HTTP_STATUSES = frozenset({429, 500, 502, 503, 504})
++_MAX_RETRIES = 2
++_RETRY_DELAY_SECONDS = 0.5
++
++# The API's documented maximum page size. Requested explicitly so that a window's
++# single-response property is a consequence of a declared bound, not of a default.
++PAGE_LIMIT = 10000
++# A daily series yields one item per day, so this stays far inside PAGE_LIMIT while
++# bounding how much one artifact can be.
++MAX_WINDOW_DAYS = 366
++_DEFAULT_WINDOW_DAYS = 366
++_DEFAULT_REVISION_LOOKBACK_DAYS = 2
++
++_DATE_RE = re.compile(r"\A\d{4}-\d{2}-\d{2}\Z")
++
++Fetcher = Callable[[str], bytes]
++Opener = Callable[..., Any]
++Sleeper = Callable[[float], None]
++
++
++class UsgsDailyValuesFetchError(RuntimeError):
++    """Any acquisition-time failure: a non-transient HTTP error, a transient one that
++    exhausted its retry budget, a connection failure, an undecodable or unparseable body,
++    a response with no `features` array, or a window the API answered with more than one
++    page."""
++
++
++def _fetch_with_retries(
++    url: str, opener: Opener = urllib.request.urlopen, sleep: Sleeper = time.sleep
++) -> bytes:
++    """Bounded, deterministic retry -- the identical policy to
++    `daf.adapters.usgs_earthquakes._fetch_with_retries` and
++    `daf.adapters.edgar_daily_index._fetch_with_retries`: up to `_MAX_RETRIES` additional
++    attempts, fixed backoff, only for statuses conventionally treated as transient. A
++    non-transient error never retries. `opener`/`sleep` are injectable purely for
++    unit-testability."""
++    request = urllib.request.Request(url, headers={"User-Agent": USGS_USER_AGENT})
++    last_error: BaseException = UsgsDailyValuesFetchError(f"USGS request to {url!r} never attempted")
++
++    for attempt in range(_MAX_RETRIES + 1):
++        try:
++            with opener(request, timeout=60) as response:
++                return response.read()  # type: ignore[no-any-return]
++        except urllib.error.HTTPError as exc:
++            last_error = exc
++            if exc.code not in _TRANSIENT_HTTP_STATUSES or attempt == _MAX_RETRIES:
++                raise UsgsDailyValuesFetchError(f"USGS request to {url!r} failed: HTTP {exc.code}") from exc
++        except (urllib.error.URLError, TimeoutError) as exc:
++            last_error = exc
++            if attempt == _MAX_RETRIES:
++                raise UsgsDailyValuesFetchError(f"USGS request to {url!r} failed: {exc}") from exc
++        if attempt < _MAX_RETRIES:
++            sleep(_RETRY_DELAY_SECONDS)
++
++    raise UsgsDailyValuesFetchError(f"USGS request to {url!r} failed after {_MAX_RETRIES} retries: {last_error}")
++
++
++def _default_fetch(url: str) -> bytes:
++    return _fetch_with_retries(url)
++
++
++def _parse_date(value: str) -> datetime.date:
++    if not _DATE_RE.match(value):
++        raise UsgsDailyValuesFetchError(f"expected a date as YYYY-MM-DD, got {value!r}")
++    return datetime.date.fromisoformat(value)
++
++
++def _format_date(value: datetime.date) -> str:
++    return value.isoformat()
++
++
++def window_end_of(locator: str) -> str:
++    """The cursor value a daily-values window locator carries -- its end date, the LAST
++    component. Adapter-local, exactly like `daf.adapters.noaa_water_level.window_end_of`
++    and EDGAR's own date-string locators; never imported by DAF core."""
++    return locator.rsplit(":", 1)[-1]
++
++
++@dataclass(frozen=True)
++class UsgsDailyValuesSourceAdapter:
++    """One bounded window of ONE daily series: one monitoring location, one parameter
++    code, one statistic."""
++
++    monitoring_location_id: str
++    parameter_code: str
++    statistic_id: str
++    start_date: str  # YYYY-MM-DD, the acquisition scope's lower bound (inclusive)
++    end_date: str  # YYYY-MM-DD, the acquisition scope's upper bound (inclusive)
++    retrieved_at: str  # ISO-8601 UTC, caller-supplied -- never wall-clock
++    since_window_end: Optional[str] = None  # YYYY-MM-DD, opaque to DAF core
++    window_days: int = _DEFAULT_WINDOW_DAYS
++    revision_lookback_days: int = _DEFAULT_REVISION_LOOKBACK_DAYS
++    fetch_bytes: Fetcher = field(default=_default_fetch)
++
++    def __post_init__(self) -> None:
++        if not 1 <= self.window_days <= MAX_WINDOW_DAYS:
++            raise UsgsDailyValuesFetchError(
++                f"window_days must be between 1 and {MAX_WINDOW_DAYS} (a daily series must fit one "
++                f"page of {PAGE_LIMIT}); got {self.window_days}"
++            )
++        if self.revision_lookback_days < 1:
++            raise UsgsDailyValuesFetchError(
++                f"revision_lookback_days must be at least 1; got {self.revision_lookback_days}"
++            )
++
++    def fetch(self) -> Tuple[RawDocument, ...]:
++        scope_end = _parse_date(self.end_date)
++
++        if self.since_window_end is None:
++            window_start = _parse_date(self.start_date)
++        else:
++            previous_end = _parse_date(self.since_window_end)
++            # Trailing safety window: re-verify the last `revision_lookback_days` of the
++            # previous window, because Provisional values can be revised. See the module
++            # docstring.
++            window_start = previous_end - datetime.timedelta(days=self.revision_lookback_days - 1)
++
++        if window_start > scope_end:
++            return ()  # scope fully covered -- nothing left to acquire
++
++        window_end = min(window_start + datetime.timedelta(days=self.window_days - 1), scope_end)
++
++        query = urllib.parse.urlencode(
++            {
++                "monitoring_location_id": self.monitoring_location_id,
++                "parameter_code": self.parameter_code,
++                "statistic_id": self.statistic_id,
++                "datetime": f"{_format_date(window_start)}/{_format_date(window_end)}",
++                "limit": PAGE_LIMIT,
++                "f": "json",
++            }
++        )
++        url = f"{DAILY_ITEMS_BASE}?{query}"
++        raw_bytes = self.fetch_bytes(url)
++        try:
++            content = raw_bytes.decode("utf-8")
++        except UnicodeDecodeError as exc:
++            raise UsgsDailyValuesFetchError(f"USGS response for {url!r} was not valid UTF-8") from exc
++
++        try:
++            payload = json.loads(content)
++        except json.JSONDecodeError as exc:
++            raise UsgsDailyValuesFetchError(f"USGS response for {url!r} was not valid JSON") from exc
++        if not isinstance(payload, dict) or not isinstance(payload.get("features"), list):
++            raise UsgsDailyValuesFetchError(f"USGS response for {url!r} had no 'features' array")
++
++        # Paging is refused, never stitched -- see the module docstring.
++        links = payload.get("links")
++        if isinstance(links, list) and any(
++            isinstance(link, dict) and link.get("rel") == "next" for link in links
++        ):
++            raise UsgsDailyValuesFetchError(
++                f"USGS answered {url!r} with more than one page (a 'next' link is present); one window is "
++                f"one artifact here, so shorten window_days (currently {self.window_days}) until the window "
++                f"fits a single response"
++            )
++
++        locator = (
++            f"{self.monitoring_location_id}:{self.parameter_code}:{self.statistic_id}"
++            f":{_format_date(window_start)}:{_format_date(window_end)}"
++        )
++        return (
++            RawDocument(
++                source_name="USGS Water Data OGC API -- daily values",
++                source_kind="daily-value-window",
++                content=content,
++                locator=locator,
++                retrieval_method="http:usgs_daily_values_v1",
++                retrieved_at=self.retrieved_at,
++            ),
++        )
+diff --git a/daf/extractors/usgs_daily_values.py b/daf/extractors/usgs_daily_values.py
+new file mode 100644
+index 0000000..df36a9d
+--- /dev/null
++++ b/daf/extractors/usgs_daily_values.py
+@@ -0,0 +1,184 @@
++"""Per-value extractor for the USGS Water Data OGC API's `daily` collection.
++
++One `ExtractionCandidate` per feature: one day, one series, one number. Paired with
++`UsgsDailyValuesSourceAdapter` by `usgs_daily_values_binding`.
++
++WHAT IS IN `content`, AND WHY EACH FIELD IS WHAT IT IS
++------------------------------------------------------
++
++`property`   A declared name for the physical quantity, looked up from the USGS parameter
++             code in `PARAMETER_PROPERTIES`. An UNLISTED CODE IS REFUSED, never given a
++             generated name: inventing "parameter_72019" would put a label into evidence
++             that no source ever used. Adding a code to the table is a deliberate act with
++             the USGS parameter-code definition in front of you.
++
++`value`      `float(properties.value)`. The API returns the number AS A STRING; parsing it
++             is the only transformation applied to a value anywhere in this module, and a
++             string that is not a number raises rather than being dropped.
++
++`unit`       Verbatim `properties.unit_of_measure` ("ft^3/s", "Acre-ft"). Unlike NOAA --
++             whose response echoes no unit, so the binding has to carry the requested one
++             into the extractor -- USGS states the unit in every item. This extractor
++             therefore takes NO constructor parameters at all: everything it writes, it
++             read. Nothing is defaulted and nothing can drift out of step with the request.
++
++`method`     Verbatim `properties.statistic_id` ("00003" = MEAN). Phase 31 settled this
++             shape: USGS's own data model separates WHICH NUMBER from HOW IT WAS COMPUTED,
++             and the verbatim source token is what goes in `method` -- as `magnitude_type`
++             ("mb", "ml") does for earthquakes. A daily mean, a daily maximum and a daily
++             minimum of the same parameter are three different quantities, and this is the
++             field that says which one a value is. It is not translated into prose here:
++             "00003" is what the source wrote.
++
++`measurement_time`
++             Verbatim `properties.time`: a BARE DATE, "2023-01-07". The API defines it only
++             as the date an observation represents and states NO time zone, so no zone, no
++             instant and no UTC day bounds are assigned here. A consumer that needs an
++             instant must declare which one and cite the assumption; DAF records what the
++             source said.
++
++`monitoring_location_id`, `parameter_code`, `statistic_id`, `time_series_id`
++             Verbatim, so a value can be traced to its series without re-reading the URL.
++
++WHAT IS DELIBERATELY *NOT* IN `content`
++---------------------------------------
++
++`approval_status` ("Approved" / "Provisional") and `qualifier` are REVISION METADATA: they
++say how far a value has moved through USGS's review, not what was measured. NOAA's `q`
++flag is kept out of content for exactly this reason, and so are these. A value that later
++flips from Provisional to Approved WITHOUT changing is the same evidence, and must hash to
++the same id; putting the status in content would make the review step look like a new
++measurement. A value that changes IS new evidence, and its content changes on its own.
++
++`last_modified` is an acquisition/revision stamp of the same kind, and `id` is the API's
++row id, which is regenerated on revision -- neither is a property of the water.
++
++NO `conditions`. The first draft of this extractor built one, a `FrozenMapping` of
++`parameter_code` and `statistic_id`, and DAF's own `test_no_extractor_declares_a_conditions_key`
++refused it -- correctly. Section 20's rule is that an extractor may CARRY conditions and may
++not CONSTRUCT them, and although both values came from the response, the DECISION that those
++two fields are "the conditions" of a daily value came from here. NOAA is the recorded
++exception (Phase 33 found `datum` a genuine measurement condition); the GPC extractor carries
++the source report's own mapping. This source states no measurement conditions at all, so none
++are recorded, and `science.admissibility` reports MISSING_CONDITIONS -- which is true. Nothing
++was lost: `method` already carries the statistic, so a daily mean and a daily maximum are
++distinct in content without a fabricated condition saying so.
++
++NO UNCERTAINTY IS EMITTED. The response states none. There is no `uncertainty`, no
++`uncertainty_kind`, and no `sigma` -- not even a "none stated" marker, because
++`science.admissibility` already reports MISSING_UNCERTAINTY_KIND for exactly this case and
++that report is TRUE. USGS publishes rating-curve accuracy qualitatively, per site and per
++period, in places this endpoint does not carry; turning that into a number here would be
++fabrication. A consumer that needs an R must declare it with its own citation.
++"""
++
++from __future__ import annotations
++
++import json
++from dataclasses import dataclass
++from typing import Any, Dict, List, Mapping, Tuple
++
++from evidence.types import Record
++from scout.interface import ExtractedEntity, ExtractedRelation, ExtractionCandidate
++
++EXTRACTION_METHOD = "json:usgs_daily_value_v1"
++SITE_KIND = "monitoring_location"
++PARAMETER_KIND = "observed_parameter"
++MEASURES = "measures"
++
++# USGS parameter code -> the property name DAF records. Deliberately a small, explicit
++# table: an unlisted code is refused, never given a generated name. Codes and their
++# definitions are USGS's (https://help.waterdata.usgs.gov/codes-and-parameters/parameters).
++PARAMETER_PROPERTIES = {
++    "00060": "discharge",           # Discharge, cubic feet per second
++    "00054": "reservoir_storage",   # Reservoir storage, acre-feet
++    "00065": "gage_height",         # Gage height, feet
++}
++
++
++class UsgsDailyValuesExtractionError(ValueError):
++    """The Record's raw_content is not a parseable USGS daily-values response, a feature is
++    missing a required field, a value is not a parseable number, or the parameter code is
++    not one this extractor has been taught."""
++
++
++@dataclass(frozen=True)
++class UsgsDailyValuesExtractor:
++    """Takes no parameters: every field it writes, it reads from the response. See the
++    module docstring on `unit`."""
++
++    def extract(self, record: Record) -> Tuple[ExtractionCandidate, ...]:
++        try:
++            payload = json.loads(record.raw_content)
++        except json.JSONDecodeError as exc:
++            raise UsgsDailyValuesExtractionError(f"record {record.id!r} is not valid JSON") from exc
++        if not isinstance(payload, dict) or not isinstance(payload.get("features"), list):
++            raise UsgsDailyValuesExtractionError(
++                f"record {record.id!r} has no 'features' array; it is not a USGS daily-values response"
++            )
++
++        candidates: List[ExtractionCandidate] = []
++        for feature in payload["features"]:
++            properties = feature.get("properties") if isinstance(feature, dict) else None
++            if not isinstance(properties, Mapping):
++                raise UsgsDailyValuesExtractionError(
++                    f"record {record.id!r} has a feature with no 'properties' object: {feature!r}"
++                )
++            candidates.append(self._candidate(record, properties))
++        return tuple(candidates)
++
++    def _candidate(self, record: Record, properties: Mapping[str, Any]) -> ExtractionCandidate:
++        missing = [
++            field
++            for field in ("monitoring_location_id", "parameter_code", "statistic_id", "time",
++                          "value", "unit_of_measure")
++            if properties.get(field) in (None, "")
++        ]
++        if missing:
++            raise UsgsDailyValuesExtractionError(
++                f"record {record.id!r} has a daily value missing {missing}: {dict(properties)!r}"
++            )
++
++        parameter_code = str(properties["parameter_code"])
++        try:
++            property_name = PARAMETER_PROPERTIES[parameter_code]
++        except KeyError:
++            raise UsgsDailyValuesExtractionError(
++                f"record {record.id!r} carries USGS parameter code {parameter_code!r}, which this extractor "
++                f"has no property name for; known codes are {sorted(PARAMETER_PROPERTIES)}. Add it "
++                f"deliberately, with the USGS parameter definition, rather than generating a name"
++            ) from None
++
++        raw_value = properties["value"]
++        try:
++            value = float(raw_value)
++        except (TypeError, ValueError) as exc:
++            raise UsgsDailyValuesExtractionError(
++                f"record {record.id!r} has a non-numeric daily value {raw_value!r}"
++            ) from exc
++
++        site = str(properties["monitoring_location_id"])
++        statistic_id = str(properties["statistic_id"])
++        content: Dict[str, Any] = {
++            "property": property_name,
++            "value": value,
++            "unit": str(properties["unit_of_measure"]),
++            "method": statistic_id,
++            "monitoring_location_id": site,
++            "parameter_code": parameter_code,
++            "statistic_id": statistic_id,
++            "measurement_time": str(properties["time"]),
++        }
++        time_series_id = properties.get("time_series_id")
++        if time_series_id not in (None, ""):
++            content["time_series_id"] = str(time_series_id)
++
++        entities = (
++            ExtractedEntity(label=site, kind=SITE_KIND),
++            ExtractedEntity(label=parameter_code, kind=PARAMETER_KIND),
++        )
++        relations = (ExtractedRelation(from_label=site, to_label=parameter_code, type=MEASURES),)
++        return ExtractionCandidate(
++            content=content, entities=entities, relations=relations,
++            extraction_method=EXTRACTION_METHOD, confidence=1.0,
++        )
+diff --git a/daf/orchestration/bindings.py b/daf/orchestration/bindings.py
+index ae0c3b3..f066b97 100644
+--- a/daf/orchestration/bindings.py
++++ b/daf/orchestration/bindings.py
+@@ -22,6 +22,8 @@ from daf.adapters.edgar_daily_index import EdgarDailyIndexSourceAdapter
+ from daf.adapters.incremental_dataset import IncrementalDatasetSourceAdapter, locator_for, sequence_of
+ from daf.adapters.local_dataset import LocalDatasetSourceAdapter
+ from daf.adapters.noaa_water_level import Fetcher, NoaaWaterLevelSourceAdapter, window_end_of
++from daf.adapters.usgs_daily_values import UsgsDailyValuesSourceAdapter
++from daf.adapters.usgs_daily_values import window_end_of as daily_window_end_of
+ from daf.adapters.usgs_earthquakes import UsgsEarthquakeSourceAdapter
+ from daf.extractors.arxiv import ArxivExtractor
+ from daf.extractors.edgar_daily_index import EdgarDailyIndexExtractor
+@@ -29,6 +31,7 @@ from daf.extractors.graph_dataset import GraphDatasetExtractor
+ from daf.extractors.local_dataset import LocalDatasetExtractor
+ from daf.extractors.noaa_water_level import NoaaWaterLevelExtractor
+ from daf.extractors.noaa_water_level_measurements import NoaaWaterLevelMeasurementExtractor
++from daf.extractors.usgs_daily_values import UsgsDailyValuesExtractor
+ from daf.extractors.usgs_earthquakes import UsgsEarthquakeExtractor
+ from daf.orchestration.adapter_registry import AdapterBinding
+ from daf.orchestration.request import AcquisitionRequest
+@@ -341,3 +344,78 @@ def noaa_water_level_measurement_binding(
+         advance_position=_advance_noaa_position,
+         version=_code_version(NoaaWaterLevelSourceAdapter, NoaaWaterLevelMeasurementExtractor),
+     )
++
++
++def _advance_usgs_daily_values_position(
++    artifacts: Tuple[AcquiredArtifact, ...], previous_position: Optional[str]
++) -> Optional[str]:
++    """The daily-values window locator
++    (`"{monitoring_location_id}:{parameter_code}:{statistic_id}:{begin}:{end}"`)
++    carries its own cursor value -- the window's end date -- exactly like
++    NOAA's window locator and EDGAR's date-string locators, and UNLIKE
++    USGS's event-id locator. Reading `.locator`, not `.raw_content`, for
++    the same reason NOAA does.
++
++    The cursor never goes backwards: a trailing-safety re-fetch of an
++    earlier window must not rewind the position and re-acquire the scope.
++    """
++    if not artifacts:
++        return previous_position
++    max_end = max(daily_window_end_of(artifact.locator) for artifact in artifacts)
++    if previous_position is not None:
++        max_end = max(max_end, previous_position)
++    return max_end
++
++
++def usgs_daily_values_binding(*, fetch_bytes: Optional[Fetcher] = None) -> AdapterBinding:
++    """`UsgsDailyValuesSourceAdapter` paired with the per-value
++    `UsgsDailyValuesExtractor`.
++
++    This binding takes NO scientific parameters, and that is the point of
++    difference from `noaa_water_level_measurement_binding`. NOAA's
++    response echoes neither datum nor unit, so the binding must hand the
++    same values to adapter and extractor or the two can silently
++    disagree. USGS states `unit_of_measure`, `parameter_code` and
++    `statistic_id` in every item, so the extractor reads what the adapter
++    requested from the response itself and there is nothing to keep in
++    step. `monitoring_location_id`, `parameter_code` and `statistic_id`
++    are plan parameters: they select the series, and the response carries
++    them back.
++
++    `fetch_bytes` is the adapter's own injection point, surfaced here so a
++    caller can replay a recorded response instead of hitting the live
++    service; omitted, the adapter's live HTTP default is used unchanged.
++    """
++
++    def build_adapter(source: SourceDefinition, request: AcquisitionRequest) -> UsgsDailyValuesSourceAdapter:
++        since = request.parameters.get("since")
++        window_days = request.parameters.get("window_days")
++        # Written out twice rather than assembled as **kwargs so mypy actually checks
++        # the call: the adapter's `fetch_bytes` default is its live HTTP fetcher, which
++        # must stay in place when none is injected -- passing None would disable
++        # acquisition entirely. Same idiom as the NOAA binding.
++        common = {
++            "monitoring_location_id": str(request.parameters["monitoring_location_id"]),
++            "parameter_code": str(request.parameters["parameter_code"]),
++            "statistic_id": str(request.parameters["statistic_id"]),
++            "start_date": str(request.parameters["start_date"]),
++            "end_date": str(request.parameters["end_date"]),
++            "retrieved_at": request.requested_at,
++            "since_window_end": str(since) if since is not None else None,
++        }
++        if window_days is not None:
++            common["window_days"] = int(window_days)
++        if fetch_bytes is None:
++            return UsgsDailyValuesSourceAdapter(**common)  # type: ignore[arg-type]
++        return UsgsDailyValuesSourceAdapter(fetch_bytes=fetch_bytes, **common)  # type: ignore[arg-type]
++
++    def build_extractor() -> UsgsDailyValuesExtractor:
++        return UsgsDailyValuesExtractor()
++
++    return AdapterBinding(
++        adapter_id="usgs-daily-values",
++        build_adapter=build_adapter,
++        build_extractor=build_extractor,
++        advance_position=_advance_usgs_daily_values_position,
++        version=_code_version(UsgsDailyValuesSourceAdapter, UsgsDailyValuesExtractor),
++    )
+diff --git a/docs/PHASE_45_USGS_DAILY_VALUES.md b/docs/PHASE_45_USGS_DAILY_VALUES.md
+new file mode 100644
+index 0000000..a5042da
+--- /dev/null
++++ b/docs/PHASE_45_USGS_DAILY_VALUES.md
+@@ -0,0 +1,157 @@
++# Phase 45 — USGS Daily Values: a statistic is not a measurement
++
++*(Continues from Phase 44. Adds a fourth real source: the USGS Water Data OGC API's
++`daily` collection. Asks what changes when the acquired quantity is a DAILY STATISTIC
++computed by the source rather than an instrument reading, and when the source states a
++date with no time zone.)*
++
++**Result: accepted, with two refusals that are the point of the phase.** The source is
++admissible exactly as the existing contract stands — no new field, no new gate, no change
++to any core type. What it forced was two explicit refusals: the adapter refuses a paged
++window instead of stitching one, and neither adapter nor extractor assigns the source's
++bare date a time zone. Both are recorded here so a later reader does not "fix" them.
++
++---
++
++## Reconnaissance
++
++Read in full before writing anything: `daf/adapters/noaa_water_level.py` (the closest
++topology), `daf/adapters/usgs_earthquakes.py` (the retry and user-agent policy, reused
++verbatim), `daf/extractors/noaa_water_level_measurements.py` (the per-measurement
++extractor shape), `daf/extractors/usgs_earthquakes.py` (Phase 31's `method` convention),
++`daf/orchestration/bindings.py`, `daf/scheduling/runner.py`, `science/admissibility.py`'s
++code, and the live endpoint itself.
++
++The live endpoint was read before the module was written, not after:
++
++| what | measured |
++|---|---|
++| item order | **none**. `2023-01-02, 2023-01-05, 2023-01-03, 2023-01-04, 2023-01-01` came back in that order |
++| `value` | a **string**: `"19.7"` |
++| paging | opaque cursor in `links[rel="next"]`; `limit` up to 10000 |
++| `time` | a **bare date**, `"2023-01-07"`, with no zone anywhere in the response |
++| revision | `approval_status` (`Provisional` → `Approved`), `qualifier` (`null` or e.g. `["ESTIMATED"]`), `last_modified` |
++| uncertainty | **none stated, anywhere** |
++
++## The fourth topology
++
++| | EDGAR (G) | USGS events (H) | NOAA (I) | **USGS daily (45)** |
++|---|---|---|---|---|
++| unit | one index FILE | one event RECORD | one bounded WINDOW of unidentified readings | one bounded WINDOW of ONE SERIES |
++| per-item identity | none | the event id, stable | none | an `id` exists, but it is a **row id regenerated on revision** — so it is *not* usable as identity |
++| locator is the cursor | yes | no | yes | yes |
++| revision | never | per record | per window's bytes | per value: status flips, and the number can change with it |
++
++The row-id column is the new thing. USGS events gave each event a stable id, which is why
++its locator could not be the cursor. Daily values give each *row* an id too — but it is
++regenerated when the value is revised, so using it as identity would make every review
++step look like a new fact. It is therefore not carried into content at all, and identity
++stays where it already was: the content hash.
++
++## Refusal 1 — a paged window is refused, never stitched
++
++`RawDocument.content` is one HTTP response, byte for byte, in every adapter this
++repository has. A cursor-paged collection has no single response for a window, so there
++were three options:
++
++1. **Stitch the pages** into one synthetic document. Rejected: it fabricates bytes no
++   server ever sent, and the artifact would no longer be the thing that was retrieved.
++2. **One `RawDocument` per page.** Rejected: page boundaries are an artifact of `limit`
++   and of server-side cursor state, so the same window could acquire under different
++   locators on different days, and identity would depend on paging.
++3. **Bound the window so it is always one page, and raise if it ever is not.** Taken.
++
++A daily series is at most 366 items a year against a `limit` of 10000, so
++`MAX_WINDOW_DAYS = 366` makes the single-response property a consequence of a declared
++bound rather than of luck. If a `next` link appears anyway, `fetch()` raises and the
++message says to shorten `window_days`. The adapter does not quietly return the first page:
++a silent truncation here would be a lost day of water, and nothing downstream could tell.
++
++## Refusal 2 — the date keeps its silence
++
++`properties.time` is `"2023-01-07"`. The API's own description defines it only as the
++date an observation represents. It states no zone.
++
++Legacy NWIS practice is the site's local standard time, and it would have been easy to
++write `measurement_time` as `2023-01-07T00:00:00-07:00`, or to call it a UTC day. Both
++were rejected. DAF records what a source said; a zone this source did not state is an
++assumption, and an assumption recorded as data is indistinguishable from a fact one line
++later. `measurement_time` is therefore the bare date, verbatim, and what a day means is a
++declaration for whoever consumes it — made explicitly, with a citation, at that boundary.
++
++This is the same discipline as Phase 32's uncertainty rule, applied to time.
++
++## `method`, and why a statistic needs one
++
++Phase 31 established that `method` carries the source's own verbatim token for HOW a
++number was computed (`magnitude_type`: `"mb"`, `"ml"`). Daily values make that field load-
++bearing rather than decorative: a daily MEAN discharge (`statistic_id` `00003`), a daily
++MAXIMUM (`00001`) and a daily MINIMUM (`00002`) are three different quantities at the same
++site, on the same day, in the same unit. Without `method` they are indistinguishable in
++content, and two of them would hash to the same observation whenever their values coincide.
++
++`method` is the verbatim `statistic_id`, and `statistic_id` is also in `conditions`
++alongside `parameter_code`, as a `FrozenMapping` (Phase 34: `conditions` must be hashable
++to reach `materials.analysis`). `"00003"` is not translated to `"mean"` here — the source
++token is what the source wrote, exactly as `"mb"` is not translated to `"body-wave"`.
++
++## What the binding does NOT have to do
++
++`noaa_water_level_measurement_binding` exists in the shape it does because NOAA's response
++echoes neither the datum nor the unit: the binding must hand the same `datum`/`units` to
++adapter and extractor, or the two can silently disagree and every value gets labelled with
++a datum it was not measured against.
++
++USGS states `unit_of_measure`, `parameter_code` and `statistic_id` in **every item**. So
++`UsgsDailyValuesExtractor` takes no constructor parameters at all, and
++`usgs_daily_values_binding` takes only `fetch_bytes`. Everything the extractor writes, it
++read. There is nothing to keep in step, so there is no way for it to drift — a property
++worth naming, because it is the absence of a whole class of bug that NOAA's shape must
++actively prevent. `test_the_binding_needs_no_scientific_parameters_of_its_own` pins it.
++
++## The property table is a table, not a rule
++
++`PARAMETER_PROPERTIES` maps `00060 → discharge`, `00054 → reservoir_storage`,
++`00065 → gage_height`. An unlisted code **raises**. It would have been one line to
++generate `f"parameter_{code}"` and accept everything; that line would put a label into
++evidence that no source ever used, for a quantity nobody had looked up. Adding a code is a
++deliberate act with the USGS parameter definition in front of you.
++
++## A revision that changes nothing must change nothing
++
++`approval_status`, `qualifier`, `last_modified` and the row `id` are all kept out of
++`content`, for the reason NOAA's `q` flag is: they describe how far a value has moved
++through review, not what was measured. The consequence is stated as a test
++(`test_a_value_that_only_changes_status_keeps_its_content`): a value that goes
++Provisional → Approved **without changing** produces byte-identical content and therefore
++the same observation id. A value that changes IS new evidence, and its content changes on
++its own — `test_a_revised_value_is_new_evidence_and_the_old_one_is_not_overwritten` shows
++both versions living in the pool, neither overwriting the other.
++
++## What acquisition measured about itself
++
++`test_the_same_window_is_a_duplicate_and_an_overlapping_one_re_admits_under_a_new_record`
++records a behaviour that was measured rather than assumed, and that a consumer needs to
++know:
++
++- Re-running a settled plan re-requests the **same** window, gets the same bytes, and
++  admits nothing: `DUPLICATE`.
++- But the *first* incremental step after a fresh acquisition requests the **trailing
++  safety window** — a different locator, hence a different `Record`, hence *different
++  observation ids for the very same readings*.
++
++DAF is right not to collapse those: the record an observation came from is part of what
++the observation is. Collapsing them is the consumer's job, done on **content**, and a
++consumer that does it must compare whole contents rather than a chosen subset. That is
++what `set_lcm.bridge.daf` does, and it is why it refuses to merge two observations whose
++contents differ in any field at all.
++
++## Not done here
++
++- **No uncertainty.** USGS publishes rating-curve accuracy qualitatively, per site and per
++  period, in documents this endpoint does not carry. Nothing numeric can honestly be
++  emitted, so nothing is. `science.admissibility` reports `MISSING_UNCERTAINTY_KIND` for
++  every one of these values, and that report is true.
++- **No instantaneous-values collection.** The `daily` collection only.
++- **No site-metadata acquisition.** Drainage areas, datums and lake areas live in other
++  collections; nothing here reads them.
+diff --git a/tests/fixtures/usgs_daily_values_09147000_20230101_20230105.json b/tests/fixtures/usgs_daily_values_09147000_20230101_20230105.json
+new file mode 100644
+index 0000000..8a1ac9f
+--- /dev/null
++++ b/tests/fixtures/usgs_daily_values_09147000_20230101_20230105.json
+@@ -0,0 +1,158 @@
++{
++  "type": "FeatureCollection",
++  "features": [
++    {
++      "type": "Feature",
++      "properties": {
++        "time_series_id": "2a8d8d7edd56488ebd48fed56e6676dd",
++        "monitoring_location_id": "USGS-09147000",
++        "parameter_code": "00060",
++        "statistic_id": "00003",
++        "time": "2023-01-02",
++        "value": "19.7",
++        "unit_of_measure": "ft^3/s",
++        "approval_status": "Approved",
++        "qualifier": null,
++        "last_modified": "2025-12-02T15:10:16.911502+00:00"
++      },
++      "id": "3be837fa-1fb5-4a78-8f45-1c94c53369b0",
++      "geometry": {
++        "type": "Point",
++        "coordinates": [
++          -107.758392662986,
++          38.1777680613666
++        ]
++      }
++    },
++    {
++      "type": "Feature",
++      "properties": {
++        "time_series_id": "2a8d8d7edd56488ebd48fed56e6676dd",
++        "monitoring_location_id": "USGS-09147000",
++        "parameter_code": "00060",
++        "statistic_id": "00003",
++        "time": "2023-01-05",
++        "value": "17.5",
++        "unit_of_measure": "ft^3/s",
++        "approval_status": "Approved",
++        "qualifier": [
++          "ESTIMATED"
++        ],
++        "last_modified": "2025-03-10T23:11:21.577746+00:00"
++      },
++      "id": "4c3aa5d3-d50d-414d-a2dc-f49bb6eddb1b",
++      "geometry": {
++        "type": "Point",
++        "coordinates": [
++          -107.758392662986,
++          38.1777680613666
++        ]
++      }
++    },
++    {
++      "type": "Feature",
++      "properties": {
++        "time_series_id": "2a8d8d7edd56488ebd48fed56e6676dd",
++        "monitoring_location_id": "USGS-09147000",
++        "parameter_code": "00060",
++        "statistic_id": "00003",
++        "time": "2023-01-03",
++        "value": "18.0",
++        "unit_of_measure": "ft^3/s",
++        "approval_status": "Approved",
++        "qualifier": null,
++        "last_modified": "2025-03-10T23:11:21.577746+00:00"
++      },
++      "id": "565edcb5-7a35-40b5-8a3f-c7af5af68aa7",
++      "geometry": {
++        "type": "Point",
++        "coordinates": [
++          -107.758392662986,
++          38.1777680613666
++        ]
++      }
++    },
++    {
++      "type": "Feature",
++      "properties": {
++        "time_series_id": "2a8d8d7edd56488ebd48fed56e6676dd",
++        "monitoring_location_id": "USGS-09147000",
++        "parameter_code": "00060",
++        "statistic_id": "00003",
++        "time": "2023-01-04",
++        "value": "18.2",
++        "unit_of_measure": "ft^3/s",
++        "approval_status": "Approved",
++        "qualifier": null,
++        "last_modified": "2025-03-10T23:11:21.577746+00:00"
++      },
++      "id": "79b00ed5-fa0e-43fe-8ba0-534d37ad5420",
++      "geometry": {
++        "type": "Point",
++        "coordinates": [
++          -107.758392662986,
++          38.1777680613666
++        ]
++      }
++    },
++    {
++      "type": "Feature",
++      "properties": {
++        "time_series_id": "2a8d8d7edd56488ebd48fed56e6676dd",
++        "monitoring_location_id": "USGS-09147000",
++        "parameter_code": "00060",
++        "statistic_id": "00003",
++        "time": "2023-01-01",
++        "value": "21.0",
++        "unit_of_measure": "ft^3/s",
++        "approval_status": "Approved",
++        "qualifier": [
++          "ESTIMATED"
++        ],
++        "last_modified": "2025-03-10T23:11:21.577746+00:00"
++      },
++      "id": "fecdf696-32e6-4438-801f-b33564471cdb",
++      "geometry": {
++        "type": "Point",
++        "coordinates": [
++          -107.758392662986,
++          38.1777680613666
++        ]
++      }
++    }
++  ],
++  "numberReturned": 5,
++  "links": [
++    {
++      "type": "application/geo+json",
++      "rel": "self",
++      "title": "This document as GeoJSON",
++      "href": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?f=json&monitoring_location_id=USGS-09147000&parameter_code=00060&statistic_id=00003&datetime=2023-01-01%2F2023-01-05&limit=10000"
++    },
++    {
++      "rel": "alternate",
++      "type": "application/ld+json",
++      "title": "This document as RDF (JSON-LD)",
++      "href": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?f=jsonld&monitoring_location_id=USGS-09147000&parameter_code=00060&statistic_id=00003&datetime=2023-01-01%2F2023-01-05&limit=10000"
++    },
++    {
++      "type": "text/html",
++      "rel": "alternate",
++      "title": "This document as HTML",
++      "href": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?f=html&monitoring_location_id=USGS-09147000&parameter_code=00060&statistic_id=00003&datetime=2023-01-01%2F2023-01-05&limit=10000"
++    },
++    {
++      "type": "text/csv; charset=utf-8",
++      "rel": "alternate",
++      "title": "This document as CSV",
++      "href": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?f=csv&monitoring_location_id=USGS-09147000&parameter_code=00060&statistic_id=00003&datetime=2023-01-01%2F2023-01-05&limit=10000"
++    },
++    {
++      "type": "application/json",
++      "title": "Daily values",
++      "rel": "collection",
++      "href": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily"
++    }
++  ],
++  "timeStamp": "2026-09-12T16:52:55.333649Z"
++}
+\ No newline at end of file
+diff --git a/tests/test_corpus_anchor_preregistration.py b/tests/test_corpus_anchor_preregistration.py
+index ca53cd2..37c22c2 100644
+--- a/tests/test_corpus_anchor_preregistration.py
++++ b/tests/test_corpus_anchor_preregistration.py
+@@ -100,6 +100,7 @@ FIXTURE_PROVENANCE = {
+     "edgar_daily_index_synthetic_20260703.idx": NOT_A_GPC_ANCHOR,
+     "edgar_daily_index_synthetic_double_space_name.idx": NOT_A_GPC_ANCHOR,
+     "edgar_index_listing_synthetic.json": NOT_A_GPC_ANCHOR,
++    "usgs_daily_values_09147000_20230101_20230105.json": NOT_A_GPC_ANCHOR,
+     "gpc_report_anchor_epa_p22_0051.json": A_GPC_ANCHOR,
+     "gpc_report_synthetic_derived_column.json": NOT_A_GPC_ANCHOR,
+     "gpc_report_synthetic_ps4471.json": NOT_A_GPC_ANCHOR,
+diff --git a/tests/test_platform_target.py b/tests/test_platform_target.py
+index ed3b931..0319726 100644
+--- a/tests/test_platform_target.py
++++ b/tests/test_platform_target.py
+@@ -111,10 +111,15 @@ def test_bitemporality_is_recorded_as_half_present_and_still_is():
+     # retrieved_at is on the Document and is caller-supplied.
+     from daf.query import Provenance
+     assert "retrieved_at" in Provenance.__dataclass_fields__
+-    # and the other axis is inside one extractor's content, not a dimension.
+-    holders = [p.name for p in (REPO_ROOT / "daf" / "extractors").glob("*.py")
+-               if "measurement_time" in p.read_text()]
+-    assert holders == ["noaa_water_level_measurements.py"], holders
++    # and the other axis is inside individual extractors' content, not a dimension.
++    # PHASE 45: a second source now carries it the same ad-hoc way, which strengthens
++    # rather than weakens the claim -- two extractors each inventing a content key for
++    # valid time is precisely what "not a platform dimension" looks like. The list stays
++    # exact so a THIRD one is noticed, and so that promoting valid time to a dimension
++    # (which would empty this list) has to come here and say so.
++    holders = sorted(p.name for p in (REPO_ROOT / "daf" / "extractors").glob("*.py")
++                     if "measurement_time" in p.read_text())
++    assert holders == ["noaa_water_level_measurements.py", "usgs_daily_values.py"], holders
+ 
+ 
+ def test_the_directives_projection_rule_is_enforced_and_not_merely_intended():
+diff --git a/tests/test_usgs_daily_values.py b/tests/test_usgs_daily_values.py
+new file mode 100644
+index 0000000..bcbcafb
+--- /dev/null
++++ b/tests/test_usgs_daily_values.py
+@@ -0,0 +1,335 @@
++"""The USGS daily-values source: adapter, extractor, and end-to-end admission.
++
++One recorded REAL response is used as the fixture
++(`tests/fixtures/usgs_daily_values_09147000_20230101_20230105.json`: Dallas Creek near
++Ridgway, CO, discharge, daily mean, 2023-01-01..2023-01-05, recorded verbatim from
++api.waterdata.usgs.gov). It is real on purpose -- it is the only way to test against
++what the API actually does: items in no time order, `value` as a string, `qualifier`
++sometimes `["ESTIMATED"]` and sometimes `null`, and no uncertainty stated anywhere.
++Everything a real response cannot exhibit (a `next` link, a malformed feature, an
++unknown parameter code) is built here as an edited copy and said to be one.
++
++No test in this file makes a network request.
++"""
++
++from __future__ import annotations
++
++import json
++from pathlib import Path
++from typing import Any, Dict
++
++import pytest
++
++from daf.adapters.usgs_daily_values import (
++    DAILY_ITEMS_BASE,
++    MAX_WINDOW_DAYS,
++    PAGE_LIMIT,
++    UsgsDailyValuesFetchError,
++    UsgsDailyValuesSourceAdapter,
++    window_end_of,
++)
++from daf.catalog.checkpoint import CheckpointStore
++from daf.catalog.plan import AcquisitionPlan
++from daf.extractors.usgs_daily_values import (
++    EXTRACTION_METHOD,
++    PARAMETER_PROPERTIES,
++    UsgsDailyValuesExtractionError,
++    UsgsDailyValuesExtractor,
++)
++from daf.orchestration.adapter_registry import AdapterRegistry
++from daf.orchestration.bindings import _advance_usgs_daily_values_position, usgs_daily_values_binding
++from daf.orchestration.result import AcquiredArtifact, AcquisitionOutcome
++from daf.orchestration.source_registry import SourceDefinition, SourceRegistry
++from daf.scheduling.runner import execute_plan
++from daf.storage.durable_pool import DurablePool
++from daf.storage.filesystem_store import FilesystemEvidenceStore
++from evidence.types import Record
++
++FIXTURES = Path(__file__).parent / "fixtures"
++FIXTURE = FIXTURES / "usgs_daily_values_09147000_20230101_20230105.json"
++SITE = "USGS-09147000"
++PARAM = "00060"
++STAT = "00003"
++RETRIEVED_AT = "2026-09-12T00:00:00Z"
++SOURCE_ID = "usgs-daily-values"
++
++PARAMS = {"monitoring_location_id": SITE, "parameter_code": PARAM, "statistic_id": STAT,
++          "start_date": "2023-01-01", "end_date": "2023-01-05"}
++
++
++def _raw() -> bytes:
++    return FIXTURE.read_bytes()
++
++
++def _record(content: str | None = None) -> Record:
++    from evidence.types import make_document, make_record, make_source
++
++    body = content if content is not None else _raw().decode("utf-8")
++    source = make_source(name="USGS Water Data OGC API -- daily values", kind="daily-value-window")
++    document = make_document(source_id=source.id, raw_content=body,
++                             retrieval_method="http:usgs_daily_values_v1", retrieved_at=RETRIEVED_AT)
++    return make_record(document_id=document.id, locator=f"{SITE}:{PARAM}:{STAT}:2023-01-01:2023-01-05",
++                       raw_content=body)
++
++
++def _adapter(**kw: Any) -> UsgsDailyValuesSourceAdapter:
++    args: Dict[str, Any] = dict(
++        monitoring_location_id=SITE, parameter_code=PARAM, statistic_id=STAT,
++        start_date="2023-01-01", end_date="2023-01-05", retrieved_at=RETRIEVED_AT,
++        fetch_bytes=lambda url: _raw(),
++    )
++    args.update(kw)
++    return UsgsDailyValuesSourceAdapter(**args)
++
++
++# ---------------------------------------------------------------------------
++# the adapter
++# ---------------------------------------------------------------------------
++
++def test_the_request_names_every_dimension_of_the_series_and_the_page_bound():
++    seen = []
++    documents = _adapter(fetch_bytes=lambda url: (seen.append(url), _raw())[1]).fetch()
++    assert len(seen) == 1 and seen[0].startswith(DAILY_ITEMS_BASE + "?")
++    for fragment in (f"monitoring_location_id={SITE}", f"parameter_code={PARAM}",
++                     f"statistic_id={STAT}", "datetime=2023-01-01%2F2023-01-05",
++                     f"limit={PAGE_LIMIT}", "f=json"):
++        assert fragment in seen[0], seen[0]
++    assert len(documents) == 1
++    doc = documents[0]
++    assert doc.locator == f"{SITE}:{PARAM}:{STAT}:2023-01-01:2023-01-05"
++    assert window_end_of(doc.locator) == "2023-01-05"
++    assert doc.retrieval_method == "http:usgs_daily_values_v1"
++    assert doc.retrieved_at == RETRIEVED_AT
++    assert doc.content.encode("utf-8") == _raw()       # byte-for-byte, nothing reinterpreted
++
++
++def test_a_paged_window_is_refused_not_stitched():
++    """Stitching pages would fabricate bytes no server sent; dropping the tail would lose
++    data. An edited copy of the real fixture, with a next link added."""
++    payload = json.loads(_raw())
++    payload["links"].append({"rel": "next", "href": "https://example.invalid/next", "type": "application/geo+json"})
++    paged = json.dumps(payload).encode("utf-8")
++    with pytest.raises(UsgsDailyValuesFetchError, match="more than one page"):
++        _adapter(fetch_bytes=lambda url: paged).fetch()
++
++
++def test_the_window_is_bounded_so_one_window_stays_one_page():
++    with pytest.raises(UsgsDailyValuesFetchError, match="window_days"):
++        _adapter(window_days=MAX_WINDOW_DAYS + 1)
++    with pytest.raises(UsgsDailyValuesFetchError, match="window_days"):
++        _adapter(window_days=0)
++    with pytest.raises(UsgsDailyValuesFetchError, match="revision_lookback_days"):
++        _adapter(revision_lookback_days=0)
++
++
++def test_the_trailing_safety_window_re_requests_revisable_days_and_the_scope_terminates():
++    seen = []
++
++    def spy(url: str) -> bytes:
++        seen.append(url)
++        return _raw()
++
++    # a 3-day window with a 2-day lookback, over a 10-day scope
++    a = _adapter(end_date="2023-01-10", window_days=3, revision_lookback_days=2, fetch_bytes=spy)
++    a.fetch()
++    assert "datetime=2023-01-01%2F2023-01-03" in seen[-1]
++    # the next call starts one day before the previous end: the revisable tail is re-read
++    a2 = _adapter(end_date="2023-01-10", window_days=3, revision_lookback_days=2,
++                  since_window_end="2023-01-03", fetch_bytes=spy)
++    a2.fetch()
++    assert "datetime=2023-01-02%2F2023-01-04" in seen[-1]
++    # past the scope end, nothing is requested at all
++    before = len(seen)
++    assert _adapter(end_date="2023-01-10", since_window_end="2023-01-12", fetch_bytes=spy).fetch() == ()
++    assert len(seen) == before
++
++
++def test_the_cursor_never_rewinds():
++    art = AcquiredArtifact(artifact_id="a", version_id="v", is_new=True,
++                           locator=f"{SITE}:{PARAM}:{STAT}:2023-01-02:2023-01-04", raw_content=None)
++    assert _advance_usgs_daily_values_position((art,), None) == "2023-01-04"
++    assert _advance_usgs_daily_values_position((art,), "2023-01-09") == "2023-01-09"
++    assert _advance_usgs_daily_values_position((), "2023-01-09") == "2023-01-09"
++
++
++def test_an_unusable_body_is_an_acquisition_failure_not_a_silent_empty():
++    for body, match in ((b"{", "valid JSON"), (b'{"type":"FeatureCollection"}', "features"),
++                        (b"\xff\xfe", "UTF-8")):
++        with pytest.raises(UsgsDailyValuesFetchError, match=match):
++            _adapter(fetch_bytes=lambda url, b=body: b).fetch()
++
++
++# ---------------------------------------------------------------------------
++# the extractor
++# ---------------------------------------------------------------------------
++
++def test_every_content_field_is_read_from_the_response():
++    candidates = UsgsDailyValuesExtractor().extract(_record())
++    assert len(candidates) == 5
++    assert {c.extraction_method for c in candidates} == {EXTRACTION_METHOD}
++    by_day = {c.content["measurement_time"]: c.content for c in candidates}
++    assert sorted(by_day) == ["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"]
++    c = by_day["2023-01-02"]
++    assert c["property"] == PARAMETER_PROPERTIES[PARAM] == "discharge"
++    assert c["value"] == 19.7 and isinstance(c["value"], float)     # the API sends "19.7", a string
++    assert c["unit"] == "ft^3/s"                                    # verbatim, not a requested default
++    assert c["method"] == STAT                                      # the statistic: which number this is
++    assert c["monitoring_location_id"] == SITE and c["parameter_code"] == PARAM
++    # No conditions: section 20 lets an extractor CARRY them and not CONSTRUCT them, and this
++    # source states none. `method` already separates a daily mean from a daily maximum, so
++    # nothing is lost by refusing to invent one. daf's own
++    # test_no_extractor_declares_a_conditions_key is the guard that caught the first draft.
++    assert "conditions" not in c
++
++
++def test_revision_metadata_and_a_fabricated_uncertainty_stay_out_of_content():
++    """approval_status and qualifier say how far a value moved through review, not what was
++    measured -- exactly as NOAA's q flag does. And the response states no uncertainty, so
++    none is emitted: science.admissibility's MISSING_UNCERTAINTY_KIND is the true report."""
++    raw = json.loads(_raw())
++    assert {f["properties"]["approval_status"] for f in raw["features"]} == {"Approved"}
++    assert ["ESTIMATED"] in [f["properties"]["qualifier"] for f in raw["features"]]
++    for c in UsgsDailyValuesExtractor().extract(_record()):
++        assert not ({"approval_status", "qualifier", "last_modified", "id"} & set(c.content))
++        assert not ({"uncertainty", "uncertainty_kind", "sigma"} & set(c.content))
++
++
++def test_a_value_that_only_changes_status_keeps_its_content():
++    """The identity consequence of the rule above, stated as a test: Provisional -> Approved
++    with the same number is the same evidence and must hash the same."""
++    raw = json.loads(_raw())
++    for f in raw["features"]:
++        f["properties"]["approval_status"] = "Provisional"
++        f["properties"]["qualifier"] = None
++        f["properties"]["last_modified"] = "2019-01-01T00:00:00+00:00"
++    provisional = UsgsDailyValuesExtractor().extract(_record(json.dumps(raw)))
++    approved = UsgsDailyValuesExtractor().extract(_record())
++    assert [dict(c.content) for c in provisional] == [dict(c.content) for c in approved]
++
++
++def test_an_unknown_parameter_code_is_refused_never_named_by_a_rule():
++    raw = json.loads(_raw())
++    for f in raw["features"]:
++        f["properties"]["parameter_code"] = "72019"        # a real USGS code this table does not carry
++    with pytest.raises(UsgsDailyValuesExtractionError, match="no property name for"):
++        UsgsDailyValuesExtractor().extract(_record(json.dumps(raw)))
++
++
++def test_a_missing_or_unparseable_field_raises_rather_than_dropping_a_day():
++    for mutate, match in (
++        (lambda p: p.update(value="not a number"), "non-numeric"),
++        (lambda p: p.update(value=None), "missing"),
++        (lambda p: p.update(unit_of_measure=""), "missing"),
++        (lambda p: p.update(time=None), "missing"),
++    ):
++        raw = json.loads(_raw())
++        mutate(raw["features"][0]["properties"])
++        with pytest.raises(UsgsDailyValuesExtractionError, match=match):
++            UsgsDailyValuesExtractor().extract(_record(json.dumps(raw)))
++    raw = json.loads(_raw())
++    raw["features"][0] = {"type": "Feature"}
++    with pytest.raises(UsgsDailyValuesExtractionError, match="no 'properties'"):
++        UsgsDailyValuesExtractor().extract(_record(json.dumps(raw)))
++
++
++def test_the_source_order_is_preserved_and_never_sorted_here():
++    """Items arrive in no time order. The extractor emits them as the response carries them;
++    ordering is the consumer's declared choice, not a silent one made here."""
++    raw = json.loads(_raw())
++    order = [f["properties"]["time"] for f in raw["features"]]
++    assert order != sorted(order), "the recorded response is unordered -- that is the point of this test"
++    assert [c.content["measurement_time"] for c in UsgsDailyValuesExtractor().extract(_record())] == order
++
++
++# ---------------------------------------------------------------------------
++# end to end
++# ---------------------------------------------------------------------------
++
++def _registries(fetch_bytes):
++    binding = usgs_daily_values_binding(fetch_bytes=fetch_bytes)
++    sources = SourceRegistry()
++    sources.register(SourceDefinition(
++        source_id=SOURCE_ID, name="USGS Water Data OGC API", domain="environmental-observations",
++        adapter_id=binding.adapter_id,
++        required_parameters=("monitoring_location_id", "parameter_code", "statistic_id",
++                             "start_date", "end_date"),
++        capabilities=("incremental",)))
++    adapters = AdapterRegistry()
++    adapters.register(binding)
++    return sources, adapters
++
++
++def test_the_same_window_is_a_duplicate_and_an_overlapping_one_re_admits_under_a_new_record(tmp_path):
++    """Measured, not assumed. The FIRST call acquires 2023-01-01..05. The SECOND starts from
++    the checkpoint and so requests 2023-01-04..05 -- the trailing safety window -- which is a
++    DIFFERENT locator, hence a different Record, hence different Observation ids for the very
++    same readings. The THIRD call requests that same window again and admits nothing.
++
++    So DAF deduplicates an identical ARTIFACT, and does not pretend that the same reading seen
++    through two windows is one observation -- it cannot, because the record it came from is
++    part of what an observation is. Collapsing those is the consumer's job, on content, which
++    is what set_lcm.bridge.daf does downstream."""
++    sources, adapters = _registries(lambda url: _raw())
++    pool = DurablePool(FilesystemEvidenceStore(tmp_path / "evidence"))
++    checkpoints = CheckpointStore(tmp_path / "checkpoints")
++    plan = AcquisitionPlan(plan_id="p", source_id=SOURCE_ID, parameters=PARAMS, mode="incremental")
++
++    first = execute_plan(plan, sources, adapters, pool, checkpoints, requested_at=RETRIEVED_AT)
++    assert first.outcome is AcquisitionOutcome.ACQUIRED
++    observations = pool.all_observations()
++    assert len(observations) == 5 and len({o.id for o in observations}) == 5
++    assert {o.extraction_method for o in observations} == {EXTRACTION_METHOD}
++    assert {o.content["property"] for o in observations} == {"discharge"}
++    assert len({o.record_ids for o in observations}) == 1
++
++    second = execute_plan(plan, sources, adapters, pool, checkpoints, requested_at=RETRIEVED_AT)
++    assert second.outcome is AcquisitionOutcome.DUPLICATE      # the artifact version already existed
++    after_second = pool.all_observations()
++    assert len(after_second) == 10 and len({o.id for o in after_second}) == 10
++    assert len({o.record_ids for o in after_second}) == 2      # two windows, two records
++    # ...and the readings themselves are the same five days twice, identical in content
++    by_day: Dict[str, set] = {}
++    for o in after_second:
++        by_day.setdefault(o.content["measurement_time"], set()).add(o.content["value"])
++    assert sorted(by_day) == ["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"]
++    assert all(len(values) == 1 for values in by_day.values())
++
++    third = execute_plan(plan, sources, adapters, pool, checkpoints, requested_at=RETRIEVED_AT)
++    assert third.outcome is AcquisitionOutcome.DUPLICATE
++    assert len(pool.all_observations()) == 10                  # the cursor has settled: nothing new
++
++
++def test_a_revised_value_is_new_evidence_and_the_old_one_is_not_overwritten(tmp_path):
++    """A window re-fetched after USGS changes a number: the changed day admits a NEW
++    observation and the original stays in the pool. A revision is not a state transition."""
++    bodies = [_raw()]
++    revised = json.loads(_raw())
++    revised["features"][0]["properties"]["value"] = "19.9"     # 2023-01-02: 19.7 -> 19.9
++    bodies.append(json.dumps(revised).encode("utf-8"))
++    calls = {"n": 0}
++
++    def serve(url: str) -> bytes:
++        body = bodies[min(calls["n"], len(bodies) - 1)]
++        calls["n"] += 1
++        return body
++
++    sources, adapters = _registries(serve)
++    pool = DurablePool(FilesystemEvidenceStore(tmp_path / "evidence"))
++    checkpoints = CheckpointStore(tmp_path / "checkpoints")
++    plan = AcquisitionPlan(plan_id="p", source_id=SOURCE_ID, parameters=PARAMS, mode="incremental")
++
++    execute_plan(plan, sources, adapters, pool, checkpoints, requested_at=RETRIEVED_AT)
++    execute_plan(plan, sources, adapters, pool, checkpoints, requested_at=RETRIEVED_AT)
++    for_day = [o for o in pool.all_observations() if o.content["measurement_time"] == "2023-01-02"]
++    assert sorted(o.content["value"] for o in for_day) == [19.7, 19.9]
++    assert len({o.id for o in for_day}) == 2
++
++
++def test_the_binding_needs_no_scientific_parameters_of_its_own():
++    """Unlike NOAA's, whose response echoes neither datum nor unit: USGS states every
++    dimension in the item, so there is nothing for a binding to keep in step."""
++    import inspect
++
++    signature = inspect.signature(usgs_daily_values_binding)
++    assert list(signature.parameters) == ["fetch_bytes"]
++    assert UsgsDailyValuesExtractor() == UsgsDailyValuesExtractor()   # no state to configure
+diff --git a/uv.lock b/uv.lock
+new file mode 100644
+index 0000000..3c2b7a5
+--- /dev/null
++++ b/uv.lock
+@@ -0,0 +1,8 @@
++version = 1
++revision = 3
++requires-python = ">=3.10"
++
++[[package]]
++name = "data-acquisition-fabric"
++version = "0.1.0"
++source = { virtual = "." }
+-- 
+2.43.0
+

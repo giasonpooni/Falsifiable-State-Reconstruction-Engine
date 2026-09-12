@@ -2,30 +2,57 @@
 
 State estimates that ship with the statistic that can reject them.
 
-This repository holds the Phase 1 vertical slice of a research program on
-evidence-grounded state reconstruction under degraded observability — one state
-schema, one observation schema, one small simulator, one estimator family, one
-constraint-reconciliation kernel, one evaluation report, so that an observation
-can be traced through estimation and reconciliation to a measured error against
-hidden simulated truth — and, on top of it, the P2 work that answers what the
-Phase 1 review left open: a detector that does not read the constraint, an
-estimator that carries the faults the constraint cannot see, and the baselines
-that would show the constraint row adds nothing — plus the first P2b item,
-uncertainty declared on the constraint itself (`b_var`), a runner that cannot receive
-hidden truth and an evaluator that needs none, the first real-data bridge: NOAA
-water levels admitted by DAF (the Data Acquisition Fabric) brought in as `Observation`s,
-with refusals and provenance — and P4, the first real observations through the same
-runner: two water-level filters, one parameter each fitted on one day and evaluated on
-another, and a truth-free report that says what it cannot validate. Nothing more.
+## Scope
 
-As built, it is an *evidence-preserving reconciliation stage over a
-state-estimation testbed*. Its lineage is data validation and reconciliation
-with a global χ² test (Crowe, 1985) and constrained Kalman filtering. The name
-is a program goal — every estimate carries a test able to reject it — not a
-delivered property; the results sections say exactly where the current tests are
-blind. "State reconstruction" here means estimating a dynamical system's state
-from measurements, not quantum-state tomography and not the axiomatic
-reconstruction of a physical theory.
+FSRE reconciles state estimates against **declared conservation relations**, in physical
+systems where a balance must close and the evidence does not close it: reservoirs, river
+reaches, pipe and cooling networks. One domain, chosen because it is the one where a
+constraint is a physical law rather than a modelling convenience — water that leaves one
+control volume arrives in another, and a residual that will not go away is a fault, a
+stale constraint, or an ungauged flux, never a matter of taste.
+
+Its lineage is **data validation and reconciliation** with a global χ² test (Crowe, 1985)
+and **constrained Kalman filtering**. As built it is an *evidence-preserving
+reconciliation stage over a state-estimation testbed*: a kernel that projects an estimate
+onto a declared constraint while keeping the unprojected estimate, the correction and the
+residuals; a testbed that measures when doing so **hurts**; and a bridge that brings real
+gauge evidence in without re-deriving it.
+
+"State reconstruction" here means estimating a dynamical system's state from
+measurements. Not quantum-state tomography, and not the axiomatic reconstruction of a
+physical theory.
+
+## Mandate
+
+Five rules. Each is enforced by code and pinned by a test, not asserted here:
+
+1. **Every estimate ships with the statistic that can reject it.** `reconcile()` returns a
+   consistency statistic `r ᵀ S⁻¹ r ~ χ²(rank A)`, its threshold, and the residuals before
+   and after projection. `detectability(f)` says, per fault direction, what that statistic
+   is structurally **blind** to — for a single sum constraint, exactly zero along every
+   direction that moves mass between control volumes.
+2. **Nothing overwrites an observation or the unprojected estimate.** A disagreement
+   between evidence and declared model is preserved, never reconciled away. A revision is
+   not a state transition: two contradictory readings are refused or reported, never
+   averaged, and the later one never silently wins.
+3. **An assumption without a source is refused, not defaulted.** A measurement variance
+   the source did not state must be declared *with a citation*; a bare date must be given
+   a zone *with a citation*; a constraint may declare its own uncertainty (`b_var`) or
+   declare itself exact. The bridge raises rather than guesses, and names every evidence
+   id it refused.
+4. **The estimator side never reads hidden truth.** Pinned by an AST test. The one
+   labelled exception is the oracle bound, which receives it through an explicit argument.
+5. **Every reported number traces to `results/`, and every result says what it does not
+   show.** Reports on real data are **truth-free**: nobody knows the water level, so no
+   number there is an error, and each report carries its own "cannot validate" list.
+
+## Not in scope
+
+General-purpose state estimation, forecasting, or learned dynamics. Nonlinear constraints
+and inequality rows (the first producer of `NOT_CONVERGED`) are planned, not built.
+Cross-platform bitwise determinism is not claimed — `set_lcm.experiments.compare` states
+the measured cross-build spread instead. The name is a **program goal**, not a delivered
+property: the results sections say exactly where the current tests are blind.
 
 ```
 Truth (hidden) ──h(·)+degradation──▶ Observation ──▶ Estimator ──▶ LCM reconcile ──▶ RunResult ──▶ truth-free evaluator
