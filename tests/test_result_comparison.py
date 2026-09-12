@@ -17,6 +17,28 @@ def test_only_the_declared_null_direction_has_an_absolute_allowance():
                        exceptions=EXCEPTIONS["real_water_balance.json"])) == 2
 
 
+@pytest.mark.parametrize("same_build", [True, False])
+def test_equivalence_roundoff_allowance_does_not_hide_changed_acceptance(monkeypatch, same_build):
+    monkeypatch.setattr(comparison, "same_build", lambda generation: same_build)
+    before = {"summary": {"max_abs_mean_difference_kg": 0.0, "all_equivalent": True,
+                          "equivalent_runs": 320}, "design": {"absolute_tolerance": 1e-8}}
+    after = {"summary": {**before["summary"], "max_abs_mean_difference_kg": 1e-12},
+             "design": dict(before["design"])}
+    failure = comparison.reproduction_failure("invariant_layer.json", after, before)
+    assert (failure is not None) == same_build
+    after["summary"]["all_equivalent"] = False
+    assert comparison.reproduction_failure("invariant_layer.json", after, before) is not None
+    after["summary"]["all_equivalent"] = True
+    after["summary"]["equivalent_runs"] -= 1
+    assert comparison.reproduction_failure("invariant_layer.json", after, before) is not None
+    after["summary"]["equivalent_runs"] += 1
+    after["design"]["absolute_tolerance"] = 1e-6
+    assert comparison.reproduction_failure("invariant_layer.json", after, before) is not None
+    after["design"]["absolute_tolerance"] = 1e-8
+    after["summary"]["max_abs_mean_difference_kg"] = 1e-6
+    assert comparison.reproduction_failure("invariant_layer.json", after, before) is not None
+
+
 @pytest.mark.parametrize("bad", [float("nan"), float("inf"), -float("inf")])
 def test_nonfinite_values_are_not_accepted_as_roundoff(bad):
     assert compare({"score": 1.0}, {"score": bad}, rel_tol=1e-8)

@@ -32,6 +32,7 @@ it does not, by itself, identify a broken sensor.**
 | Which measurement channels need investigation? | Per-channel checks for persistent disagreement with their predictions. |
 | Could this arrangement distinguish the suspected faults? | An analysis of visible, invisible and confusable fault directions under a declared model. |
 | Can several fault explanations fit the same record? | A fixed-record comparison that returns explicit ambiguous or insufficient-evidence outcomes. |
+| Can I estimate fluid states in consistent units and coordinates? | An additive invariant filter with full covariance propagation and tested coordinate transformations. |
 | How well does a method work? | Simulated fault experiments with known answers, and replay reports for real measurements. |
 
 ## Try it
@@ -64,6 +65,16 @@ This example checks matching storage/flow intervals and shows a conserving recor
 identifiable storage step, and a drift that cannot be distinguished from a flow offset.
 The [baseline guide](docs/FLUID_BASELINE.md) explains its inputs and assumptions.
 
+To try the invariant state/error layer:
+
+```bash
+uv run --frozen --python 3.13 python examples/invariant_fluid.py
+```
+
+It estimates two tank masses and verifies the same answer in transformed coordinates.
+For the supported affine models, it is equivalent to an ordinary Kalman filter.
+The [invariant layer guide](docs/INVARIANT_LAYER.md) explains its scope and inputs.
+
 ## What is ready today?
 
 **Available:** a tested linear reconciliation kernel, simulation and fault injection,
@@ -71,6 +82,8 @@ per-channel innovation monitoring, static fault-signature analysis, and a fluid-
 baseline with explicit intervals, shared-reference covariance and conditional offset/drift/
 gain comparisons. The baseline has analytical and synthetic validation plus a real-record
 consistency replay. Original evidence is retained; derived outputs remain separate.
+An additive invariant filtering layer is also available, with correlated/missing readings
+and coordinate-consistency tests. General nonlinear Lie-group IEKF models remain planned.
 
 **Still being developed:** diagnosis of events with unknown onset, field-validated degradation
 magnitudes, and operational alert thresholds. Current fault fits assume specified profiles,
@@ -86,6 +99,7 @@ operational workflow.
 
 | Example | What it demonstrates | Report |
 |---|---|---|
+| Invariant filtering | Ordinary KF equivalence under unit, coordinate and measurement-order changes, including missing and biased readings. | [Invariant layer results](results/invariant_layer.md) |
 | Fluid fault benchmark | Offset, drift and gain across 128 evaluation seeds per case, including confounded faults and physical changes. | [Baseline results](results/fluid_baseline.md) |
 | Ridgway measurement baseline | Matching daily intervals and full residual covariance, under declared timing/model and uncertainty assumptions. | [Measurement replay](results/real_fluid_baseline.md) |
 | Two-reservoir simulation | Noise, missing readings, biased sensors and stale balances, scored against hidden simulated truth. | [Simulation results](results/summary.md) |
@@ -105,6 +119,7 @@ the slower reproducibility checks. Reports are generated from code and include p
 
 - [Usage guide](docs/USAGE.md): installation, inputs, outputs and integration examples.
 - [Fluid baseline](docs/FLUID_BASELINE.md): interval handling, shared uncertainty and conditional fault explanations.
+- [Invariant filtering](docs/INVARIANT_LAYER.md): additive state/error geometry, estimation and coordinate consistency.
 - [Methods and interpretation](docs/METHODS.md): the mathematics, fault-identifiability limits
   and the meaning of a consistency score.
 - [Development roadmap](docs/ROADMAP.md): the steps toward validated measurement diagnostics.

@@ -19,6 +19,7 @@ Development remains focused on fluids; no odometry development is planned. Telem
 | `src/set_lcm/fdi.py` | Static single-fault geometry of the residual vector. |
 | `src/set_lcm/measurement.py` | Explicit interval balances and joint measurement/reference covariance. |
 | `src/set_lcm/diagnostics.py` | Conditional fixed-horizon single-fault fits, nuisance projection and explicit ambiguity. |
+| `src/set_lcm/invariant.py`, `coordinates.py` | Additive invariant error-state filtering and fixed affine coordinate charts. |
 | `src/set_lcm/testbed/` | Estimators, arrival-aware runner, CUSUM, simulation and evaluators. |
 | `src/set_lcm/bridge/daf.py` | Explicit selection and admission of supported DAF evidence. |
 | `src/set_lcm/experiments/` | Reproducible scenarios, calibration, sweeps and real-data reports. |
@@ -35,6 +36,12 @@ Development remains focused on fluids; no odometry development is planned. Telem
 - DAF is a separate upstream repository. **Do not push to DAF.** Changes here must not silently alter upstream acquisition, evidence identity or revision policy.
 
 ## Interpretation rules
+
+The [invariant layer](INVARIANT_LAYER.md) is the additive-group affine Gaussian case,
+equivalent to an ordinary KF. It retains pre-update evidence and full covariance. Its
+coordinate consistency does not establish physical conservation, sensor identifiability,
+nonlinear robustness or general Lie-group IEKF support. Those require separate models
+and evidence. Do not infer noise or hide uncertain shared references inside fixed charts.
 
 The [fluid baseline](FLUID_BASELINE.md) is delivered with analytical tests, an offset/drift/
 gain benchmark and a truth-free Ridgway replay. Candidate signatures and onset are supplied;

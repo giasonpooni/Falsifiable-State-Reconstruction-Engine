@@ -50,6 +50,19 @@ step/ramp ambiguity, common-mode cancellation, nuisance confounding and conditio
 coverage. Unknown-onset search, simultaneous faults and uncertain routing remain planned.
 Adding bias states must not be presented as automatic identification.
 
+## Additive invariant layer — implemented
+
+The [invariant state/error layer](INVARIANT_LAYER.md) supports affine fluid models on
+the additive group, including full covariance, masked observations and fixed affine
+coordinate charts. Independent Gaussian conditioning and ordinary KF comparisons
+establish this special case. The generated experiment checks consistent estimates and
+innovation statistics under units, basis, origin and measurement-order changes.
+
+This does not add fault identifiability or a nonlinear IEKF advantage. Extend to a
+nonlinear group only with an explicit fluid model, a derivation of its error dynamics
+and observation properties, and matched EKF comparisons. Field measurements remain the
+next source of evidence; this layer does not replace their validation.
+
 ## 3. A second independent balance — planned
 
 Implement the two-reach Muskingum design in Methods. Begin with declared parameters and

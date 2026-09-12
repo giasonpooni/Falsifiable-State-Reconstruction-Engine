@@ -84,9 +84,18 @@ TOLERANCE: dict[str, float] = {
     "real_water_balance.json": 1e-8,
     "fluid_baseline.json": 1e-8,
     "real_fluid_baseline.json": 1e-8,
+    "invariant_layer.json": 1e-8,
 }
 
 EXCEPTIONS: dict[str, tuple[ToleranceException, ...]] = {
+    "invariant_layer.json": tuple(
+        ToleranceException(
+            contains=(f".{metric}",), rel_tol=1e-8, abs_tol=1e-10,
+            why="near-zero floating-point discrepancies between algebraically equivalent filters; "
+                "declared cross-build absolute allowance in original kg, kg^2 or dimensionless NIS. "
+                "The experiment's 1e-8 acceptance bound, statuses and equivalent-run counts remain checked.",
+        ) for metric in ("max_abs_mean_difference_kg", "max_abs_covariance_difference_kg2", "max_abs_nis_difference")
+    ),
     "real_water_balance.json": (
         ToleranceException(
             contains=(".blind.d.null_space (S + G)",), rel_tol=1e-8, abs_tol=1e-30,

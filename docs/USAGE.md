@@ -55,6 +55,19 @@ shared-reference treatment and the five outcomes. Start here for the new fluid-m
 baseline. It is an offline calculation with known candidate profiles/onset, not an online
 fault detector.
 
+## Estimate with the invariant layer
+
+```bash
+uv run --frozen --python 3.13 python examples/invariant_fluid.py
+```
+
+Use `GaussianState`, `predict` and `update` from `set_lcm.invariant` for a declared
+affine fluid model. The layer estimates additive invariant error, applies its correction,
+and retains the innovation and full covariance. `AffineCoordinates` changes state units,
+basis and origin while transforming the model consistently. The [guide](INVARIANT_LAYER.md)
+describes masks, correlated uncertainty, numerical refusals and assumptions. This additive
+case equals the ordinary KF; general nonlinear IEKF support remains planned.
+
 ## Reconcile your own estimate
 
 The [complete example](../examples/quickstart.py) calls three public functions:
@@ -138,6 +151,7 @@ uv run --frozen --python 3.13 python -m set_lcm.experiments.real_noaa
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_water_balance
 uv run --frozen --python 3.13 python -m set_lcm.experiments.fluid_baseline --quiet
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_fluid_baseline --quiet
+uv run --frozen --python 3.13 python -m set_lcm.experiments.invariant_layer --quiet
 ```
 
 The default test suite includes small experiments and regeneration of the real-data reports.
