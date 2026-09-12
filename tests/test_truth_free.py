@@ -45,18 +45,22 @@ def test_closed_noise_innovations_are_centred_and_show_the_q_overstatement_only_
     z̄ = +0.013 / -0.008 and RMS z = 0.97 / 0.98 for sensors 1 / 2 (lag-1 +0.01 / -0.00,
     |z| > 1.96 in 4.5 % / 4.3 % of samples, no CUSUM alarm, no flag).
 
-    RMS z a few percent below 1 is the truth-free face of the known Q over-statement.
-    KFConfig's diagonal Q asserts 0.05 kg of process noise per step and reservoir that
-    the closed simulator does not generate with the pump off: in steady state the filter
-    states a prediction variance of about 0.10 kg^2 per reservoir where its actual
-    prediction error variance is about 0.05 kg^2. Against truth that factor of two reads
+    RMS z below 1 is the truth-free face of the known Q over-statement -- here a face too
+    faint for 8 seeds to resolve. KFConfig's diagonal Q asserts 0.05 kg of process noise
+    per step and reservoir that the closed simulator does not generate with the pump off:
+    in steady state the filter states a prediction variance of about 0.10 kg^2 per
+    reservoir where its actual prediction error variance is about 0.05 kg^2. Against truth that factor of two reads
     nz = 0.73 (results/summary.md); in the consistency statistic, which it enters
     undiluted, it is a mean of 0.66 here (0.46-0.64 over the nominal windows of
     results/calibration.md). In the innovation it is diluted by R = 4 kg^2: S is stated
-    as 4.10 kg^2 against an actual 4.05, so RMS z = sqrt(4.05 / 4.10) = 0.994 analytically,
-    which 8 seeds x ~285 samples per sensor (standard error ~0.015) barely resolve. On a
-    real record, per-sensor innovations that look calibrated say little about Q when R
-    dominates S; the constraint statistic is the sharper witness."""
+    as 4.10 kg^2 against an actual 4.05, so the over-statement predicts
+    RMS z = sqrt(4.05 / 4.10) = 0.994: a deficit of 0.006, well inside the standard error
+    of ~0.015 that 8 seeds x ~285 samples per sensor give. The 0.97 / 0.98 measured here
+    lie 1-2 standard errors below that prediction, so most of their distance from 1 is
+    sampling noise on these seeds, not Q; the bound RMS z < 1.0 asserted below pins these
+    seeds' values, it does not resolve the over-statement. On a real record, per-sensor
+    innovations that look calibrated say little about Q when R dominates S; the constraint
+    statistic is the sharper witness."""
     reports = _runs("closed_noise", (("steady", (300, 600)),))
     for i in range(2):
         assert abs(np.mean(_sensor(reports, "steady", i, "z_mean"))) < 0.02

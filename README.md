@@ -629,8 +629,10 @@ equal `results/calibration.json` and `results/sweep.json` the same way.
   `oracle_inputs=(u_actual, leak)`; `run()` raises if they are passed for any kind but
   `"oracle"` or are missing for it. Experiment code is the one place that routes them
   (`phase1.oracle_inputs_for`, called by `phase1.run_spec`), and a second source test pins
-  who reads hidden truth fields at all: that function, the observation operator
-  (`degrade.observe` measures the masses) and the scoring evaluator.
+  where the source reads a hidden field off a truth (`truth.m`, `.leak`, `.u_actual` on any
+  name containing "truth"; a syntactic check, so a field reached another way would escape
+  it): that function, the observation operator (`degrade.observe` measures the masses) and
+  the scoring evaluator.
 - **Shapes come from the record and the estimator.** The number of sensors is
   `obs[0].y.size`, the reported-state dimension the estimator's `n_report`; `RunResult`'s state,
   covariance, correction, innovation and CUSUM arrays are sized from those, and reconciliation
