@@ -31,6 +31,7 @@ it does not, by itself, identify a broken sensor.**
 | What changed during reconciliation? | The original estimate, corrected estimate, correction and resulting uncertainty. |
 | Which measurement channels need investigation? | Per-channel checks for persistent disagreement with their predictions. |
 | Could this arrangement distinguish the suspected faults? | An analysis of visible, invisible and confusable fault directions under a declared model. |
+| Can several fault explanations fit the same record? | A fixed-record comparison that returns explicit ambiguous or insufficient-evidence outcomes. |
 | How well does a method work? | Simulated fault experiments with known answers, and replay reports for real measurements. |
 
 ## Try it
@@ -53,15 +54,27 @@ The example uses synthetic values and makes no network requests. The first `uv` 
 download Python and dependencies. See the [usage guide](docs/USAGE.md) for the code, expected
 output, and how to use your own estimates or measurement records.
 
+To try the fluid-measurement baseline:
+
+```bash
+uv run --frozen --python 3.13 python examples/fluid_baseline.py
+```
+
+This example checks matching storage/flow intervals and shows a conserving record, an
+identifiable storage step, and a drift that cannot be distinguished from a flow offset.
+The [baseline guide](docs/FLUID_BASELINE.md) explains its inputs and assumptions.
+
 ## What is ready today?
 
 **Available:** a tested linear reconciliation kernel, simulation and fault injection,
-per-channel innovation monitoring, static fault-signature analysis, and replay examples using
-NOAA water levels and USGS reservoir measurements. Original evidence is retained; derived
-estimates and corrections are separate outputs.
+per-channel innovation monitoring, static fault-signature analysis, and a fluid-measurement
+baseline with explicit intervals, shared-reference covariance and conditional offset/drift/
+gain comparisons. The baseline has analytical and synthetic validation plus a real-record
+consistency replay. Original evidence is retained; derived outputs remain separate.
 
-**Still being developed:** dependable sensor diagnosis, degradation magnitude estimates, and
-operational alert thresholds validated on independent field events. Real-data reports measure
+**Still being developed:** diagnosis of events with unknown onset, field-validated degradation
+magnitudes, and operational alert thresholds. Current fault fits assume specified profiles,
+onset and uncertainty; their amplitude intervals are conditional on that model. Real-data reports measure
 consistency under declared assumptions; they do not establish the true state or which sensor
 is faulty. Some different faults are indistinguishable with the available measurements.
 
@@ -73,9 +86,11 @@ operational workflow.
 
 | Example | What it demonstrates | Report |
 |---|---|---|
+| Fluid fault benchmark | Offset, drift and gain across 128 evaluation seeds per case, including confounded faults and physical changes. | [Baseline results](results/fluid_baseline.md) |
+| Ridgway measurement baseline | Matching daily intervals and full residual covariance, under declared timing/model and uncertainty assumptions. | [Measurement replay](results/real_fluid_baseline.md) |
 | Two-reservoir simulation | Noise, missing readings, biased sensors and stale balances, scored against hidden simulated truth. | [Simulation results](results/summary.md) |
 | NOAA tide gauge | Measurement replay, water-level filters and checks that do not require known truth. | [Water-level results](results/real_noaa.md) |
-| Ridgway Reservoir | A balance built from storage and flow measurements, with explicit uncertainty assumptions. | [Water-balance results](results/real_water_balance.md) |
+| Ridgway filter study | Historical estimator comparison, retaining its documented daily-mean/reference approximation. | [Water-balance results](results/real_water_balance.md) |
 
 To run the default test suite:
 
@@ -89,6 +104,7 @@ the slower reproducibility checks. Reports are generated from code and include p
 ## Read further
 
 - [Usage guide](docs/USAGE.md): installation, inputs, outputs and integration examples.
+- [Fluid baseline](docs/FLUID_BASELINE.md): interval handling, shared uncertainty and conditional fault explanations.
 - [Methods and interpretation](docs/METHODS.md): the mathematics, fault-identifiability limits
   and the meaning of a consistency score.
 - [Development roadmap](docs/ROADMAP.md): the steps toward validated measurement diagnostics.

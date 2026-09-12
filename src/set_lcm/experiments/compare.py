@@ -73,14 +73,17 @@ class ToleranceException:
 
 
 # Per file: the relative tolerance a fresh run must meet on a build other than the one that
-# generated the file. Each is roughly 100x the worst deviation measured for that file (see
-# the module docstring), so it absorbs build noise and nothing else.
+# generated the file. Historical measured allowances are described above. The new fluid
+# baselines use a declared engineering allowance pending broader cross-build measurements;
+# labels, counts and structure must still match exactly.
 TOLERANCE: dict[str, float] = {
     "summary.json": 1e-12,       # measured 5.878e-15
     "sweep.json": 1e-11,         # measured 1.191e-13
     "calibration.json": 1e-12,   # measured 4.828e-16
     "real_noaa.json": 1e-8,      # measured 2.3e-10 outside the exception below
     "real_water_balance.json": 1e-8,
+    "fluid_baseline.json": 1e-8,
+    "real_fluid_baseline.json": 1e-8,
 }
 
 EXCEPTIONS: dict[str, tuple[ToleranceException, ...]] = {

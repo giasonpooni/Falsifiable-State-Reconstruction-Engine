@@ -1,8 +1,8 @@
 # Using FSRE
 
 FSRE is a Python library and a collection of reproducible experiments. Start with the small
-example, then choose whether you need to reconcile an existing estimate or replay a sequence
-of measurements through an estimator.
+example, then choose whether you need to check raw fluid measurements, reconcile an existing
+estimate or replay a sequence of measurements through an estimator.
 
 ## Install and run the example
 
@@ -40,6 +40,20 @@ The remaining residual in the first case is intentional: the total itself has un
 `ok` means that the requested reconciliation was applied; it does not certify the model or
 the measurements. The second case illustrates a policy that holds reconciliation when the
 unprojected estimate exceeds the reference threshold.
+
+## Check raw storage and flow measurements
+
+```bash
+uv run --frozen --python 3.13 python examples/fluid_baseline.py
+```
+
+`BalanceRecord` declares measurement intervals, units and joint covariance.
+`balance_residuals()` applies the same linear operator to readings and covariance;
+`diagnose()` tests a fixed record against supplied fault profiles and nuisance effects.
+The [baseline guide](FLUID_BASELINE.md) describes the array ordering, interval-mean assumption,
+shared-reference treatment and the five outcomes. Start here for the new fluid-measurement
+baseline. It is an offline calculation with known candidate profiles/onset, not an online
+fault detector.
 
 ## Reconcile your own estimate
 
@@ -104,10 +118,12 @@ Start from the relevant working integration:
   three flow series, explicit unit conversion and uncertainty assumptions.
 - [`phase1.py`](../src/set_lcm/experiments/phase1.py): simulated measurements and known faults,
   with hidden truth used only by evaluation and the explicitly labeled oracle.
+- [`real_fluid_baseline.py`](../src/set_lcm/experiments/real_fluid_baseline.py): direct
+  interval-aware measurement balances, with shared-reference covariance and no sensor labels.
 
 The current runner gates use by arrival time and consumes the supplied sample order; a
 delayed sample can hold up later samples. General out-of-sequence measurement handling is
-not implemented. The reservoir example also uses an acknowledged approximation for daily
+not implemented. The historical reservoir filter example uses an acknowledged approximation for daily
 mean storage/flow alignment. Neither should be silently generalized to a new deployment.
 
 ## Reproduce the reports
@@ -120,6 +136,8 @@ uv run --frozen --python 3.13 python -m set_lcm.experiments.calibration
 uv run --frozen --python 3.13 python -m set_lcm.experiments.sweep
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_noaa
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_water_balance
+uv run --frozen --python 3.13 python -m set_lcm.experiments.fluid_baseline --quiet
+uv run --frozen --python 3.13 python -m set_lcm.experiments.real_fluid_baseline --quiet
 ```
 
 The default test suite includes small experiments and regeneration of the real-data reports.

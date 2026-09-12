@@ -17,6 +17,8 @@ Development remains focused on fluids; no odometry development is planned. Telem
 | `src/set_lcm/schema/` | Observation, estimate and constraint contracts. |
 | `src/set_lcm/lcm/` | Linear reconciliation, feasibility, residuals and consistency statistics. |
 | `src/set_lcm/fdi.py` | Static single-fault geometry of the residual vector. |
+| `src/set_lcm/measurement.py` | Explicit interval balances and joint measurement/reference covariance. |
+| `src/set_lcm/diagnostics.py` | Conditional fixed-horizon single-fault fits, nuisance projection and explicit ambiguity. |
 | `src/set_lcm/testbed/` | Estimators, arrival-aware runner, CUSUM, simulation and evaluators. |
 | `src/set_lcm/bridge/daf.py` | Explicit selection and admission of supported DAF evidence. |
 | `src/set_lcm/experiments/` | Reproducible scenarios, calibration, sweeps and real-data reports. |
@@ -33,6 +35,12 @@ Development remains focused on fluids; no odometry development is planned. Telem
 - DAF is a separate upstream repository. **Do not push to DAF.** Changes here must not silently alter upstream acquisition, evidence identity or revision policy.
 
 ## Interpretation rules
+
+The [fluid baseline](FLUID_BASELINE.md) is delivered with analytical tests, an offset/drift/
+gain benchmark and a truth-free Ridgway replay. Candidate signatures and onset are supplied;
+`identified` means unique adequacy within that declared catalogue, not verified causality.
+Amplitude intervals are conditional and not adjusted for model selection. The new measurement
+path does not silently replace the historical water-balance filters or their assumptions.
 
 A consistency threshold is a reference under a calibrated Gaussian null. An alarm is not a diagnosis. Per-channel CUSUM locates prediction disagreement, not necessarily a faulty instrument. Static rank-one geometry does not establish impossibility over every time record; known dynamics can add information. Finite uncertainty on an augmented imbalance term does not make its model statistically unfalsifiable.
 

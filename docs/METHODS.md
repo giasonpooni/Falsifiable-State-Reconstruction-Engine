@@ -80,8 +80,9 @@ can still support amplitude estimation under the other assumptions. This is not 
 on temporal or sign-constrained models.
 [Donoho and Elad, original paper](https://pmc.ncbi.nlm.nih.gov/articles/PMC153464/).
 
-Current fault directions live in state space. A future sensor-space dictionary must also
-represent information lost before estimation: equal additive inflow and outflow biases, for
+The static module's fault directions live in state space. The new measurement baseline maps
+raw sensor profiles through an interval operator before diagnosis. This representation must
+retain information about cancellation: equal additive inflow and outflow biases, for
 example, cancel in net flow. The balance channel cannot see that cancellation; other
 evidence may still reveal a change.
 
@@ -128,7 +129,14 @@ constraint update; see [feedback tests](../tests/test_balance_feedback.py). This
 covariance consistency, but does not make repeated use of the same uncertain reference
 independent evidence.
 
-## Remaining uncertainty and interval gaps
+## Measurement baseline and remaining filter gaps
+
+The [implemented fluid baseline](FLUID_BASELINE.md) now provides a direct measurement
+calculation `r=H y`, `C=H Cov(y) H.T`, with matched interval support and shared-reference
+covariance. It tests conditional fault explanations over a fixed horizon after projecting
+out declared nuisance effects. Its analytical and synthetic validation does not calibrate
+the real records or retrofit the historical estimator study. The following limitations
+continue to apply to that study's filters and reconciliation path.
 
 Ridgway's reference `b=S0` is the first storage reading, which also enters the estimate.
 For shared evidence the general residual covariance is
@@ -140,7 +148,7 @@ Var(A xhat - b) = A P A' + Var(b)
 
 `b_var` currently represents `Var(b)`, not these cross terms. Their influence can decay
 without feedback, but must be modeled before claiming calibrated rejection probabilities.
-An explicit shared initial-state reference is one possible future design. Flow and storage
+An explicit shared initial-state reference remains a possible filter design. Flow and storage
 uncertainty, process noise, serial correlation and common errors also need sensitivity
 analysis; a citation alone does not calibrate them.
 
@@ -156,7 +164,9 @@ an apparent residual `c*(q[k+1]-q[k])/2` even with perfect sensors. General with
 needs the appropriate averaging operator or subdaily data. The experiment compares
 arithmetic alignments; the full filter and guard still use their declared same-day
 approximation. Smaller scatter after averaging does not prove correct timing because
-averaging also changes measurement noise. This remains a method-development gap.
+averaging also changes measurement noise. The new measurement baseline applies the correct
+averaging operator under the stated within-day model; a general filter treatment remains
+a method-development gap.
 
 The uncertainty of a cumulative residual needs its joint temporal covariance:
 `Var(sum(r)) = 1' Cov(r) 1`. The shortcut `sd(r) * sqrt(n)` assumes independent,

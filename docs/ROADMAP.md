@@ -5,7 +5,8 @@ reconciliation, static fault geometry, simulated fault experiments and real-reco
 consistency reports. Dependable field diagnosis and degradation magnitude remain development
 targets. [Methods](METHODS.md) states the assumptions behind these extensions.
 
-**The foundation stage is implemented on `main`. Later stages are planned work.**
+**The foundation and the first fluid-measurement baseline are implemented on `main`.**
+The baseline has analytical and synthetic validation, not industrial field validation.
 The sequence is ordered by the evidence each stage adds.
 
 ## Scope: fluid systems
@@ -33,16 +34,21 @@ clear invalid-input failures, CI across supported Python versions, and regenerat
 reproduction checks for affected reports. These establish software contracts, not the
 scientific claims of subsequent stages.
 
-## 2. Sensor-space and finite-horizon analysis — planned
+## 2. Sensor-space and finite-horizon analysis — baseline implemented
 
-Map faults from individual channels before aggregation. Add explicit offset, drift and gain
-hypotheses, temporal responses and nuisance inputs such as ungauged flow and routing error.
-Assess rank and conditioning after accounting for nuisance effects. Address the shared
-reference covariance and interval-averaging gaps in Methods.
+The [fluid baseline](FLUID_BASELINE.md) maps storage/flow measurements and fault profiles
+through one interval operator. It propagates the joint measurement covariance, including
+shared references, and compares known-onset offset, drift and gain hypotheses after removing
+declared nuisance effects. It returns ambiguous and insufficient-evidence outcomes.
 
-Acceptance requires examples separating identifiable cases from collinear signatures,
-step/ramp ambiguity and common-mode cancellation. State single-fault and simultaneous-fault
-assumptions separately. Adding bias states must not be presented as automatic identification.
+Boundary measurements support exact interval balances; mean storage requires an explicit
+constant-net-flow assumption. The new Ridgway measurement replay uses that assumption and
+an uncertainty sweep. The historical estimator study retains its documented approximation.
+
+Analytical tests and the synthetic report cover identifiable cases, collinear signatures,
+step/ramp ambiguity, common-mode cancellation, nuisance confounding and conditional amplitude
+coverage. Unknown-onset search, simultaneous faults and uncertain routing remain planned.
+Adding bias states must not be presented as automatic identification.
 
 ## 3. A second independent balance — planned
 
@@ -64,9 +70,14 @@ or a joint nonlinear state model where needed. An independently declared `A_var`
 would not account for those correlations. Neither thermal modeling nor this alternative
 experiment is delivered in the foundation stage.
 
-## 4. Degradation benchmark — planned
+## 4. Degradation benchmark — offset/drift/gain baseline implemented; expansion planned
 
-Build a fault matrix covering steps, slow drift, gain/rating shifts, stuck readings,
+The committed fixed-horizon benchmark supplies offset, drift and gain at two locked
+magnitudes, with disjoint development/evaluation seeds, physical controls, per-seed results
+and explicit scoring denominators. It reports misses, ambiguity, wrong attribution and
+conditional interval coverage. No operational detection delay or field accuracy is claimed.
+
+Expand the fault matrix to cover unknown-onset steps, slow drift, nonlinear rating shifts, stuck readings,
 quantization, variance growth and timing faults. Match these with legitimate physical
 changes, ice, changed routing, omitted flux and changed stage-to-storage relationships.
 Distinguish instrument faults from measurement-model errors.
