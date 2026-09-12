@@ -99,3 +99,7 @@ the slower reproducibility checks. Reports are generated from code and include p
 “State reconstruction” means estimating a physical system from measurements. FSRE retains
 the evidence needed to challenge its estimates. Whether a fault can be detected depends on
 the measurements, model and declared uncertainty.
+
+## License
+
+FSRE is available under the [MIT License](LICENSE).
