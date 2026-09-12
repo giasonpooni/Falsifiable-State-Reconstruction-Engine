@@ -248,6 +248,12 @@ def test_refuses_what_is_not_a_per_measurement_noaa_observation():
     twice.append(copy.deepcopy(twice[9]))
     twice[-1]["content"]["value"] += 0.1                     # one id, two contents
     _refusal("id_reused", twice)
+    moved = copy.deepcopy(recs)
+    moved[7]["id"] = moved[6]["id"]                          # one id, two contents at two grid points
+    assert _refusal("id_reused", moved).evidence_ids == (moved[6]["id"],)
+    elsewhere = copy.deepcopy(recs[6])                       # ... or in a group the caller did not list
+    elsewhere["content"]["datum"] = elsewhere["content"]["conditions"]["datum"] = "STND"
+    _refusal("id_reused", recs + [elsewhere])
 
 
 # ---------------------------------------------------------------------------
@@ -466,5 +472,6 @@ def test_export_tool_reproduces_the_committed_files(tmp_path):
     fresh = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
     assert {k: v for k, v in fresh.items() if k != "python"} == {k: v for k, v in MANIFEST.items() if k != "python"}
     py = MANIFEST["python"]
-    assert (tmp_path / "PROVENANCE.md").read_text(encoding="utf-8").replace(fresh["python"], py) ==         (DATA / "PROVENANCE.md").read_text(encoding="utf-8")
+    assert (tmp_path / "PROVENANCE.md").read_text(encoding="utf-8").replace(fresh["python"], py) == \
+        (DATA / "PROVENANCE.md").read_text(encoding="utf-8")
     assert _daf_state(root) == before

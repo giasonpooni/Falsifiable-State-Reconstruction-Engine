@@ -188,8 +188,7 @@ class _Reading:
     value: float
     stated_sd: float | None       # the source-stated uncertainty (a standard deviation), or None
     extracted_at: Any
-    content_json: str             # canonical content, to catch one id carrying two contents
-    idx: int = -1                 # grid index, set once the epoch is known
+    idx: int = -1                # grid index, set once the epoch is known
 
 
 # ---------------------------------------------------------------------------
@@ -334,7 +333,6 @@ def _reading(eid: str, c: Mapping, col: int, extracted_at, tz) -> _Reading:
         eid=eid, col=col, measurement_time=c.get("measurement_time"),
         instant=_measurement_instant(eid, c.get("measurement_time"), tz), value=float(c["value"]),
         stated_sd=stated, extracted_at=extracted_at,
-        content_json=json.dumps(dict(c), sort_keys=True, separators=(",", ":"), default=str),
     )
 
 
@@ -391,11 +389,17 @@ def bridge(
     col_of = {k: i for i, k in enumerate(keys)}
     source_ids = tuple(series_source_id(k) for k in keys)
 
-    # 1. classify: listed series or ignored (and counted)
+    # 1. classify: listed series or ignored (and counted). A content-addressed id names one
+    # content wherever it appears -- in one grid point, two, or a group that is ignored.
     readings: list[_Reading] = []
     ignored: Counter = Counter()
+    content_of: dict[str, str] = {}
     for r in records:
         eid, c, key = _record_key(r)
+        cj = json.dumps(dict(c), sort_keys=True, separators=(",", ":"), default=str)
+        if content_of.setdefault(eid, cj) != cj:
+            raise BridgeRefusal("id_reused", f"evidence id {eid} carries two different contents; a "
+                                             "content-addressed id cannot", [eid])
         if key not in col_of:
             ignored[key] += 1
             continue
@@ -452,10 +456,7 @@ def bridge(
     n_used = n_dedup = n_conflict = 0
     for (col, idx), rs in sorted(groups.items()):
         first: dict[str, _Reading] = {}
-        for rd in rs:
-            if rd.eid in first and first[rd.eid].content_json != rd.content_json:
-                raise BridgeRefusal("id_reused", f"evidence id {rd.eid} carries two different contents; a "
-                                                 "content-addressed id cannot", [rd.eid])
+        for rd in rs:          # one content per id is already guaranteed (step 1)
             first.setdefault(rd.eid, rd)
         sd_of = (lambda rd: declared[keys[col]]) if keys[col] in declared else (lambda rd: rd.stated_sd)
         distinct: dict[tuple[float, float], list[str]] = defaultdict(list)

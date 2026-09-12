@@ -64,8 +64,9 @@ DAF_ROOT=/path/to/daf-checkout uv run --python 3.13 --dev pytest -q tests/test_b
 ```
 
 The first regenerates `data/daf/` from a DAF checkout (it needs DAF's code, never the
-network); the second adds the one bridge test that asks DAF's own code to recompute every
-committed evidence id, which skips without `DAF_ROOT`. See "DAF bridge".
+network); the second adds the two bridge tests that skip without `DAF_ROOT`: one asks DAF's
+own code to recompute every committed evidence id, the other re-runs the export and compares
+it with `data/daf/` byte for byte. See "DAF bridge".
 
 The grid writes `results/summary.{md,json}`; the other two write
 `results/calibration.{md,json}` and `results/sweep.{md,json}` (about a quarter of an
@@ -764,7 +765,7 @@ the evidence ids involved, for anything about the evidence, the zone or the unit
   deduplicated, 2 in conflict). The revision never silently wins.
 - Also refused: a record that is not a per-measurement NOAA water-level observation (another
   extraction method, a missing field, a non-finite value), one evidence id carrying two
-  contents, a listed series that matched nothing, and a file with a bare NaN / Infinity or a
+  contents (anywhere in the input, listed series or not), a listed series that matched nothing, and a file with a bare NaN / Infinity or a
   repeated key (the strict reader refuses what DAF's `strict_json_loads` refuses, and more).
 
 **What it records.** `BridgedSeries.provenance`: the caller-supplied DAF commit; records in,
