@@ -1,0 +1,169 @@
+{
+  "command": "DAF_ROOT=/path/to/daf-checkout uv run --python 3.13 python tools/export_daf_fixtures.py",
+  "daf_commit": "6b378590da3076d88a0f4bd8bad79e1ce0b48ae2",
+  "daf_repository": "https://github.com/atomtrapping/Data-Acquisition-Channel",
+  "exporter": "tools/export_daf_fixtures.py",
+  "files": [
+    {
+      "binding": {
+        "adapter_id": "noaa-water-level-measurements",
+        "datum": "MLLW",
+        "end_date": "20240115",
+        "factory": "daf.orchestration.bindings.noaa_water_level_measurement_binding",
+        "product": "water_level",
+        "start_date": "20240115",
+        "station": "8454000",
+        "time_zone": "gmt",
+        "units": "metric",
+        "version": "a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8"
+      },
+      "daf_locator": "8454000:water_level:MLLW:metric:20240115:20240115",
+      "daf_version_id": "3bc9041f042eb48fdddaa04654a503138a9d63e14a2af22836231877a1993723",
+      "extraction_methods": [
+        "json:noaa_water_level_measurement_v1"
+      ],
+      "extractor": "daf.extractors.noaa_water_level_measurements.NoaaWaterLevelMeasurementExtractor(datum='MLLW', units='metric')",
+      "n_observations": 240,
+      "n_readings": 240,
+      "note": "Real NOAA CO-OPS response, station 8454000 (Providence, RI), 2024-01-15, verified (q=v), recorded verbatim from the live API by DAF (docs/PHASE_17_LIVE_SCIENTIFIC_OBSERVATION.md, section 7: datum=MLLW units=metric time_zone=gmt).",
+      "output": "noaa_live_8454000_20240115_mllw.observations.json",
+      "output_sha256": "f4eafca84c9a34d240a75b58d97540b0ffb009a157b76510dc188450acdd64bc",
+      "request_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240115&end_date=20240115&datum=MLLW&units=metric&time_zone=gmt&format=json",
+      "requested_at": "2026-08-25T00:00:00Z",
+      "source_fixture": "tests/fixtures/noaa_live_8454000_20240115_mllw.json",
+      "source_fixture_git_blob": "63d3b38474c7b59f3ce27fd331d55bb1f66f45e8",
+      "source_fixture_sha256": "a1903dbb58ca4f868560db965677d26389b21148af6b38d96858bcbc0caecb3e",
+      "synthetic": false
+    },
+    {
+      "binding": {
+        "adapter_id": "noaa-water-level-measurements",
+        "datum": "STND",
+        "end_date": "20240115",
+        "factory": "daf.orchestration.bindings.noaa_water_level_measurement_binding",
+        "product": "water_level",
+        "start_date": "20240115",
+        "station": "8454000",
+        "time_zone": "gmt",
+        "units": "metric",
+        "version": "a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8"
+      },
+      "daf_locator": "8454000:water_level:STND:metric:20240115:20240115",
+      "daf_version_id": "493d8acc0957140a19b6b65abcaf1e0c70f06896c2b4f6d9c463a6c2b496f3a1",
+      "extraction_methods": [
+        "json:noaa_water_level_measurement_v1"
+      ],
+      "extractor": "daf.extractors.noaa_water_level_measurements.NoaaWaterLevelMeasurementExtractor(datum='STND', units='metric')",
+      "n_observations": 240,
+      "n_readings": 240,
+      "note": "Real NOAA CO-OPS response, same station and day on the STND datum (DAF Phase R's datum case, docs/PHASE_18_NOAA_ARTIFACT_IDENTITY.md): a different physical quantity, never pooled with MLLW.",
+      "output": "noaa_live_8454000_20240115_stnd.observations.json",
+      "output_sha256": "275472ef11df3d15f028fd80ba988d3f5e66f114bcb533b945cb7eedfdf01043",
+      "request_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240115&end_date=20240115&datum=STND&units=metric&time_zone=gmt&format=json",
+      "requested_at": "2026-08-25T00:00:00Z",
+      "source_fixture": "tests/fixtures/noaa_live_8454000_20240115_stnd.json",
+      "source_fixture_git_blob": "02d0a2ac35df6bcf69d08b4acfb0ce7f8baffeb7",
+      "source_fixture_sha256": "17424285019a3c5690381823008cfbb2ac98ae6957d5d8eeb6a2ac85e1b7ebd3",
+      "synthetic": false
+    },
+    {
+      "binding": {
+        "adapter_id": "noaa-water-level-measurements",
+        "datum": "MLLW",
+        "end_date": "20260823",
+        "factory": "daf.orchestration.bindings.noaa_water_level_measurement_binding",
+        "product": "water_level",
+        "start_date": "20260823",
+        "station": "8454000",
+        "time_zone": "gmt",
+        "units": "metric",
+        "version": "a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8"
+      },
+      "daf_locator": "8454000:water_level:MLLW:metric:20260823:20260823",
+      "daf_version_id": "1f28ddecdc6b5177191c729663876892eeee27caabcba7e732dfd12141335a7e",
+      "extraction_methods": [
+        "json:noaa_water_level_measurement_v1"
+      ],
+      "extractor": "daf.extractors.noaa_water_level_measurements.NoaaWaterLevelMeasurementExtractor(datum='MLLW', units='metric')",
+      "n_observations": 240,
+      "n_readings": 240,
+      "note": "Real NOAA CO-OPS response, station 8454000, 2026-08-23, preliminary (q=p). DAF does not record this recording's request; the readings' own timestamps fix the day, and MLLW/metric is the binding's default and the datum DAF's own test extracts this fixture with (tests/test_live_scientific_observation.py, _extract).",
+      "output": "noaa_live_8454000_preliminary.observations.json",
+      "output_sha256": "2654d61c71019bc5731d2f760b1122915190caa98d54650f435d24dcb8161915",
+      "request_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20260823&end_date=20260823&datum=MLLW&units=metric&time_zone=gmt&format=json",
+      "requested_at": "2026-08-25T00:00:00Z",
+      "source_fixture": "tests/fixtures/noaa_live_8454000_preliminary.json",
+      "source_fixture_git_blob": "b2ad62a142bce04343f0f436e78386d915bbf6a9",
+      "source_fixture_sha256": "b73668f085ed16533c799cb9b5e798446945b24385168b51f6e267cab5d4cd16",
+      "synthetic": false
+    },
+    {
+      "binding": {
+        "adapter_id": "noaa-water-level-measurements",
+        "datum": "MLLW",
+        "end_date": "20260103",
+        "factory": "daf.orchestration.bindings.noaa_water_level_measurement_binding",
+        "product": "water_level",
+        "start_date": "20260101",
+        "station": "9999999",
+        "time_zone": "gmt",
+        "units": "metric",
+        "version": "a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8"
+      },
+      "daf_locator": "9999999:water_level:MLLW:metric:20260101:20260103",
+      "daf_version_id": "876483a383e0488505717778386fa13a6fa5a7bca5dded9c2bf70516495d21fb",
+      "extraction_methods": [
+        "json:noaa_water_level_measurement_v1"
+      ],
+      "extractor": "daf.extractors.noaa_water_level_measurements.NoaaWaterLevelMeasurementExtractor(datum='MLLW', units='metric')",
+      "n_observations": 4,
+      "n_readings": 4,
+      "note": "SYNTHETIC. DAF's hand-written test window (station 9999999, 'SYNTHETIC TEST STATION -- NOT A REAL NOAA STATION'), four readings; requested_at as in DAF's tests/test_noaa_water_level_integration.py.",
+      "output": "SYNTHETIC_noaa_window_20260101_20260103.observations.json",
+      "output_sha256": "c2fb682272574e6a092d1cbde6920a24e31d4385d5980de5ea2b27f88ae2427a",
+      "request_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=9999999&begin_date=20260101&end_date=20260103&datum=MLLW&units=metric&time_zone=gmt&format=json",
+      "requested_at": "2026-08-25T00:00:00Z",
+      "source_fixture": "tests/fixtures/noaa_window_synthetic_20260101_20260103.json",
+      "source_fixture_git_blob": "868a8097099ab1af01f737e913eaf62f39d5b6ed",
+      "source_fixture_sha256": "ddde344de3f7f859cb5f01c0c97183e4ad77bf7d14d43c78669823e423f8364e",
+      "synthetic": true
+    },
+    {
+      "binding": {
+        "adapter_id": "noaa-water-level-measurements",
+        "datum": "MLLW",
+        "end_date": "20260103",
+        "factory": "daf.orchestration.bindings.noaa_water_level_measurement_binding",
+        "product": "water_level",
+        "start_date": "20260101",
+        "station": "9999999",
+        "time_zone": "gmt",
+        "units": "metric",
+        "version": "a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8"
+      },
+      "daf_locator": "9999999:water_level:MLLW:metric:20260101:20260103",
+      "daf_version_id": "a9f98cba4260ae4f5ac7704d4d4c5b45536de5d105721091385bc41adb09b999",
+      "extraction_methods": [
+        "json:noaa_water_level_measurement_v1"
+      ],
+      "extractor": "daf.extractors.noaa_water_level_measurements.NoaaWaterLevelMeasurementExtractor(datum='MLLW', units='metric')",
+      "n_observations": 4,
+      "n_readings": 4,
+      "note": "SYNTHETIC. The same window re-fetched after a (synthetic) QC revision: the 2026-01-03 00:00 reading moves from 1.200 (s 0.011, q=p) to 1.207 (s 0.006, q=v); the other three are unchanged. requested_at a day later, as in DAF's integration test.",
+      "output": "SYNTHETIC_noaa_window_20260101_20260103_revised.observations.json",
+      "output_sha256": "620983ba63ad6ab8370d22b6a5ccfd7b7c15af7b0db203f53065f60d0d7ceb76",
+      "request_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=9999999&begin_date=20260101&end_date=20260103&datum=MLLW&units=metric&time_zone=gmt&format=json",
+      "requested_at": "2026-08-26T00:00:00Z",
+      "source_fixture": "tests/fixtures/noaa_window_synthetic_20260101_20260103_revised.json",
+      "source_fixture_git_blob": "085368544c62ca72739042343353bd11b277bbaa",
+      "source_fixture_sha256": "39548e6e1c55a0e5061982d084ed24ce9f00c46e40900dda6cca81d1d4b31d21",
+      "synthetic": true
+    }
+  ],
+  "python": "3.13.5",
+  "vendored_substrate": {
+    "commit": "5e146d5924675cd7b6e1d1ed44fb39f5da012610",
+    "path": "vendor/scout-retrieval-agent",
+    "url": "https://github.com/notationsystems/scout-retrieval-agent.git"
+  }
+}

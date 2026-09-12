@@ -11,9 +11,10 @@ hidden simulated truth — and, on top of it, the P2 work that answers what the
 Phase 1 review left open: a detector that does not read the constraint, an
 estimator that carries the faults the constraint cannot see, and the baselines
 that would show the constraint row adds nothing — plus the first P2b item,
-uncertainty declared on the constraint itself (`b_var`), and, ahead of the real-data
-bridge, a runner that cannot receive hidden truth and an evaluator that needs none.
-Nothing more.
+uncertainty declared on the constraint itself (`b_var`), a runner that cannot receive
+hidden truth and an evaluator that needs none, and the first real-data bridge: NOAA
+water levels admitted by DAF (the Data Acquisition Fabric) brought in as `Observation`s,
+with refusals and provenance but no model of them. Nothing more.
 
 As built, it is an *evidence-preserving reconciliation stage over a
 state-estimation testbed*. Its lineage is data validation and reconciliation
@@ -29,6 +30,9 @@ Truth (hidden) ──h(·)+degradation──▶ Observation ──▶ Estimator 
   │ │                                                    ▲                               │         (reads the record only)
   │ └─── PublicInputs.from_truth: t, u_commanded ────────┘                               │
   └──────────────────────────────────── Evaluator (scores against truth) ◀───────────────┘
+
+DAF observation dicts ──bridge.daf──▶ Observation + PublicInputs(t grid, u = 0) + provenance ──▶ run() ──▶ truth-free evaluator
+(data/daf; no truth)       (refuses what it cannot represent; resamples, converts and averages nothing)
 ```
 
 The estimator side sees the observations, the public inputs, a declared prior and a declared
@@ -53,6 +57,15 @@ uv run --python 3.13 python -m set_lcm.experiments.calibration
 ```bash
 uv run --python 3.13 python -m set_lcm.experiments.sweep
 ```
+
+```bash
+DAF_ROOT=/path/to/daf-checkout uv run --python 3.13 python tools/export_daf_fixtures.py
+DAF_ROOT=/path/to/daf-checkout uv run --python 3.13 --dev pytest -q tests/test_bridge_daf.py
+```
+
+The first regenerates `data/daf/` from a DAF checkout (it needs DAF's code, never the
+network); the second adds the one bridge test that asks DAF's own code to recompute every
+committed evidence id, which skips without `DAF_ROOT`. See "DAF bridge".
 
 The grid writes `results/summary.{md,json}`; the other two write
 `results/calibration.{md,json}` and `results/sweep.{md,json}` (about a quarter of an
@@ -86,6 +99,8 @@ within 8 % of `kf` during the blackout (0.386 vs 0.419 kg, the per-seed entries 
 | `src/set_lcm/testbed/runner.py` | `run(inputs: PublicInputs, obs, cs, spec, ...)` runs one estimator spec over an observation record step by step, ingesting observations only once `arrival_t ≤ t_k`; it names no `Truth` and takes no truth argument. The number of sensors comes from the observations (`obs[0].y.size`), the reported-state dimension from the estimator's `n_report`, and every `RunResult` array is sized from those. Three detection channels that never talk to each other: the debounced consistency flag (with the optional guard that *holds* projection and reports `MODEL_INCONSISTENT`), the CUSUM on the ingest clock with alarms stamped at the report step of ingestion, and one debounced flag per extra state with a nominal (\|α̂ − 1\|/σ_α > 3.29, \|L̂\|/σ_L > 3.29, three consecutive reports). Reconciliation acts on the first `n_report` components (the mass marginal x[:2], P[:2, :2] for every estimator here); an augmented estimator's extra states go to `RunResult.extra`. `EstimatorSpec.feedback` pushes each applied projection (x*, P*) back into the filter at its own last ingested step, at most once per ingested step. `RunResult.observed` records which samples the estimator was given and `RunResult.ingested_evidence[k]` the evidence ids of everything ingested at report step k (`()` throughout a simulated run). The oracle bound's hidden actual pump rate and leak arrive only through the keyword-only `oracle_inputs`, which `run()` refuses for any other kind and requires for `"oracle"`. |
 | `src/set_lcm/testbed/evaluate.py` | RMSE (overall and windowed), 95 % interval coverage, normalised error, error along row(A) and null(A), residuals, correction magnitude, false alarms and censored detection delay for the constraint flag, per sensor for the CUSUM and per parameter for the α / L flags, α error against the hidden pump-rate ratio over pump-on steps, L error against the hidden leak, mean normalised innovation per window, solver failures, latency. The scoring evaluator: it reads the hidden truth after the run; nothing on the estimator side does. |
 | `src/set_lcm/testbed/truth_free.py` | `evaluate_truth_free(run, windows)`: reads nothing but the `RunResult`. Per sensor and window: observed samples, fraction missing, mean / RMS / lag-1 autocorrelation of the normalised innovation z and the fraction with \|z\| > 1.96 (sampling clock), CUSUM alarms and the first alarm step (report clock); where a constraint was declared, flag and status counts, the mean consistency statistic and its per-step exceedance; extra-state flag counts; evidence ids ingested; latency. |
+| `src/set_lcm/bridge/daf.py` | `bridge(records, *, series, time_zone, cadence_s, arrival_policy, conflict_policy, daf_commit, latency_s, declared_sigma)`: serialized DAF per-measurement NOAA observations → `BridgedSeries` (`PublicInputs` on a uniform grid, one `Observation` per grid point with DAF evidence ids, provenance), refusing what it cannot represent (see "DAF bridge"); `load_records` with a strict JSON reader; `verify_ids(records, daf_root)`, the one function that imports DAF, optional. Imports nothing from DAF at runtime. |
+| `tools/export_daf_fixtures.py`, `data/daf/` | Runs DAF's own per-measurement NOAA binding on DAF's committed fixtures (replayed, no network) and writes what DAF admitted with DAF's `observation_to_dict`; `data/daf/PROVENANCE.md` and `manifest.json` record the pins, fixture hashes, binding parameters and command. |
 | `src/set_lcm/experiments/phase1.py` | Where hidden truth is read and routed: `run_spec` hands the runner `PublicInputs.from_truth(truth)` and, through `oracle_inputs_for`, the hidden (u_actual, leak) to the oracle kind and to nothing else; the grid, the sweep and the calibration all run through it. The scenario grid with its per-scenario constraint builder (`ExactTotal` for the first six scenarios, `UncertainTotal` for `closed_uncertain_total`), the eleven estimator specs, multi-seed aggregation and report writer; `run_experiments.py` is a thin CLI over it. |
 | `src/set_lcm/experiments/provenance.py` | The provenance block every results file carries: interpreter and numpy versions, platform, source-tree SHA-256, git HEAD and a dirty flag. |
 | `src/set_lcm/experiments/calibration.py` | In-loop null of the consistency statistic (mean, tail quantiles, empirical vs nominal exceedance, autocorrelation time), a threshold × debounce sweep of the guard, and the null of the CUSUM channel over the same windows for h ∈ {4, 6, 8, 10}. |
@@ -656,8 +671,9 @@ equal `results/calibration.json` and `results/sweep.json` the same way.
 
 What this does **not** show:
 
-- **Anything on a real record.** No NOAA observation has been run; no DAF type or adapter is
-  imported. That is the bridge.
+- **Anything on a real record.** No NOAA observation had been run at this stage. The next
+  section brings DAF's NOAA evidence in; it still imports no DAF type or adapter at runtime,
+  and nothing in the tree models a water level.
 - **A truth-free number in `results/` beyond those two.** The grid does not run
   `evaluate_truth_free`; what it measures on simulated runs (RMS z, lag-1 autocorrelation,
   tail fractions) is stated in `tests/test_truth_free.py`, not in `results/`.
@@ -671,12 +687,130 @@ What this does **not** show:
 - **Whether an estimate is right.** A sensor bias and a real change the model does not
   explain write the same record; the evaluator names the sensor whose z moves, as the CUSUM
   does, not the cause.
-- **Evidence handling.** `evidence_ids` are carried as opaque strings — not checked against
-  any evidence store, deduplicated or resolved — and nothing here decides when a revised
-  artifact should change the state.
+- **Evidence handling.** The runner carries `evidence_ids` as opaque strings — not checked
+  against any evidence store or resolved. The DAF bridge (next section) deduplicates identical
+  readings and refuses or reports conflicting ones before anything reaches the runner, and
+  `verify_ids` can have DAF recompute the ids; nothing here decides when a revised artifact
+  should change the state.
 - **General estimators.** The runner no longer assumes two sensors or two reported
   components, and a test-only three-sensor estimator exercises that path; every estimator in
   the tree still is the two-reservoir model with `n_report = 2`.
+
+## DAF bridge
+
+DAF — the Data Acquisition Fabric (https://github.com/atomtrapping/Data-Acquisition-Channel) —
+acquires and admits evidence; this repository consumes it and owns none of it.
+`set_lcm.bridge.daf` turns serialized DAF observations into what `run()` takes — `PublicInputs`
+on a uniform clock and one `Observation` per grid point — and refuses what it cannot represent
+faithfully. DAF stays read-only at a pinned commit, `6b37859` (vendored substrate
+`vendor/scout-retrieval-agent` at `5e146d5`): nothing here writes to a DAF checkout, and nothing
+on the bridging path imports DAF, SCOUT or the vendored evidence code (a test reads the module's
+imports). This stage changes no simulated result: the grid, sweep and calibration code is
+untouched, and nothing below is a number from `results/` — the counts are properties of the
+committed evidence in `data/daf/`, pinned by `tests/test_bridge_daf.py`.
+
+**Where the evidence comes from.** `tools/export_daf_fixtures.py` (it needs `DAF_ROOT`) runs
+DAF's own per-measurement NOAA binding — DAF's unmodified `NoaaWaterLevelSourceAdapter` and
+`NoaaWaterLevelMeasurementExtractor`, through `execute_plan` and SCOUT admission into a
+`DurablePool`, as DAF's own live-observation test does — on DAF's committed fixtures, replaying
+their bytes through the adapter's own `fetch_bytes` hook, and writes every admitted Observation
+with DAF's `observation_to_dict`. `data/daf/` holds the result: NOAA CO-OPS station 8454000
+(Providence, RI) on 2024-01-15 on the MLLW datum and on the STND datum, and a preliminary day
+(2026-08-23, MLLW), 240 six-minute readings each; and two **SYNTHETIC** four-reading windows —
+DAF's hand-written station 9999999, an original and a revised version — used only to exercise
+conflicts. `data/daf/PROVENANCE.md` (generated, with `manifest.json`) records both commits,
+each source fixture's path and sha256, the extractor and binding parameters (station, datum,
+units and the `time_zone=gmt` of the adapter URL), and the command; NOAA CO-OPS data are U.S.
+public domain. The fixture bytes are read from DAF's git object store, so a checkout's
+line-ending conversion cannot change an id; re-running the tool reproduces every file byte for
+byte, and the MLLW file's DAF document id begins `3bc9041f042eb48f`, the version id DAF's
+Phase 17 transcript records for the live fetch.
+
+**What the bridge refuses, and why.** `series`, `time_zone`, `cadence_s`, `arrival_policy`,
+`conflict_policy` and `daf_commit` are keyword-only with no default (`latency_s` is required
+with `"replay"` and refused with `"as_acquired"`; `declared_sigma` exists only where the caller
+declares one). Every refusal raises — `BridgeRefusal`, a `ValueError` carrying a reason code and
+the evidence ids involved, for anything about the evidence, the zone or the units; a plain
+`ValueError` for a malformed argument — and there is no partial record.
+
+- *series* — the (station, datum, unit) groups, one sensor column each. A record from an
+  unlisted group is ignored and counted in provenance; a different datum or unit is never
+  pooled: MLLW and STND of the same water surface become two columns that differ by 1.064 m at
+  every one of the 240 points. One (station, datum) listed in two units is refused: the same
+  readings would enter as two sensors, and the bridge converts no units.
+- *time_zone* — DAF's `measurement_time` carries no zone (DAF keeps the source's event time in
+  the content, the zone only in the adapter URL). Omitting it is a `TypeError`, `None` is
+  refused (no naive parsing), and anything but UTC/GMT is refused; a `measurement_time` with a
+  zone of its own is refused rather than reconciled.
+- *cadence_s* — the grid runs from the first to the last reading; a reading more than 1 s off
+  it is refused, every such reading listed. A wrong cadence is refused, not resampled: 720 s
+  declared on the six-minute record refuses 120 readings. A grid point with no reading is
+  `mask` False, `y` NaN.
+- *uncertainty* — R_ii = `uncertainty`² where `uncertainty_kind` is `"stated"` (NOAA's `s`, as
+  DAF's extractor records it). A reading without one is refused unless the caller passes
+  `declared_sigma` for that series, recorded as consumer-declared; declaring one for a series
+  whose readings state their own is refused too, so source-stated and consumer-declared R never
+  share a series. A stated 0.000 passes through as R = 0 and is counted (`n_zero`: two readings
+  on each 2024-01-15 datum), never floored.
+- *arrival_policy* — `"replay"` with an explicit `latency_s` (arrival_t = t + latency_s), or
+  `"as_acquired"`, arrival from each record's `extracted_at` on the same clock, refused where it
+  is absent, naive or earlier than the measurement. Which one is recorded.
+- *conflict_policy* — two records for the same (series, grid point) that disagree in value or
+  in the uncertainty that becomes R: `"refuse"` raises naming both ids; `"report_and_keep_both"`
+  leaves the point missing — neither value used, neither id ingested — and lists the conflict.
+  On the SYNTHETIC pair, 2026-01-03 00:00 reads 1.200 (s 0.011) in the original and 1.207
+  (s 0.006) in the revision: refused, or left missing with the conflict listed, while the three
+  unchanged readings are deduplicated with both ids kept (8 records in, 6 used, 3
+  deduplicated, 2 in conflict). The revision never silently wins.
+- Also refused: a record that is not a per-measurement NOAA water-level observation (another
+  extraction method, a missing field, a non-finite value), one evidence id carrying two
+  contents, a listed series that matched nothing, and a file with a bare NaN / Infinity or a
+  repeated key (the strict reader refuses what DAF's `strict_json_loads` refuses, and more).
+
+**What it records.** `BridgedSeries.provenance`: the caller-supplied DAF commit; records in,
+used, ignored (by group), in conflict (n_records_in = n_used + n_ignored + n_in_conflict) and
+deduplicated; the conflicts; the grid check (tolerance, largest offset accepted); the time zone
+declared and applied; the epoch (first grid point, ISO-8601 UTC) and cadence; the arrival
+policy; `R_source` per series (source-stated with the σ range and zero count, or
+consumer-declared with the σ); and a sha256 over the sorted evidence ids used. Each
+`Observation` carries the series ids (`noaa:8454000:MLLW:m`) as `source_ids` and the DAF
+observation ids behind its components as `evidence_ids` (per component in
+`component_evidence`); `run()` carries them to `RunResult.ingested_evidence`, and on the MLLW
+day with replay latency 0 a test-only random walk ingests exactly the 240 ids used, each once.
+`verify_ids(records, daf_root)` is the optional check that imports DAF: DAF's own
+`observation_from_dict` recomputes every committed id (728 of 728 at `6b37859`; the test skips
+without `DAF_ROOT`) and a one-mm edit is caught.
+
+**The DAF invariants it respects** (DAF's `docs/DAF_STATE_SPACE_BOUNDARY.md`, sections 10–13,
+18). `t` is the source event time read out of `Observation.content`; `retrieved_at` /
+`extracted_at` are never identity — `extracted_at` is read only as the `"as_acquired"` arrival
+clock, and deduplication compares content, never stamps. Contradictory observations coexist
+and are never averaged. The state-space side needs no `RawDocument`, adapter or DAF type.
+Evidence identity is not model identity: DAF's ids ride as provenance that no estimator reads.
+A revised artifact does not imply a state transition: the bridge reports the disagreement and
+leaves the decision with the caller.
+
+What the bridge does **not** do:
+
+- **Network.** Nothing is fetched; every byte is a fixture committed to DAF.
+- **DAF-side changes.** None; the export tool refuses a DAF checkout with tracked changes or a
+  substrate off its pin, and writes no bytecode into it.
+- **Model water level.** No estimator in the tree models a tide, and no number in `results/`
+  comes from NOAA data. The one run in the tests is a test-only random walk that shows the
+  plumbing, not an estimate.
+- **Decide what a revision means.** A disagreeing revision is a conflict for the caller, not an
+  update, and nothing chooses between preliminary and verified.
+- **Claim NOAA's `s` is the error of the six-minute value.** It is the dispersion of the
+  one-second samples behind it (waves included), reported to 1 mm; R = s² is the source's
+  statement passed through, and a stated 0.000 becomes R = 0.
+- **Give `"as_acquired"` a real acquisition clock on these files.** Their `extracted_at` is
+  DAF's replay stamp (2026-08-25, 2026-08-26 for the revision), not when NOAA served the bytes,
+  which DAF does not record; on the 2024 day nothing arrives within the day. The preliminary
+  file's datum is the binding default, MLLW, because DAF does not record that request either.
+- **Resample, interpolate, convert units, or read any other DAF extractor's content.** One
+  content shape, one grid, one zone family.
+- **Verify more than the observation id.** `verify_ids` recomputes each Observation's id from its
+  own fields with DAF's code; it does not re-walk the record, document or raw bytes behind it.
 
 ## Deliberately out of scope
 

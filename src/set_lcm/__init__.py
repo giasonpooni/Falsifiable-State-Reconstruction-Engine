@@ -5,4 +5,6 @@ Subpackages:
     set_lcm.lcm          constraint-reconciliation kernel and consistency statistic
     set_lcm.testbed      simulator, degradation layer, estimators, runner, evaluator
     set_lcm.experiments  scenario grids and report writers
+    set_lcm.bridge       admitted evidence -> Observation records (bridge.daf: serialized DAF
+                         NOAA observations, with refusals and provenance; no DAF import at runtime)
 """
