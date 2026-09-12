@@ -1,4 +1,4 @@
-# Falsifiable State Reconstruction Engine
+# Fluid State Reconstruction Engine (FSRE)
 
 **Check whether measurements in a fluid system agree with its physical relationships.**
 
@@ -39,8 +39,8 @@ You need [uv](https://docs.astral.sh/uv/getting-started/installation/) and a che
 repository. The project supports Python 3.12 and 3.13; its runtime dependency is NumPy.
 
 ```bash
-git clone https://github.com/giasonpooni/Falsifiable-State-Reconstruction-Engine.git
-cd Falsifiable-State-Reconstruction-Engine
+git clone https://github.com/giasonpooni/Fluid-State-Reconstruction-Engine.git
+cd Fluid-State-Reconstruction-Engine
 uv run --frozen --python 3.13 python examples/quickstart.py
 ```
 
@@ -96,6 +96,6 @@ the slower reproducibility checks. Reports are generated from code and include p
 - [Contributor brief](docs/COLLABORATOR_BRIEF.md): architecture and working conventions.
 - [Data provenance](data/daf/PROVENANCE.md): where the committed measurements came from.
 
-“State reconstruction” means estimating a physical system from measurements. The project name
-expresses the goal that estimates carry evidence capable of challenging them; it is not a
-guarantee that every possible fault can be detected.
+“State reconstruction” means estimating a physical system from measurements. FSRE retains
+the evidence needed to challenge its estimates. Whether a fault can be detected depends on
+the measurements, model and declared uncertainty.
