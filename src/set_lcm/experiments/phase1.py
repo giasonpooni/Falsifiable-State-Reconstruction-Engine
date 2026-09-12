@@ -12,6 +12,12 @@ honours b_var because it is on the ConstraintSet.
 Each scenario is run over N_SEEDS independent seeds (simulation and degradation
 seeds offset together). Tables report mean ± sd across seeds. A single seed is a
 realization, not a result.
+
+Hidden truth is read here and routed, and nowhere on the estimator side: the
+runner is handed PublicInputs.from_truth(truth) -- the step clock and the
+commanded input -- and, for the oracle bound only, the hidden (u_actual, leak)
+through run()'s explicit oracle_inputs keyword (oracle_inputs_for / run_spec).
+The evaluator reads the truth afterwards, to score.
 """
 from __future__ import annotations
 
@@ -24,7 +30,8 @@ import numpy as np
 from ..schema import ConstraintSet
 from ..testbed.degrade import DegradeConfig, observe
 from ..testbed.evaluate import evaluate
-from ..testbed.runner import EstimatorSpec, run
+from ..testbed.inputs import PublicInputs
+from ..testbed.runner import EstimatorSpec, RunResult, run
 from ..testbed.simulator import SimConfig, Truth, simulate
 
 SEED = 20260911
@@ -194,6 +201,24 @@ SPECS = [
 ]
 
 
+def oracle_inputs_for(spec: EstimatorSpec, truth: Truth) -> tuple[np.ndarray, np.ndarray] | None:
+    """THE ONE PLACE hidden truth is routed to the estimator side: the oracle (bound)
+    gets the hidden actual pump parameter rate and the hidden leak as known inputs.
+    Every other kind gets None, and run() refuses hidden inputs for any kind but
+    "oracle". Truth.m is not routed anywhere."""
+    if spec.kind != "oracle":
+        return None
+    return truth.u_actual, truth.leak
+
+
+def run_spec(truth: Truth, obs, cs: ConstraintSet | None, spec: EstimatorSpec,
+             m0: tuple[float, ...], m0_std: float) -> RunResult:
+    """Run one spec on a simulated record. The runner sees the public inputs only;
+    the oracle's hidden arrays go through oracle_inputs_for, explicitly."""
+    return run(PublicInputs.from_truth(truth), obs, cs, spec, m0, m0_std,
+               oracle_inputs=oracle_inputs_for(spec, truth))
+
+
 def scenario_constraint(sc: Scenario, truth: Truth, i: int) -> ConstraintSet:
     """The ConstraintSet scenario sc declares for seed index i."""
     return sc.constraint_builder(truth, i)
@@ -321,7 +346,7 @@ def run_scenario(name: str, n_seeds: int = N_SEEDS, specs=SPECS) -> tuple[dict, 
         declared.append(cs)
         m0, m0_std = declared_prior(sc, sim)
         per_seed.append({
-            spec.name: evaluate(run(truth, obs, cs, spec, m0, m0_std), truth, sc.fault_onset, sc.windows,
+            spec.name: evaluate(run_spec(truth, obs, cs, spec, m0, m0_std), truth, sc.fault_onset, sc.windows,
                                 cs=cs, fault_direction=sc.fault_direction)
             for spec in specs
         })
@@ -347,7 +372,7 @@ def iter_runs(name: str, spec: EstimatorSpec, n_seeds: int = N_SEEDS):
         obs = observe(truth, deg)
         cs = scenario_constraint(sc, truth, i)
         m0, m0_std = declared_prior(sc, sim)
-        yield i, truth, obs, cs, run(truth, obs, cs, spec, m0, m0_std)
+        yield i, truth, obs, cs, run_spec(truth, obs, cs, spec, m0, m0_std)
 
 
 def fms(d: dict | None, nd: int = 2) -> str:

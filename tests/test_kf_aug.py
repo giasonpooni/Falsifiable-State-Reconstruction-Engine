@@ -3,7 +3,8 @@
 (a) the transition is the stated time-varying linear F and reduces to the plain KF
 when alpha = 1 and L = 0; (b) the runner keeps the mass marginal in x / P, never
 projects for mode None, and stores the parameters and their flags in extra; (c) the
-estimator side never reads Truth.u_actual; (d)-(g) what it recovers, what it costs
+estimator side never sees Truth.u_actual (the runner takes PublicInputs, and the
+experiment code routes hidden arrays to the oracle only); (d)-(g) what it recovers, what it costs
 and what it misattributes on the grid scenarios over 8 seeds, asserted with censored
 summaries.
 
@@ -20,11 +21,12 @@ from functools import lru_cache
 import numpy as np
 import pytest
 
-from set_lcm.experiments.phase1 import SCENARIOS, SPECS, constraint_for, declared_prior, run_scenario
+from set_lcm.experiments.phase1 import SCENARIOS, SPECS, constraint_for, declared_prior, run_scenario, run_spec
 from set_lcm.schema import Status
 from set_lcm.testbed.degrade import observe
 from set_lcm.testbed.estimators import AugConfig, AugmentedKalmanFilter, KalmanFilter
 from set_lcm.testbed.evaluate import evaluate
+from set_lcm.testbed.inputs import PublicInputs
 from set_lcm.testbed.runner import PARAM_FLAG_DEBOUNCE, PARAM_FLAG_Z, run
 from set_lcm.testbed.simulator import simulate
 
@@ -58,7 +60,7 @@ def _single(name: str):
     truth = simulate(sc.sim)
     obs = observe(truth, sc.deg)
     m0, m0_std = declared_prior(sc, sc.sim)
-    return truth, obs, run(truth, obs, constraint_for(truth), AUG, m0, m0_std)
+    return truth, obs, run(PublicInputs.from_truth(truth), obs, constraint_for(truth), AUG, m0, m0_std)
 
 
 # ---------------------------------------------------------------------------
@@ -118,13 +120,15 @@ def test_runner_keeps_the_mass_marginal_and_never_projects():
 
 
 def test_estimator_side_never_reads_u_actual():
+    """Through the experiment code's own routing (run_spec): a corrupted u_actual never
+    reaches kf_aug, whose runner sees PublicInputs only."""
     sc = SCENARIOS["closed_blackout_pumpbias"]
     truth = simulate(sc.sim)
     garbage = replace(truth, u_actual=truth.u_actual * 0.0 + 7.0)
     obs = observe(truth, sc.deg)
     m0, m0_std = declared_prior(sc, sc.sim)
-    a = run(truth, obs, constraint_for(truth), AUG, m0, m0_std)
-    b = run(garbage, obs, constraint_for(truth), AUG, m0, m0_std)
+    a = run_spec(truth, obs, constraint_for(truth), AUG, m0, m0_std)
+    b = run_spec(garbage, obs, constraint_for(truth), AUG, m0, m0_std)
     assert np.array_equal(a.x, b.x) and np.array_equal(a.P, b.P)
     for k in a.extra:
         assert np.array_equal(a.extra[k], b.extra[k])

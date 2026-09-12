@@ -29,12 +29,31 @@ class Status(str, Enum):
 
 @dataclass(frozen=True)
 class Observation:
+    """One sampling step of evidence: one value per sensor (NaN where missing).
+
+    `t` is the physical sampling time -- for real evidence the source's own event
+    time, read out of the evidence content, never a retrieval or extraction stamp.
+    `evidence_ids` names the admitted evidence this observation was built from (for
+    example the content-addressed ids of the evidence records it came from). It is
+    provenance only: no estimator reads it, it is not part of any state's identity,
+    and the runner carries it through to RunResult.ingested_evidence at the report
+    step the observation was ingested. Simulated observations carry ()."""
     t: float                     # physical sampling time
     arrival_t: float             # earliest time the estimator may use it (>= t)
     y: np.ndarray                # measurement vector; NaN where missing
     R: np.ndarray                # declared measurement covariance (sensor spec, incl. quantization)
     mask: np.ndarray             # bool; True where a value is present
     source_ids: tuple[str, ...]
+    evidence_ids: tuple[str, ...] = ()   # ids of the admitted evidence behind this observation
+
+    def __post_init__(self):
+        ids = self.evidence_ids
+        if isinstance(ids, str):
+            raise TypeError("evidence_ids must be a tuple of str, not a single str")
+        ids = tuple(ids)
+        if not all(isinstance(e, str) for e in ids):
+            raise TypeError(f"evidence_ids must be str; got {ids!r}")
+        object.__setattr__(self, "evidence_ids", ids)
 
 
 _PSD_REL_TOL = 1e-12   # b_var's smallest eigenvalue may undershoot 0 by this fraction of its largest

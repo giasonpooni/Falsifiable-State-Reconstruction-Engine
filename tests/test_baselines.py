@@ -27,13 +27,16 @@ import numpy as np
 import pytest
 
 from set_lcm.experiments import sweep
-from set_lcm.experiments.phase1 import SCENARIOS, SPECS, constraint_for, declared_prior, run_scenario
+from set_lcm.experiments.phase1 import (
+    SCENARIOS, SPECS, constraint_for, declared_prior, oracle_inputs_for, run_scenario, run_spec,
+)
 from set_lcm.lcm import check_spd, project_hard
 from set_lcm.schema import Status
 from set_lcm.testbed.degrade import observe
 from set_lcm.testbed.estimators import (
     B, ClosedQConfig, ClosedQKalmanFilter, KalmanFilter, OracleConfig, OracleKalmanFilter,
 )
+from set_lcm.testbed.inputs import PublicInputs
 from set_lcm.testbed.runner import EstimatorSpec, run
 from set_lcm.testbed.simulator import simulate
 
@@ -71,7 +74,7 @@ def _single(name: str, sp: EstimatorSpec, truth=None):
     truth = simulate(sc.sim) if truth is None else truth
     obs = observe(simulate(sc.sim), sc.deg)
     m0, m0_std = declared_prior(sc, sc.sim)
-    return truth, obs, run(truth, obs, constraint_for(truth), sp, m0, m0_std)
+    return truth, obs, run_spec(truth, obs, constraint_for(truth), sp, m0, m0_std)
 
 
 # ---------------------------------------------------------------------------
@@ -127,18 +130,23 @@ def test_closedq_is_confidently_wrong_under_a_stale_constraint():
 # ---------------------------------------------------------------------------
 
 def test_hidden_inputs_reach_the_oracle_and_nothing_else():
-    """Corrupt Truth.u_actual and Truth.leak: every non-oracle estimator's record is
-    bit-identical; the oracle's is not. The oracle cannot be built without them, and
-    no other estimator accepts them."""
+    """Corrupt Truth.u_actual and Truth.leak and route both truths through the experiment
+    code's own path (run_spec): every non-oracle estimator's record is bit-identical; the
+    oracle's is not. The runner is handed the same public inputs either way; the hidden
+    arrays are routed to the oracle and to nothing else. The oracle cannot be built
+    without them, and no other estimator accepts them."""
     sc = SCENARIOS["leak_stale_constraint"]
     truth = simulate(sc.sim)
     garbage = replace(truth, u_actual=truth.u_actual + 0.5, leak=truth.leak + 0.1)
     obs = observe(truth, sc.deg)
     cs = constraint_for(truth)
     m0, m0_std = declared_prior(sc, sc.sim)
+    pa, pb = PublicInputs.from_truth(truth), PublicInputs.from_truth(garbage)
+    assert np.array_equal(pa.t, pb.t) and np.array_equal(pa.u_commanded, pb.u_commanded)
     for sp in SPECS:
-        a = run(truth, obs, cs, sp, m0, m0_std)
-        b = run(garbage, obs, cs, sp, m0, m0_std)
+        assert (oracle_inputs_for(sp, garbage) is None) == (sp.kind != "oracle"), sp.name
+        a = run_spec(truth, obs, cs, sp, m0, m0_std)
+        b = run_spec(garbage, obs, cs, sp, m0, m0_std)
         same = np.array_equal(a.x, b.x) and np.array_equal(a.P, b.P) and np.array_equal(a.stat, b.stat)
         assert same == (sp.kind != "oracle"), sp.name
     with pytest.raises(ValueError):
@@ -268,7 +276,8 @@ def test_feedback_survives_a_stalled_ingest_clock():
     obs[100] = replace(obs[100], arrival_t=float(truth.t[104]))   # blocks obs 100..103 until step 104
     m0, m0_std = declared_prior(sc, sc.sim)
     cs = constraint_for(truth)
-    rr = run(truth, obs, cs, spec("kf+hard+fb"), m0, m0_std)
+    inputs = PublicInputs.from_truth(truth)
+    rr = run(inputs, obs, cs, spec("kf+hard+fb"), m0, m0_std)
     assert all(s is Status.OK for s in rr.status)
     for k in range(len(obs)):
         check_spd(rr.P_unproj[k])
@@ -279,7 +288,7 @@ def test_feedback_survives_a_stalled_ingest_clock():
     for k in range(100, 104):
         assert float((A @ rr.P_unproj[k] @ A.T)[0, 0]) == pytest.approx((k - 99) * aqa, rel=1e-6)
     # on the shipped scenarios the clock never stalls, so the record is unchanged
-    plain = run(truth, observe(truth, sc.deg), cs, spec("kf+hard+fb"), m0, m0_std)
+    plain = run(inputs, observe(truth, sc.deg), cs, spec("kf+hard+fb"), m0, m0_std)
     assert np.array_equal(rr.x[:100], plain.x[:100])
 
 

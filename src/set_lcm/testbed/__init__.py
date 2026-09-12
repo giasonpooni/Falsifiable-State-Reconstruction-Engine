@@ -1,2 +1,4 @@
-"""State Estimation Testbed: simulator (hidden truth), degradation layer,
-estimators, step-by-step runner, and the evaluator — the only reader of truth."""
+"""State Estimation Testbed: simulator (hidden truth), degradation layer, the public
+inputs the runner takes instead of a truth, estimators, step-by-step runner, the
+evaluator that scores against truth, and the truth-free evaluator that reads the
+run's own record alone."""

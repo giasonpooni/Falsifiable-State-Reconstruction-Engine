@@ -16,6 +16,7 @@ from set_lcm.experiments.phase1 import (
 )
 from set_lcm.schema import ConstraintSet, Observation
 from set_lcm.testbed.degrade import DegradeConfig, observe
+from set_lcm.testbed.inputs import PublicInputs
 from set_lcm.testbed.runner import run
 from set_lcm.testbed.simulator import SimConfig, simulate
 
@@ -46,7 +47,7 @@ def _single(name, spec_name):
     obs = observe(truth, sc.deg)
     spec = next(s for s in SPECS if s.name == spec_name)
     m0, m0_std = declared_prior(sc, sc.sim)
-    return run(truth, obs, constraint_for(truth), spec, m0, m0_std)
+    return run(PublicInputs.from_truth(truth), obs, constraint_for(truth), spec, m0, m0_std)
 
 
 @pytest.mark.parametrize("spec_name", ["kf+hard+guard", "kf_aug"])
@@ -76,8 +77,9 @@ def test_observations_are_used_only_after_they_arrive():
         for j, o in enumerate(obs)
     ]
     spec = next(s for s in SPECS if s.name == "kf")
-    a = run(truth, obs, constraint_for(truth), spec, (70.0, 30.0), 5.0)
-    b = run(truth, corrupted, constraint_for(truth), spec, (70.0, 30.0), 5.0)
+    inputs = PublicInputs.from_truth(truth)
+    a = run(inputs, obs, constraint_for(truth), spec, (70.0, 30.0), 5.0)
+    b = run(inputs, corrupted, constraint_for(truth), spec, (70.0, 30.0), 5.0)
     assert np.array_equal(a.x_unproj[: K + 1], b.x_unproj[: K + 1])
     assert not np.array_equal(a.x_unproj[K + 1], b.x_unproj[K + 1])
     # before anything has arrived the report is the declared prior, predicted forward
@@ -252,8 +254,9 @@ def test_declared_constraint_uncertainty_keeps_hard_projection_calibrated():
         sd = np.sqrt(np.stack([np.diag(p) for p in rr.P[lo:hi]]))
         return float((np.abs(rr.x[lo:hi] - truth.m[lo:hi]) <= 1.96 * sd).mean())
 
-    with_var = run(truth, obs, declared, spec, m0, m0_std)
-    without = run(truth, obs, exact, spec, m0, m0_std)
+    inputs = PublicInputs.from_truth(truth)
+    with_var = run(inputs, obs, declared, spec, m0, m0_std)
+    without = run(inputs, obs, exact, spec, m0, m0_std)
     assert steady_cov(with_var) > 0.9 > 0.5 > steady_cov(without)
     # the unprojected filter is the same either way; only the reconciliation differs
     np.testing.assert_array_equal(with_var.x_unproj, without.x_unproj)

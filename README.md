@@ -11,7 +11,9 @@ hidden simulated truth — and, on top of it, the P2 work that answers what the
 Phase 1 review left open: a detector that does not read the constraint, an
 estimator that carries the faults the constraint cannot see, and the baselines
 that would show the constraint row adds nothing — plus the first P2b item,
-uncertainty declared on the constraint itself (`b_var`). Nothing more.
+uncertainty declared on the constraint itself (`b_var`), and, ahead of the real-data
+bridge, a runner that cannot receive hidden truth and an evaluator that needs none.
+Nothing more.
 
 As built, it is an *evidence-preserving reconciliation stage over a
 state-estimation testbed*. Its lineage is data validation and reconciliation
@@ -23,10 +25,16 @@ from measurements, not quantum-state tomography and not the axiomatic
 reconstruction of a physical theory.
 
 ```
-Truth (hidden)  ──h(·)+degradation──▶  Observation  ──▶  Estimator  ──▶  LCM reconcile  ──▶  StateEstimate
-      │                                                                                             │
-      └──────────────────────────────── Evaluator (only reader of truth) ◀───────────────────────────┘
+Truth (hidden) ──h(·)+degradation──▶ Observation ──▶ Estimator ──▶ LCM reconcile ──▶ RunResult ──▶ truth-free evaluator
+  │ │                                                    ▲                               │         (reads the record only)
+  │ └─── PublicInputs.from_truth: t, u_commanded ────────┘                               │
+  └──────────────────────────────────── Evaluator (scores against truth) ◀───────────────┘
 ```
+
+The estimator side sees the observations, the public inputs, a declared prior and a declared
+constraint — never the truth. The one labelled exception is the oracle bound, whose hidden
+inputs experiment code passes to `run()` through the keyword-only `oracle_inputs`; `run()`
+refuses them for every other kind.
 
 ## Run
 
@@ -68,15 +76,17 @@ within 8 % of `kf` during the blackout (0.386 vs 0.419 kg, the per-seed entries 
 
 | Module | Responsibility |
 |---|---|
-| `src/set_lcm/schema/` | `Observation`; `ConstraintSet` — `A`, `b`, a version and a description, `dof` = rows, `rank` = χ² dof, and `b_var`, the declared uncertainty of `b`: `None` (the default) declares the set exact, otherwise a `(rows,)` vector of variances or a `(rows, rows)` symmetric PSD covariance Σ_b, validated at construction (wrong shape, a negative or non-finite variance, asymmetry or indefiniteness raise `ValueError`) and stored as a read-only copy; `StateEstimate` envelope with `Status` (`NOT_CONVERGED` reserved, nothing emits it), unprojected state always retained, correction, residuals pre/post, consistency stat. |
+| `src/set_lcm/schema/` | `Observation`, with `evidence_ids` (default `()`): the ids of the admitted evidence it was built from, carried for provenance and read by no estimator; `ConstraintSet` — `A`, `b`, a version and a description, `dof` = rows, `rank` = χ² dof, and `b_var`, the declared uncertainty of `b`: `None` (the default) declares the set exact, otherwise a `(rows,)` vector of variances or a `(rows, rows)` symmetric PSD covariance Σ_b, validated at construction (wrong shape, a negative or non-finite variance, asymmetry or indefiniteness raise `ValueError`) and stored as a read-only copy; `StateEstimate` envelope with `Status` (`NOT_CONVERGED` reserved, nothing emits it), unprojected state always retained, correction, residuals pre/post, consistency stat. |
 | `src/set_lcm/lcm/` | Hard (KKT closed form) and soft (penalty) linear-equality projection weighted by `P⁻¹`; feasibility check and reduction of dependent rows; SPD / singularity guards; χ² consistency statistic and the detectability `d(f)` of a fault direction; `reconcile()` that never mutates its input. With `b_var` declared, S = A P Aᵀ + Σ_b: the statistic is rᵀS⁻¹r, `d(f)` = fᵀAᵀS⁻¹Af, hard projection is the Kalman update with pseudo-measurement noise Σ_b (Joseph form), soft is hard with Σ_b + (1/λ) I; dependent rows are refused rather than reduced, and only the exact (zero-variance) part of a set can be infeasible. With `b_var = None` the arithmetic is the pre-`b_var` arithmetic. |
 | `src/set_lcm/testbed/simulator.py` | Two-reservoir material transfer. Hidden `m`, hidden leak, hidden actual pump *parameter* rate (`u_actual`: the per-step pump fluctuation is process noise, not part of it); public commanded pump rate and declared initial total. |
 | `src/set_lcm/testbed/degrade.py` | Noise, random dropout, sensor blackout, undeclared bias, quantization (declared into `R`), arrival delay written into `arrival_t`. Seed-controlled. |
-| `src/set_lcm/testbed/estimators.py` | Five estimator kinds behind one `ingest` / `report` interface, each initialised from a *declared* prior and reporting by predicting forward from the last *arrived* observation. `hold_last`. `kf`: linear KF on x = [m1, m2] with a *diagonal* Q, σ_w = 0.05 kg per step (`KFConfig`; closure is the constraint's declared claim, not the filter's). `kf_aug`: x = [m1, m2, α, L] — pump scale and boundary flux as states with their own uncertainty, a time-varying *linear* KF (`AugConfig`: α ~ N(1, 0.1²), L ~ N(0, 0.02²), random walks of 1e-3 (α, dimensionless) and 2e-3 kg/s (L) per step, same σ_w). Two baselines built to remove the case for a constraint row: `kf_closedq`, the KF with closure written into its process noise, Q = σ_q² dt² B Bᵀ + ε I with σ_q = 0.01 kg/s (the simulator's declared pump fluctuation) and ε = 1e-8 (`ClosedQConfig`), and `oracle`, a KF given the *hidden* actual pump parameter rate and leak as known inputs with Q = ε I only (`OracleConfig`) — a bound, never a candidate. Every filter records, per ingested step and sensor, the innovation, its variance and the normalised innovation; hold-last records NaN. `kf` and `kf_closedq` implement `set_state(x, P)` for fed-back projection; `kf_aug` (the mass marginal cannot be replaced without its cross-covariances) and hold-last raise `NotImplementedError`. |
+| `src/set_lcm/testbed/inputs.py` | `PublicInputs(t, u_commanded)`: the step clock and the commanded input, the only inputs the runner takes besides the observations, the declared prior and the declared constraint. `PublicInputs.from_truth` copies exactly those two fields of a simulated truth, read-only. |
+| `src/set_lcm/testbed/estimators.py` | Five estimator kinds behind one `ingest` / `report` interface, each declaring `n_report` (2 for all five: the masses) and, for extra state, `aug_names` with a nominal per component (`None` = recorded, never flagged), each initialised from a *declared* prior and reporting by predicting forward from the last *arrived* observation. `hold_last`. `kf`: linear KF on x = [m1, m2] with a *diagonal* Q, σ_w = 0.05 kg per step (`KFConfig`; closure is the constraint's declared claim, not the filter's). `kf_aug`: x = [m1, m2, α, L] — pump scale and boundary flux as states with their own uncertainty, a time-varying *linear* KF (`AugConfig`: α ~ N(1, 0.1²), L ~ N(0, 0.02²), random walks of 1e-3 (α, dimensionless) and 2e-3 kg/s (L) per step, same σ_w). Two baselines built to remove the case for a constraint row: `kf_closedq`, the KF with closure written into its process noise, Q = σ_q² dt² B Bᵀ + ε I with σ_q = 0.01 kg/s (the simulator's declared pump fluctuation) and ε = 1e-8 (`ClosedQConfig`), and `oracle`, a KF given the *hidden* actual pump parameter rate and leak as known inputs with Q = ε I only (`OracleConfig`) — a bound, never a candidate. Every filter records, per ingested step and sensor, the innovation, its variance and the normalised innovation; hold-last records NaN. `kf` and `kf_closedq` implement `set_state(x, P)` for fed-back projection; `kf_aug` (the mass marginal cannot be replaced without its cross-covariances) and hold-last raise `NotImplementedError`. |
 | `src/set_lcm/testbed/cusum.py` | Per-sensor two-sided CUSUM on the normalised innovation (`CusumConfig(k=0.5, h=8.0)`): the evidence side's own detector, reading no constraint. |
-| `src/set_lcm/testbed/runner.py` | Runs a (scenario, estimator) pair step by step, ingesting observations only once `arrival_t ≤ t_k`. Three detection channels that never talk to each other: the debounced consistency flag (with the optional guard that *holds* projection and reports `MODEL_INCONSISTENT`), the CUSUM on the ingest clock with alarms stamped at the report step of ingestion, and one debounced flag per extra state (\|α̂ − 1\|/σ_α > 3.29, \|L̂\|/σ_L > 3.29, three consecutive reports). Reconciliation always acts on the mass marginal (x[:2], P[:2, :2]); an augmented estimator's extra states go to `RunResult.extra`. `EstimatorSpec.feedback` pushes each applied projection (x*, P*) back into the filter at its own last ingested step, at most once per ingested step. The one place hidden truth crosses to the estimator side is marked here: `truth.u_actual` and `truth.leak` go to the constructor of kind `"oracle"` and to nothing else. |
-| `src/set_lcm/testbed/evaluate.py` | RMSE (overall and windowed), 95 % interval coverage, normalised error, error along row(A) and null(A), residuals, correction magnitude, false alarms and censored detection delay for the constraint flag, per sensor for the CUSUM and per parameter for the α / L flags, α error against the hidden pump-rate ratio over pump-on steps, L error against the hidden leak, mean normalised innovation per window, solver failures, latency. Only reader of truth. |
-| `src/set_lcm/experiments/phase1.py` | The scenario grid with its per-scenario constraint builder (`ExactTotal` for the first six scenarios, `UncertainTotal` for `closed_uncertain_total`), the eleven estimator specs, multi-seed aggregation and report writer; `run_experiments.py` is a thin CLI over it. |
+| `src/set_lcm/testbed/runner.py` | `run(inputs: PublicInputs, obs, cs, spec, ...)` runs one estimator spec over an observation record step by step, ingesting observations only once `arrival_t ≤ t_k`; it names no `Truth` and takes no truth argument. The number of sensors comes from the observations (`obs[0].y.size`), the reported-state dimension from the estimator's `n_report`, and every `RunResult` array is sized from those. Three detection channels that never talk to each other: the debounced consistency flag (with the optional guard that *holds* projection and reports `MODEL_INCONSISTENT`), the CUSUM on the ingest clock with alarms stamped at the report step of ingestion, and one debounced flag per extra state with a nominal (\|α̂ − 1\|/σ_α > 3.29, \|L̂\|/σ_L > 3.29, three consecutive reports). Reconciliation acts on the first `n_report` components (the mass marginal x[:2], P[:2, :2] for every estimator here); an augmented estimator's extra states go to `RunResult.extra`. `EstimatorSpec.feedback` pushes each applied projection (x*, P*) back into the filter at its own last ingested step, at most once per ingested step. `RunResult.observed` records which samples the estimator was given and `RunResult.ingested_evidence[k]` the evidence ids of everything ingested at report step k (`()` throughout a simulated run). The oracle bound's hidden actual pump rate and leak arrive only through the keyword-only `oracle_inputs`, which `run()` refuses for any other kind and requires for `"oracle"`. |
+| `src/set_lcm/testbed/evaluate.py` | RMSE (overall and windowed), 95 % interval coverage, normalised error, error along row(A) and null(A), residuals, correction magnitude, false alarms and censored detection delay for the constraint flag, per sensor for the CUSUM and per parameter for the α / L flags, α error against the hidden pump-rate ratio over pump-on steps, L error against the hidden leak, mean normalised innovation per window, solver failures, latency. The scoring evaluator: it reads the hidden truth after the run; nothing on the estimator side does. |
+| `src/set_lcm/testbed/truth_free.py` | `evaluate_truth_free(run, windows)`: reads nothing but the `RunResult`. Per sensor and window: observed samples, fraction missing, mean / RMS / lag-1 autocorrelation of the normalised innovation z and the fraction with \|z\| > 1.96 (sampling clock), CUSUM alarms and the first alarm step (report clock); where a constraint was declared, flag and status counts, the mean consistency statistic and its per-step exceedance; extra-state flag counts; evidence ids ingested; latency. |
+| `src/set_lcm/experiments/phase1.py` | Where hidden truth is read and routed: `run_spec` hands the runner `PublicInputs.from_truth(truth)` and, through `oracle_inputs_for`, the hidden (u_actual, leak) to the oracle kind and to nothing else; the grid, the sweep and the calibration all run through it. The scenario grid with its per-scenario constraint builder (`ExactTotal` for the first six scenarios, `UncertainTotal` for `closed_uncertain_total`), the eleven estimator specs, multi-seed aggregation and report writer; `run_experiments.py` is a thin CLI over it. |
 | `src/set_lcm/experiments/provenance.py` | The provenance block every results file carries: interpreter and numpy versions, platform, source-tree SHA-256, git HEAD and a dirty flag. |
 | `src/set_lcm/experiments/calibration.py` | In-loop null of the consistency statistic (mean, tail quantiles, empirical vs nominal exceedance, autocorrelation time), a threshold × debounce sweep of the guard, and the null of the CUSUM channel over the same windows for h ∈ {4, 6, 8, 10}. |
 | `src/set_lcm/experiments/sweep.py` | Fault-magnitude sweep on four axes (declared-total error, sensor bias, leak rate, uncertain declared total with soft λ = 1/σ_b²); `kf_aug` runs on the first and third, `kf_closedq` and `kf+hard+fb+guard` on the first. Two axes also hand the same `b` to specs whose `ConstraintSet` declares `b_var`: `kf+hard(b_var)` and its guard on the uncertain total (b_var = σ_b²), `kf+hard(b_var=0.25)` and its guard on the declared-total error. |
@@ -384,8 +394,9 @@ process noise instead of into a constraint row (Q = σ_q² dt² B Bᵀ + ε I, �
 — the simulator's declared pump fluctuation — ε = 1e-8): it "knows" the boundary is closed
 through Q, has no row, and does not know b. `oracle (bound)` is a KF given the *hidden*
 actual pump parameter rate and the hidden leak as known inputs with Q = ε I only — a bound
-on what a perfect model of the inputs could do, never a candidate; the runner marks the one
-place those arrays cross to the estimator side. `kf+hard+fb` feeds each applied projection
+on what a perfect model of the inputs could do, never a candidate; experiment code routes
+those arrays to it through `run()`'s keyword-only `oracle_inputs`, which `run()` refuses for
+every other kind. `kf+hard+fb` feeds each applied projection
 (x*, P*) back into the filter instead of keeping it as a post-stage over a retained
 unprojected state. From `results/summary.md` (20 seeds; RMSE kg / cov95 / nz):
 
@@ -599,6 +610,71 @@ What `b_var` does **not** show:
 - **Dependent uncertain rows, a correlated Σ_b, or more than one row in the loop.** The
   kernel refuses the first; the other two are exercised only by `tests/test_lcm.py`. Every
   constraint in the grid and the sweep is the single sum row.
+
+## Before the bridge: no truth on the estimator side
+
+A real record — the NOAA water levels the bridge will bring in from DAF's committed fixtures —
+has no hidden truth, so the estimator side must not be able to receive one. This stage makes
+that structural, removes the runner's two-sensor, two-state assumptions, carries evidence
+provenance through the run, and adds the one evaluator that works without a truth. It changes
+no number: a fresh grid equals the committed `results/summary.json` value for value (the
+reproduction test; latency and provenance excluded), and fresh calibration and sweep runs
+equal `results/calibration.json` and `results/sweep.json` the same way.
+
+- **The runner takes public inputs, not a truth.** `run(inputs: PublicInputs, ...)`, where
+  `PublicInputs(t, u_commanded)` is the step clock and the commanded input and
+  `PublicInputs.from_truth` copies exactly those two fields, read-only. `runner.py` and
+  `estimators.py` contain no reference to `Truth` (a test reads their source), and `run()` has
+  no truth parameter. The oracle bound's hidden arrays arrive only through the keyword-only
+  `oracle_inputs=(u_actual, leak)`; `run()` raises if they are passed for any kind but
+  `"oracle"` or are missing for it. Experiment code is the one place that routes them
+  (`phase1.oracle_inputs_for`, called by `phase1.run_spec`), and a second source test pins
+  who reads hidden truth fields at all: that function, the observation operator
+  (`degrade.observe` measures the masses) and the scoring evaluator.
+- **Shapes come from the record and the estimator.** The number of sensors is
+  `obs[0].y.size`, the reported-state dimension the estimator's `n_report`; `RunResult`'s state,
+  covariance, correction, innovation and CUSUM arrays are sized from those, and reconciliation
+  acts on the first `n_report` components. An estimator may declare an extra component's
+  nominal `None`: recorded, never flagged.
+- **Evidence ids ride through the run.** `Observation.evidence_ids` (default `()`) names the
+  admitted evidence an observation was built from; `RunResult.ingested_evidence[k]` lists the
+  ids of everything ingested at report step k, in sampling order, and `RunResult.observed`
+  which samples the estimator was given. No estimator reads the ids: a record carrying them is
+  bit-identical in every estimate to the same record without (tested, with a stalled ingest
+  clock).
+- **A truth-free evaluator.** `evaluate_truth_free(run, windows)` reads nothing but the
+  `RunResult` (listed in the module table). Two quantities in `results/` never needed the truth
+  and it reproduces them: its per-window mean z is, to the bit, the `z̄ s1/s2` column (tested)
+  — in `bias_quant_delay` sensor 1's moves from −0.01 before the bias to +0.16 after it while
+  sensor 2's reads −0.00 in both windows, and in `closed_noise` both read +0.00 / +0.01 — and
+  the in-loop null of the consistency statistic in `results/calibration.md` is computed from
+  the estimate, its covariance and the declared constraint alone: the evaluator's per-seed
+  mean statistic, averaged over the 20 seeds, gives that table's means (0.599, 0.644, 0.570
+  and 0.463 over the four nominal windows; tested at 2 seeds).
+
+What this does **not** show:
+
+- **Anything on a real record.** No NOAA observation has been run; no DAF type or adapter is
+  imported. That is the bridge.
+- **A truth-free number in `results/` beyond those two.** The grid does not run
+  `evaluate_truth_free`; what it measures on simulated runs (RMS z, lag-1 autocorrelation,
+  tail fractions) is stated in `tests/test_truth_free.py`, not in `results/`.
+- **That innovations which look calibrated mean a calibrated filter.** The Q over-statement
+  that reads nz = 0.73 against truth in `closed_noise` (steady window) is diluted in each
+  sensor's innovation by R = 4 kg², which dominates S: in steady state with the pump off the
+  filter states S ≈ 4.10 kg² against an actual ≈ 4.05 kg², an RMS z of about 0.99 by that
+  arithmetic, within a few percent of 1. Where R dominates, per-sensor innovations are a weak
+  witness of Q; the consistency statistic, which the over-statement enters undiluted, is the
+  sharper one.
+- **Whether an estimate is right.** A sensor bias and a real change the model does not
+  explain write the same record; the evaluator names the sensor whose z moves, as the CUSUM
+  does, not the cause.
+- **Evidence handling.** `evidence_ids` are carried as opaque strings — not checked against
+  any evidence store, deduplicated or resolved — and nothing here decides when a revised
+  artifact should change the state.
+- **General estimators.** The runner no longer assumes two sensors or two reported
+  components, and a test-only three-sensor estimator exercises that path; every estimator in
+  the tree still is the two-reservoir model with `n_report = 2`.
 
 ## Deliberately out of scope
 

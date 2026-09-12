@@ -34,9 +34,11 @@ import numpy as np
 from ..schema import ConstraintSet
 from ..testbed.degrade import observe
 from ..testbed.evaluate import evaluate
-from ..testbed.runner import EstimatorSpec, run
+from ..testbed.runner import EstimatorSpec
 from ..testbed.simulator import simulate
-from .phase1 import DETECT_WITHIN, N_SEEDS, SCENARIOS, SEED, SEED_STRIDE, Scenario, aggregate, declared_prior
+from .phase1 import (
+    DETECT_WITHIN, N_SEEDS, SCENARIOS, SEED, SEED_STRIDE, Scenario, aggregate, declared_prior, run_spec,
+)
 
 KF = EstimatorSpec("kf", "kf", None)
 HARD = EstimatorSpec("kf+hard", "kf", "hard")
@@ -155,7 +157,8 @@ def run_point(axis: str, value: float, n_seeds: int = N_SEEDS) -> dict:
         seed_metrics = {}
         for spec, cs_fn, onset in runs:
             cs = cs_fn(truth)
-            seed_metrics[spec.name] = evaluate(run(truth, obs, cs, spec, m0, m0_std), truth, onset, base.windows, cs=cs)
+            seed_metrics[spec.name] = evaluate(run_spec(truth, obs, cs, spec, m0, m0_std), truth, onset, base.windows,
+                                               cs=cs)
         per_seed.append(seed_metrics)
     return aggregate(per_seed)
 

@@ -12,6 +12,7 @@ import pytest
 from set_lcm.experiments.phase1 import SCENARIOS, SPECS, constraint_for, declared_prior, run_scenario
 from set_lcm.testbed.cusum import Cusum, CusumConfig, cusum_sequence
 from set_lcm.testbed.degrade import observe
+from set_lcm.testbed.inputs import PublicInputs
 from set_lcm.testbed.runner import EstimatorSpec, run
 from set_lcm.testbed.simulator import simulate
 
@@ -28,7 +29,7 @@ def _single(name: str, spec: EstimatorSpec):
     truth = simulate(sc.sim)
     obs = observe(truth, sc.deg)
     m0, m0_std = declared_prior(sc, sc.sim)
-    return run(truth, obs, constraint_for(truth), spec, m0, m0_std)
+    return run(PublicInputs.from_truth(truth), obs, constraint_for(truth), spec, m0, m0_std)
 
 
 # ---------------------------------------------------------------------------

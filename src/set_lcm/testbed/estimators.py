@@ -22,12 +22,16 @@ sampling step j and one column per sensor:
 The runner copies these into RunResult and runs the per-sensor CUSUM on z.
 Hold-last has no prediction and records NaN.
 
-The first two components of every reported state are the reservoir masses
-(m1, m2); the reconciliation stage acts on that marginal only. An estimator
-that carries more state declares the extra components in `aug_names` (with
-the no-fault value of each in `aug_nominal`); the runner stores those in
+Every estimator declares `n_report`, the number of leading components of its
+reported state that the reconciliation stage acts on (2 for every estimator
+here: the reservoir masses m1, m2). An estimator that carries more state
+declares the extra components, which follow those n_report, in `aug_names`,
+with the no-fault value of each in `aug_nominal`; the runner stores them in
 RunResult.extra and flags each one when it departs from its nominal value by
-more than its own reported uncertainty explains.
+more than its own reported uncertainty explains. A nominal of None declares
+"no flag for this component": its estimate and sd are recorded, nothing tests
+them. The number of sensors is the observation's (obs.y.size); every
+innovation-record row has one entry per sensor.
 
 Feedback. An estimator that can accept a reconciled state back exposes
 
@@ -48,8 +52,10 @@ Baselines that could remove the case for a constraint row:
                  boundary is closed through its noise model.
     oracle       a KF given the HIDDEN actual pump rate and leak as known
                  inputs, Q = eps I only. A BOUND on what a perfect model of the
-                 inputs could do, never a candidate; the runner is the one place
-                 that hands it hidden truth.
+                 inputs could do, never a candidate. It receives the hidden arrays
+                 only through the explicit `oracle_inputs` argument, which
+                 runner.run() forwards for kind "oracle" and refuses for every
+                 other kind; experiment code is what supplies them.
 """
 from __future__ import annotations
 
@@ -99,8 +105,9 @@ class KalmanFilter:
 
     model_version = MODEL_VERSION
     config_cls = KFConfig
+    n_report = 2                  # the reconciliation stage acts on (m1, m2)
     aug_names: tuple[str, ...] = ()
-    aug_nominal: tuple[float, ...] = ()
+    aug_nominal: tuple[float | None, ...] = ()
 
     def __init__(self, x0, p0_std: float, dt: float, u_cmd: np.ndarray, cfg=KFConfig()):
         self.dt = dt
@@ -150,8 +157,8 @@ class KalmanFilter:
         if j > 0:
             self._x, self._P = self.predict(self._x, self._P, j - 1)
         m = obs.mask
-        nu_full = np.full(2, np.nan)
-        s_full = np.full(2, np.nan)
+        nu_full = np.full(obs.y.size, np.nan)
+        s_full = np.full(obs.y.size, np.nan)
         if m.any():
             H = np.eye(2)[m]
             y = obs.y[m]
@@ -217,8 +224,9 @@ class OracleKalmanFilter(KalmanFilter):
     process noise the oracle does not model (Q = eps I only), so its bound is
     tight where the truth is deterministic given the inputs and it is over-
     confident where it is not (the noisy valve). The hidden arrays reach it only
-    through `oracle_inputs`, which runner.run() sets for spec.kind == "oracle" and
-    for nothing else."""
+    through `oracle_inputs`: experiment code passes them to runner.run() as its
+    explicit `oracle_inputs` keyword, run() forwards them for spec.kind == "oracle"
+    and raises for any other kind, and no other estimator accepts them."""
 
     model_version = "reservoir2-oracle-v1"
     config_cls = OracleConfig
@@ -226,7 +234,8 @@ class OracleKalmanFilter(KalmanFilter):
     def __init__(self, x0, p0_std: float, dt: float, u_cmd: np.ndarray, cfg=OracleConfig(),
                  oracle_inputs: tuple[np.ndarray, np.ndarray] | None = None):
         if oracle_inputs is None:
-            raise ValueError("the oracle needs (u_actual, leak); only runner.run() supplies them, for kind 'oracle'")
+            raise ValueError("the oracle needs (u_actual, leak) as oracle_inputs; runner.run() forwards them "
+                             "for kind 'oracle' only, and only when its caller passes them explicitly")
         super().__init__(x0, p0_std, dt, u_cmd, cfg)
         u_actual, leak = oracle_inputs
         self.u_actual = np.asarray(u_actual, dtype=float).copy()
@@ -249,8 +258,9 @@ class HoldLast:
 
     model_version = "hold-last-value-v0"
     config_cls = KFConfig
+    n_report = 2
     aug_names: tuple[str, ...] = ()
-    aug_nominal: tuple[float, ...] = ()
+    aug_nominal: tuple[float | None, ...] = ()
 
     def __init__(self, x0, p0_std: float, dt: float, u_cmd: np.ndarray, cfg: KFConfig = KFConfig()):
         self.x0 = np.asarray(x0, dtype=float).copy()
@@ -272,10 +282,10 @@ class HoldLast:
         self._x[m] = obs.y[m]
         self._var[m] = np.diag(obs.R)[m]
         self.hist.append((self._x.copy(), self._var.copy()))
-        nan2 = np.full(2, np.nan)
-        self.innov.append(nan2.copy())
-        self.innov_var.append(nan2.copy())
-        self.innov_z.append(nan2.copy())
+        nan_row = np.full(obs.y.size, np.nan)
+        self.innov.append(nan_row.copy())
+        self.innov_var.append(nan_row.copy())
+        self.innov_z.append(nan_row.copy())
 
     def report(self, k: int) -> tuple[np.ndarray, np.ndarray]:
         j = len(self.hist) - 1
@@ -335,6 +345,7 @@ class AugmentedKalmanFilter:
 
     model_version = "reservoir2-aug-alpha-L-v1"
     config_cls = AugConfig
+    n_report = 2               # the reconciliation stage acts on the mass marginal only
     aug_names = ("alpha", "L")
     aug_nominal = (1.0, 0.0)   # no-fault values the runner's flags test against (NOT the prior)
     N = 4
@@ -372,8 +383,8 @@ class AugmentedKalmanFilter:
         if j > 0:
             self._x, self._P = self.predict(self._x, self._P, j - 1)
         m = obs.mask
-        nu_full = np.full(2, np.nan)
-        s_full = np.full(2, np.nan)
+        nu_full = np.full(obs.y.size, np.nan)
+        s_full = np.full(obs.y.size, np.nan)
         if m.any():
             H = np.eye(self.N)[:2][m]                          # sensors read m1, m2 only
             y = obs.y[m]

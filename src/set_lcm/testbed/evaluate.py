@@ -1,5 +1,9 @@
-"""Evaluation against hidden truth. This is the only module that reads Truth.m,
-Truth.leak and Truth.u_actual.
+"""Evaluation against hidden truth: the module that scores a run. Besides it, the
+only code that reads Truth.m, Truth.leak or Truth.u_actual is the observation
+operator (degrade.observe measures Truth.m) and the experiment code that routes
+the oracle bound's hidden inputs (experiments.phase1.oracle_inputs_for); nothing
+on the estimator side does, and runner.run() cannot receive a Truth. For a record
+that has no truth, truth_free.evaluate_truth_free reads the RunResult alone.
 
 Per run it reports: reconstruction error (overall, per window, and decomposed
 along row(A) / null(A)); calibration as 95 % interval coverage and as the RMS
