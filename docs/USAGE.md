@@ -81,12 +81,53 @@ It preserves raw readings and their difference alongside combined estimates.
 
 The bundle separates inference inputs in `observations.npz` from the held-out reference and
 synthetic truth in `evaluation.npz`, with a checksum manifest. The [camera guide](CAMERA_BASELINE.md)
-describes the measurement contract and a [recording planning template](../examples/camera_recording_template.csv).
-The template is not a CSV importer, and this example does not decode compressed video.
+describes the measurement contract; the [recording protocol](TANK_RECORDING_PROTOCOL.md)
+describes preparation for acquired evidence. This example does not decode compressed video.
 Its exact pixel calibration anchors and declared uncertainties belong to the synthetic
 experiment; real recordings need their own calibration evidence. Vertical marker registration
 does not estimate general 3-D camera pose or odometry. See the [generated report](../results/camera_baseline.md)
 for the synthetic comparisons and limitations.
+
+## Prepare a controlled tank recording
+
+Create a blank kit in a new or empty directory:
+
+```bash
+uv run --frozen --python 3.13 python -m set_lcm.recording init work/tank-recording
+```
+
+The kit contains `recording.json`, separate camera/gauge observation tables and held-out
+reference/event tables, plus folders for originals and supporting evidence. Initialization
+does not overwrite an existing recording. Equipment-dependent values remain `null`; the
+kit contains no acquired measurements or assumed sensor uncertainties.
+
+Follow the [controlled recording protocol](TANK_RECORDING_PROTOCOL.md): declare the equipment,
+measurand and datum; link calibration, development, timing and uncertainty evidence; lock the
+configuration; then retain originals and populate the tables from the actual acquisition.
+Keep reference readings and intervention labels in `evaluation/`. The older
+[combined planning CSV](../examples/camera_recording_template.csv) is not imported by this checker.
+
+Inspect the kit and save its complete JSON preflight report outside the recording folder:
+
+```bash
+uv run --frozen --python 3.13 python -m set_lcm.recording check work/tank-recording --out-report work/tank-preflight.json
+```
+
+The default console output is a short summary. Add `--json` to print the complete report:
+
+```bash
+uv run --frozen --python 3.13 python -m set_lcm.recording check work/tank-recording --json
+```
+
+`check` exits with code **0** for `ready_for_review`, or **2** for `incomplete` or `invalid`.
+An empty kit is expected to return `incomplete` and code 2. Resolve missing declarations
+from evidence; do not fill unknown uncertainty or clock values with guessed defaults.
+
+Preflight checks metadata, retained-file checksums and differences between declared capture
+times. `ready_for_review` does not validate the physical clock, calibration, covariance or
+equipment, and does not mean that real-data inference or quantitative evaluation ran.
+Video decoding, uncertain-anchor calibration and any asynchronous measurement alignment
+still need a justified real-recording workflow.
 
 ## Reconcile your own estimate
 

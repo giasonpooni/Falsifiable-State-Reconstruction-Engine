@@ -23,6 +23,7 @@ Development remains focused on fluids. The camera prototype delivers fixed-marke
 | `src/set_lcm/frame_quality.py` | Frame identity, provenance and capture-clock admission; advisory spectra on complete uniform windows. |
 | `src/set_lcm/camera.py` | Declared horizontal-edge extraction, vertical marker registration and first-order calibrated level covariance. |
 | `src/set_lcm/camera_fusion.py` | Camera/gauge comparison and per-time fusion with full shared covariance and retained raw disagreement. |
+| `src/set_lcm/recording.py`, `recording_clock.py` | Blank recording kits and bounded preflight checks of declared files, identities, observation support and capture clocks. |
 | `src/set_lcm/testbed/` | Estimators, arrival-aware runner, CUSUM, simulation and evaluators. |
 | `src/set_lcm/bridge/daf.py` | Explicit selection and admission of supported DAF evidence. |
 | `src/set_lcm/experiments/` | Reproducible scenarios, calibration, sweeps and real-data reports. |
@@ -66,6 +67,12 @@ general 3-D pose, perspective correction or odometry. Preserve raw camera/gauge 
 signed drift explanations can remain confounded, and shared errors can escape a difference
 check. Spectral features are advisory and cannot verify an incorrectly declared physical
 clock without an external reference. No FluidNexus code or generated views are used.
+
+The [recording kit](TANK_RECORDING_PROTOCOL.md) prepares a real experiment; it does not
+perform one. `ready_for_review` means checked artifacts and declarations are present,
+not that clocks, calibration or covariance have been scientifically validated. Do not
+turn absent equipment/data/uncertainty into synthetic defaults. Preserve native clocks
+that the bounded timestamp parser cannot accept; never round them to obtain admission.
 
 A consistency threshold is a reference under a calibrated Gaussian null. An alarm is not a diagnosis. Per-channel CUSUM locates prediction disagreement, not necessarily a faulty instrument. Static rank-one geometry does not establish impossibility over every time record; known dynamics can add information. Finite uncertainty on an augmented imbalance term does not make its model statistically unfalsifiable.
 

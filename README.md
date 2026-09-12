@@ -87,6 +87,18 @@ A fixed marker compensates vertical image motion; frame timing and shared calibr
 uncertainty remain explicit. The [camera guide](docs/CAMERA_BASELINE.md) explains the
 measurement pipeline and how to plan a controlled recording.
 
+To prepare a real tank recording:
+
+```bash
+uv run --frozen --python 3.13 python -m set_lcm.recording init work/tank-recording
+uv run --frozen --python 3.13 python -m set_lcm.recording check work/tank-recording --out-report work/tank-preflight.json
+```
+
+This creates a blank evidence kit. Its first check is expected to report `incomplete`
+and exit with code 2. Follow the [recording protocol](docs/TANK_RECORDING_PROTOCOL.md)
+to supply equipment declarations and acquired evidence. Preflight checks metadata, files
+and declared clocks; it does not run real-data inference or establish field accuracy.
+
 ## What is ready today?
 
 **Available:** a tested linear reconciliation kernel, simulation and fault injection,
@@ -98,6 +110,7 @@ An additive invariant filtering layer is also available, with correlated/missing
 and coordinate-consistency tests. General nonlinear Lie-group IEKF models remain planned.
 A camera-and-gauge prototype now exercises real pixel extraction from synthetic frames,
 vertical image registration, timing checks and fusion with full shared covariance.
+An empty recording kit and preflight checker support preparation for a controlled real trial.
 It has no field validation; general 3-D camera pose and odometry remain planned work.
 
 **Still being developed:** diagnosis of events with unknown onset, field-validated degradation
@@ -136,6 +149,7 @@ the slower reproducibility checks. Reports are generated from code and include p
 - [Usage guide](docs/USAGE.md): installation, inputs, outputs and integration examples.
 - [Fluid baseline](docs/FLUID_BASELINE.md): interval handling, shared uncertainty and conditional fault explanations.
 - [Camera baseline](docs/CAMERA_BASELINE.md): frame admission, level calibration, vertical registration and camera/gauge comparison.
+- [Controlled recording protocol](docs/TANK_RECORDING_PROTOCOL.md): equipment evidence, calibration, timing and held-out evaluation preparation.
 - [Invariant filtering](docs/INVARIANT_LAYER.md): additive state/error geometry, estimation and coordinate consistency.
 - [Methods and interpretation](docs/METHODS.md): the mathematics, fault-identifiability limits
   and the meaning of a consistency score.
