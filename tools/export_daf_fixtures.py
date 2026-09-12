@@ -124,6 +124,39 @@ def _daf_root() -> Path:
     return root
 
 
+def _published_base(root: Path, head: str) -> dict:
+    """Which part of the exporting checkout's history is PUBLISHED, and which is not.
+
+    DAF's default branch is the published history. A checkout carrying local commits -- the
+    USGS daily-values adapter lives on one, and by the user's standing instruction is never
+    pushed to DAF -- would otherwise stamp every output with a commit id no one else can
+    resolve. So the manifest records the published ancestor as well, and names the local
+    commits and the patch series that carries them into THIS repository.
+    """
+    refs = [r for r in _git(root, "for-each-ref", "--format=%(refname)", "refs/remotes/origin").splitlines()
+            if r and not r.endswith("/HEAD")]
+    published = None
+    for ref in refs:
+        try:
+            _git(root, "merge-base", "--is-ancestor", head, ref)
+            return {"published": True, "published_base": head, "published_ref": ref.split("/", 3)[-1],
+                    "local_commits": []}
+        except subprocess.CalledProcessError:
+            continue
+    for ref in refs:
+        try:
+            base = _git(root, "merge-base", head, ref)
+        except subprocess.CalledProcessError:
+            continue
+        local = _git(root, "log", "--format=%H %s", f"{base}..{head}").splitlines()
+        if published is None or len(local) < len(published["local_commits"]):
+            published = {"published": False, "published_base": base, "published_ref": ref.split("/", 3)[-1],
+                         "local_commits": [{"commit": ln.split(" ", 1)[0], "subject": ln.split(" ", 1)[1]}
+                                           for ln in local if ln]}
+    return published or {"published": False, "published_base": None, "published_ref": None,
+                         "local_commits": []}
+
+
 def _pins(root: Path) -> dict:
     """The commits that produced the outputs, refusing a checkout that would make that a lie."""
     daf_commit = _git(root, "rev-parse", "HEAD")
@@ -137,7 +170,8 @@ def _pins(root: Path) -> dict:
         raise SystemExit(f"vendored substrate is at {vendor_commit}; DAF {daf_commit} pins {pinned}")
     if _git(vendor, "status", "--porcelain", "--untracked-files=no"):
         raise SystemExit("vendored substrate has tracked changes; refusing to export")
-    return {"daf_commit": daf_commit, "vendor_commit": vendor_commit}
+    return {"daf_commit": daf_commit, "vendor_commit": vendor_commit,
+            **_published_base(root, daf_commit)}
 
 
 def _import_daf(root: Path):
@@ -240,6 +274,7 @@ def _export_one(job: Job, root: Path, d: dict) -> tuple[list[dict], dict]:
         "source_fixture": job.fixture,
         "source_fixture_sha256": _sha256(raw),
         "source_fixture_git_blob": blob,
+        "daf_commit": _git(root, "rev-parse", "HEAD"),
         "n_readings": len(readings),
         "n_observations": len(dicts),
         "raw_flag_counts": raw_flags,
@@ -307,7 +342,15 @@ def _export_session(session_dir: Path, root: Path, d: dict) -> tuple[list[dict],
     fetched: every response comes from the recording, matched by URL.
     """
     index = json.loads((session_dir / "index.json").read_text(encoding="utf-8"))
-    factory_path = index["binding_factory"]
+    # `index.json` names the binding factory at the top level; the NOAA month session was
+    # recorded by an earlier revision of the writer that nested it under "binding", and its
+    # per-response item count under "n_readings". Both spellings are read rather than the
+    # recording being edited: the responses are the evidence, and a provenance file is not
+    # something to rewrite by hand.
+    factory_path = index.get("binding_factory") or index["binding"]["factory"]
+    for entry in index["responses"]:
+        if "n_items" not in entry and "n_readings" in entry:
+            entry["n_items"] = entry["n_readings"]
     try:
         factory = d[BINDING_FACTORIES[factory_path]]
     except KeyError:
@@ -420,7 +463,13 @@ def _provenance_md(man: dict) -> str:
         "",
         "## Pins",
         "",
-        f"- DAF (Data Acquisition Fabric): {man['daf_repository']} at commit `{man['daf_commit']}`",
+        f"- DAF (Data Acquisition Fabric): {man['daf_repository']} at commit `{man['daf_commit']}`"
+        + ("" if man["daf_commit_published"] else
+           f" -- **not published**. Its published ancestor is `{man['daf_published_base']}` on "
+           f"`{man['daf_published_ref']}`; the "
+           + ", ".join(f"commit `{c['commit'][:12]}` ({c['subject']})" for c in man["daf_local_commits"])
+           + " above it is local only and travels as the patch series in `patches/daf/`, which is how "
+             "this repository carries it without pushing anything to DAF."),
         f"- Vendored substrate `{man['vendored_substrate']['path']}` ({man['vendored_substrate']['url']}) at commit "
         f"`{man['vendored_substrate']['commit']}` (`git -C {man['vendored_substrate']['path']} rev-parse HEAD`; "
         "equal to the commit DAF pins)",
@@ -562,6 +611,18 @@ def main(argv: list[str] | None = None) -> int:
     man = {
         "daf_repository": DAF_URL,
         "daf_commit": pins["daf_commit"],
+        "daf_commit_published": pins["published"],
+        "daf_published_base": pins["published_base"],
+        "daf_published_ref": pins["published_ref"],
+        "daf_local_commits": pins["local_commits"],
+        "daf_local_commits_note":
+            "Commits in the exporting checkout that are NOT in DAF's published history. Nothing is ever "
+            "pushed to the DAF repository, so these travel as the git format-patch series under "
+            "patches/daf/, applied to daf_published_base. A file whose bytes are determined only by "
+            "DAF's own committed fixtures and an unchanged binding is unaffected by them -- the fixture "
+            "blob sha and the binding version recorded per file are what fix those bytes."
+            if pins["local_commits"] else
+            "The exporting checkout is entirely within DAF's published history.",
         "vendored_substrate": {"path": VENDOR_REL, "url": vendor_url, "commit": pins["vendor_commit"]},
         "exporter": "tools/export_daf_fixtures.py",
         "command": "DAF_ROOT=/path/to/daf-checkout uv run --python 3.13 python tools/export_daf_fixtures.py",

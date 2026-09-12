@@ -1,6 +1,16 @@
 {
   "command": "DAF_ROOT=/path/to/daf-checkout uv run --python 3.13 python tools/export_daf_fixtures.py",
   "daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
+  "daf_commit_published": false,
+  "daf_local_commits": [
+    {
+      "commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
+      "subject": "A fourth source: USGS daily values, where the quantity is a statistic"
+    }
+  ],
+  "daf_local_commits_note": "Commits in the exporting checkout that are NOT in DAF's published history. Nothing is ever pushed to the DAF repository, so these travel as the git format-patch series under patches/daf/, applied to daf_published_base. A file whose bytes are determined only by DAF's own committed fixtures and an unchanged binding is unaffected by them -- the fixture blob sha and the binding version recorded per file are what fix those bytes.",
+  "daf_published_base": "6b378590da3076d88a0f4bd8bad79e1ce0b48ae2",
+  "daf_published_ref": "claude/daf-state-space-architecture-v8peqd",
   "daf_repository": "https://github.com/atomtrapping/Data-Acquisition-Channel",
   "exporter": "tools/export_daf_fixtures.py",
   "files": [
@@ -17,6 +27,7 @@
         "units": "metric",
         "version": "a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8"
       },
+      "daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
       "daf_locator": "8454000:water_level:MLLW:metric:20240115:20240115",
       "daf_version_id": "3bc9041f042eb48fdddaa04654a503138a9d63e14a2af22836231877a1993723",
       "extraction_methods": [
@@ -56,6 +67,7 @@
         "units": "metric",
         "version": "a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8"
       },
+      "daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
       "daf_locator": "8454000:water_level:STND:metric:20240115:20240115",
       "daf_version_id": "493d8acc0957140a19b6b65abcaf1e0c70f06896c2b4f6d9c463a6c2b496f3a1",
       "extraction_methods": [
@@ -95,6 +107,7 @@
         "units": "metric",
         "version": "a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8"
       },
+      "daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
       "daf_locator": "8454000:water_level:MLLW:metric:20260823:20260823",
       "daf_version_id": "1f28ddecdc6b5177191c729663876892eeee27caabcba7e732dfd12141335a7e",
       "extraction_methods": [
@@ -135,6 +148,7 @@
         "units": "metric",
         "version": "a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8"
       },
+      "daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
       "daf_locator": "9999999:water_level:MLLW:metric:20260101:20260103",
       "daf_version_id": "876483a383e0488505717778386fa13a6fa5a7bca5dded9c2bf70516495d21fb",
       "extraction_methods": [
@@ -175,6 +189,7 @@
         "units": "metric",
         "version": "a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8"
       },
+      "daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
       "daf_locator": "9999999:water_level:MLLW:metric:20260101:20260103",
       "daf_version_id": "a9f98cba4260ae4f5ac7704d4d4c5b45536de5d105721091385bc41adb09b999",
       "extraction_methods": [

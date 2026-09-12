@@ -1,0 +1,460 @@
+{
+  "binding": {
+    "adapter_id": "noaa-water-level-measurements",
+    "factory": "daf.orchestration.bindings.noaa_water_level_measurement_binding",
+    "revision_lookback_days": 2,
+    "version": "a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8",
+    "window_days": 3
+  },
+  "daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
+  "daf_repository": "https://github.com/atomtrapping/Data-Acquisition-Channel",
+  "datum": "MLLW",
+  "fetched_live": true,
+  "n_observations_admitted": 21360,
+  "n_requests": 30,
+  "note": "Each response is the raw HTTPS body, byte for byte, stored under the sha256 of its own bytes. Consecutive windows overlap because DAF's adapter re-requests a trailing safety window; the overlap is recorded as it happened and resolved downstream by the bridge's deduplication.",
+  "outcomes": [
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "ACQUIRED",
+    "DUPLICATE"
+  ],
+  "plan_parameters": {
+    "end_date": "20240131",
+    "product": "water_level",
+    "start_date": "20240101",
+    "station": "8454000"
+  },
+  "python": "3.13.12",
+  "requested_at": "2026-09-12T00:00:00Z",
+  "responses": [
+    {
+      "begin_date": "20240101",
+      "end_date": "20240103",
+      "file": "243c145ddd7584313f91e802465bc09e6b0dd8fa570fe11eba0783fa39e568e6.json",
+      "n_bytes": 53963,
+      "n_readings": 720,
+      "sha256": "243c145ddd7584313f91e802465bc09e6b0dd8fa570fe11eba0783fa39e568e6",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240101&end_date=20240103&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240102",
+      "end_date": "20240104",
+      "file": "03d4f4f278f6e2864249ce877b057aa537f8e1bc3e39f43c0529472b3eb50d91.json",
+      "n_bytes": 53977,
+      "n_readings": 720,
+      "sha256": "03d4f4f278f6e2864249ce877b057aa537f8e1bc3e39f43c0529472b3eb50d91",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240102&end_date=20240104&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240103",
+      "end_date": "20240105",
+      "file": "ff5fa07f8844848cb60c8bb938be95a9eb1c70a80c9dd153a5a3c3a1faf7331b.json",
+      "n_bytes": 53990,
+      "n_readings": 720,
+      "sha256": "ff5fa07f8844848cb60c8bb938be95a9eb1c70a80c9dd153a5a3c3a1faf7331b",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240103&end_date=20240105&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240104",
+      "end_date": "20240106",
+      "file": "08b1b0da17fd8e50310fd4b7a43485da6541b16ccfb3cf2f053612ee6af21af0.json",
+      "n_bytes": 53990,
+      "n_readings": 720,
+      "sha256": "08b1b0da17fd8e50310fd4b7a43485da6541b16ccfb3cf2f053612ee6af21af0",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240104&end_date=20240106&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240105",
+      "end_date": "20240107",
+      "file": "ec49ba0efd34ef80d4ac82b85420eb55e0a0e5556bbaf37136bcf32f2ebdfbf1.json",
+      "n_bytes": 53980,
+      "n_readings": 720,
+      "sha256": "ec49ba0efd34ef80d4ac82b85420eb55e0a0e5556bbaf37136bcf32f2ebdfbf1",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240105&end_date=20240107&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240106",
+      "end_date": "20240108",
+      "file": "7a4507e488b6c9ba96240ca75d0fb79c7f497605c70cb97d1cfc89bca75ecbb0.json",
+      "n_bytes": 53975,
+      "n_readings": 720,
+      "sha256": "7a4507e488b6c9ba96240ca75d0fb79c7f497605c70cb97d1cfc89bca75ecbb0",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240106&end_date=20240108&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240107",
+      "end_date": "20240109",
+      "file": "409683c6487660dac2b2786bc0db6e4e3b0cd0d2bc708dab1e30c8dc48c7c014.json",
+      "n_bytes": 53957,
+      "n_readings": 720,
+      "sha256": "409683c6487660dac2b2786bc0db6e4e3b0cd0d2bc708dab1e30c8dc48c7c014",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240107&end_date=20240109&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240108",
+      "end_date": "20240110",
+      "file": "712962bdde7a4b56f82a0c1edb7e9f2445be0a17eda39d9b8e7077451325e812.json",
+      "n_bytes": 53968,
+      "n_readings": 720,
+      "sha256": "712962bdde7a4b56f82a0c1edb7e9f2445be0a17eda39d9b8e7077451325e812",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240108&end_date=20240110&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240109",
+      "end_date": "20240111",
+      "file": "8f4d252cb0d75d6548e1b11e2c2ed3d959ced929b50353ec7437c50b3a27506c.json",
+      "n_bytes": 53964,
+      "n_readings": 720,
+      "sha256": "8f4d252cb0d75d6548e1b11e2c2ed3d959ced929b50353ec7437c50b3a27506c",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240109&end_date=20240111&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240110",
+      "end_date": "20240112",
+      "file": "acbbc55156b46fc4450e20a61f982178dfff2fe0b93c22f4ce0656f44be019b3.json",
+      "n_bytes": 53951,
+      "n_readings": 720,
+      "sha256": "acbbc55156b46fc4450e20a61f982178dfff2fe0b93c22f4ce0656f44be019b3",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240110&end_date=20240112&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240111",
+      "end_date": "20240113",
+      "file": "c9ea7b589cea6d7073ff94731eb4a63d841425635c3122a07e27333b68a92eea.json",
+      "n_bytes": 53951,
+      "n_readings": 720,
+      "sha256": "c9ea7b589cea6d7073ff94731eb4a63d841425635c3122a07e27333b68a92eea",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240111&end_date=20240113&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240112",
+      "end_date": "20240114",
+      "file": "4642e4c4b55838a8eb9db00f5905d1628f44e2022071243fafe6f56da223d455.json",
+      "n_bytes": 53964,
+      "n_readings": 720,
+      "sha256": "4642e4c4b55838a8eb9db00f5905d1628f44e2022071243fafe6f56da223d455",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240112&end_date=20240114&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240113",
+      "end_date": "20240115",
+      "file": "80c8c8dd6256397f813c91f07eadc3c12068031722961b617dba70fec5a85b40.json",
+      "n_bytes": 54004,
+      "n_readings": 720,
+      "sha256": "80c8c8dd6256397f813c91f07eadc3c12068031722961b617dba70fec5a85b40",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240113&end_date=20240115&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240114",
+      "end_date": "20240116",
+      "file": "e4fadcbf71e52bb0a242549de37fdfcb2b6e17e642f3596d14817e4acec57d1d.json",
+      "n_bytes": 53993,
+      "n_readings": 720,
+      "sha256": "e4fadcbf71e52bb0a242549de37fdfcb2b6e17e642f3596d14817e4acec57d1d",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240114&end_date=20240116&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240115",
+      "end_date": "20240117",
+      "file": "6f38be8456d1bc91647939ae28bd288cc068881a5ab2864a47efc5a139d8aa99.json",
+      "n_bytes": 53979,
+      "n_readings": 720,
+      "sha256": "6f38be8456d1bc91647939ae28bd288cc068881a5ab2864a47efc5a139d8aa99",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240115&end_date=20240117&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240116",
+      "end_date": "20240118",
+      "file": "c4046b995e64f310804c12e511b5565e249e49a442a2cc75c025aeb11ade14e1.json",
+      "n_bytes": 53954,
+      "n_readings": 720,
+      "sha256": "c4046b995e64f310804c12e511b5565e249e49a442a2cc75c025aeb11ade14e1",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240116&end_date=20240118&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240117",
+      "end_date": "20240119",
+      "file": "4e3fe37bdb49f67702f752fbae6667e35ebcb572cd1bcc42f770c027dec69ddb.json",
+      "n_bytes": 53961,
+      "n_readings": 720,
+      "sha256": "4e3fe37bdb49f67702f752fbae6667e35ebcb572cd1bcc42f770c027dec69ddb",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240117&end_date=20240119&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240118",
+      "end_date": "20240120",
+      "file": "0a7793c4f95d0bf830036b673136e94ac345c42a320a7b850af307e59aab4c7d.json",
+      "n_bytes": 53965,
+      "n_readings": 720,
+      "sha256": "0a7793c4f95d0bf830036b673136e94ac345c42a320a7b850af307e59aab4c7d",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240118&end_date=20240120&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240119",
+      "end_date": "20240121",
+      "file": "c0b25c4681c746b9f88f6edfbd3ea326ff2625a926d24ea4d246884d8fb66212.json",
+      "n_bytes": 53961,
+      "n_readings": 720,
+      "sha256": "c0b25c4681c746b9f88f6edfbd3ea326ff2625a926d24ea4d246884d8fb66212",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240119&end_date=20240121&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240120",
+      "end_date": "20240122",
+      "file": "80a34f249db551436d375c7591a94ee7e6332113714e6b2e8250c1deda008c70.json",
+      "n_bytes": 53954,
+      "n_readings": 720,
+      "sha256": "80a34f249db551436d375c7591a94ee7e6332113714e6b2e8250c1deda008c70",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240120&end_date=20240122&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240121",
+      "end_date": "20240123",
+      "file": "7085e18a119698e8706a82450003791305e42d1beb7158ef6084f604861225e6.json",
+      "n_bytes": 53959,
+      "n_readings": 720,
+      "sha256": "7085e18a119698e8706a82450003791305e42d1beb7158ef6084f604861225e6",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240121&end_date=20240123&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240122",
+      "end_date": "20240124",
+      "file": "ae7bef1899640280a06a58cfb6c72ed3c5a552207e0c0d4098760fcbb8be4a85.json",
+      "n_bytes": 53953,
+      "n_readings": 720,
+      "sha256": "ae7bef1899640280a06a58cfb6c72ed3c5a552207e0c0d4098760fcbb8be4a85",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240122&end_date=20240124&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240123",
+      "end_date": "20240125",
+      "file": "f6c01e874dbaa3a99bc84751bf2804155f13f2c722bc52d39bc40b46fa5a95f2.json",
+      "n_bytes": 53958,
+      "n_readings": 720,
+      "sha256": "f6c01e874dbaa3a99bc84751bf2804155f13f2c722bc52d39bc40b46fa5a95f2",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240123&end_date=20240125&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240124",
+      "end_date": "20240126",
+      "file": "d4a2e6723ac2af6830ceebb8d3ee1c8c624e89da30c64b0f512326be67dbe266.json",
+      "n_bytes": 53953,
+      "n_readings": 720,
+      "sha256": "d4a2e6723ac2af6830ceebb8d3ee1c8c624e89da30c64b0f512326be67dbe266",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240124&end_date=20240126&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240125",
+      "end_date": "20240127",
+      "file": "af2f354aef3edf44948efb52f3803ccdc7fc649342e7ea428838093f919dadc0.json",
+      "n_bytes": 53963,
+      "n_readings": 720,
+      "sha256": "af2f354aef3edf44948efb52f3803ccdc7fc649342e7ea428838093f919dadc0",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240125&end_date=20240127&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240126",
+      "end_date": "20240128",
+      "file": "e723c37c1528af53fbf05ffe841058d248759940c7bacc6eb36c43612e3a1397.json",
+      "n_bytes": 53952,
+      "n_readings": 720,
+      "sha256": "e723c37c1528af53fbf05ffe841058d248759940c7bacc6eb36c43612e3a1397",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240126&end_date=20240128&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240127",
+      "end_date": "20240129",
+      "file": "d988b39d5fcd1dddd8c8aaf434539ca9411f8e42afc06e7b19b6db119f99c0ec.json",
+      "n_bytes": 53947,
+      "n_readings": 720,
+      "sha256": "d988b39d5fcd1dddd8c8aaf434539ca9411f8e42afc06e7b19b6db119f99c0ec",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240127&end_date=20240129&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240128",
+      "end_date": "20240130",
+      "file": "f5bf60660d3abcbf43b94d5de057cef65b30319ac122bd6753f67027d425e663.json",
+      "n_bytes": 53929,
+      "n_readings": 720,
+      "sha256": "f5bf60660d3abcbf43b94d5de057cef65b30319ac122bd6753f67027d425e663",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240128&end_date=20240130&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240129",
+      "end_date": "20240131",
+      "file": "9d6d754b8fcab0a77828c8e62a6f84a2d9cb1e963f21b7f3cde0fdb2030c935d.json",
+      "n_bytes": 53936,
+      "n_readings": 720,
+      "sha256": "9d6d754b8fcab0a77828c8e62a6f84a2d9cb1e963f21b7f3cde0fdb2030c935d",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240129&end_date=20240131&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    },
+    {
+      "begin_date": "20240130",
+      "end_date": "20240131",
+      "file": "e6fc5ec895b27eb78550d4e87b747ccb8d278bcc2ff07e17157720c2eae6a1c4.json",
+      "n_bytes": 35983,
+      "n_readings": 480,
+      "sha256": "e6fc5ec895b27eb78550d4e87b747ccb8d278bcc2ff07e17157720c2eae6a1c4",
+      "url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240130&end_date=20240131&datum=MLLW&units=metric&time_zone=gmt&format=json"
+    }
+  ],
+  "session": "noaa_8454000_202401_mllw",
+  "time_zone": "gmt",
+  "tool": "tools/fetch_noaa_month.py",
+  "units": "metric",
+  "vendored_substrate_commit": "5e146d5924675cd7b6e1d1ed44fb39f5da012610",
+  "windows_expected": [
+    {
+      "begin_date": "20240101",
+      "end_date": "20240103"
+    },
+    {
+      "begin_date": "20240102",
+      "end_date": "20240104"
+    },
+    {
+      "begin_date": "20240103",
+      "end_date": "20240105"
+    },
+    {
+      "begin_date": "20240104",
+      "end_date": "20240106"
+    },
+    {
+      "begin_date": "20240105",
+      "end_date": "20240107"
+    },
+    {
+      "begin_date": "20240106",
+      "end_date": "20240108"
+    },
+    {
+      "begin_date": "20240107",
+      "end_date": "20240109"
+    },
+    {
+      "begin_date": "20240108",
+      "end_date": "20240110"
+    },
+    {
+      "begin_date": "20240109",
+      "end_date": "20240111"
+    },
+    {
+      "begin_date": "20240110",
+      "end_date": "20240112"
+    },
+    {
+      "begin_date": "20240111",
+      "end_date": "20240113"
+    },
+    {
+      "begin_date": "20240112",
+      "end_date": "20240114"
+    },
+    {
+      "begin_date": "20240113",
+      "end_date": "20240115"
+    },
+    {
+      "begin_date": "20240114",
+      "end_date": "20240116"
+    },
+    {
+      "begin_date": "20240115",
+      "end_date": "20240117"
+    },
+    {
+      "begin_date": "20240116",
+      "end_date": "20240118"
+    },
+    {
+      "begin_date": "20240117",
+      "end_date": "20240119"
+    },
+    {
+      "begin_date": "20240118",
+      "end_date": "20240120"
+    },
+    {
+      "begin_date": "20240119",
+      "end_date": "20240121"
+    },
+    {
+      "begin_date": "20240120",
+      "end_date": "20240122"
+    },
+    {
+      "begin_date": "20240121",
+      "end_date": "20240123"
+    },
+    {
+      "begin_date": "20240122",
+      "end_date": "20240124"
+    },
+    {
+      "begin_date": "20240123",
+      "end_date": "20240125"
+    },
+    {
+      "begin_date": "20240124",
+      "end_date": "20240126"
+    },
+    {
+      "begin_date": "20240125",
+      "end_date": "20240127"
+    },
+    {
+      "begin_date": "20240126",
+      "end_date": "20240128"
+    },
+    {
+      "begin_date": "20240127",
+      "end_date": "20240129"
+    },
+    {
+      "begin_date": "20240128",
+      "end_date": "20240130"
+    },
+    {
+      "begin_date": "20240129",
+      "end_date": "20240131"
+    },
+    {
+      "begin_date": "20240130",
+      "end_date": "20240131"
+    },
+    {
+      "begin_date": "20240130",
+      "end_date": "20240131"
+    }
+  ]
+}

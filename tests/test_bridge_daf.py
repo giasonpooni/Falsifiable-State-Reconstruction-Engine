@@ -523,7 +523,8 @@ def test_daf_recomputes_every_committed_id():
     root = Path(os.environ["DAF_ROOT"])
     before = _daf_state(root)
     records = [r for f in MANIFEST["files"] for r in _load(f["output"])]
-    assert verify_ids(records, root) == len(records) == 728
+    expected = sum(f['n_observations'] for f in MANIFEST['files'])
+    assert verify_ids(records, root) == len(records) == expected
     tampered = copy.deepcopy(records[0])
     tampered["content"]["value"] += 0.001
     with pytest.raises(Exception) as exc:
