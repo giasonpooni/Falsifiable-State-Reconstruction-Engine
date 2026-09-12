@@ -253,7 +253,7 @@ WATER_LEVEL_KINDS = {"level_trend", "tide_kf"}   # estimators_water: one series,
 # sees exactly these first components, and a declared constraint's columns must match.
 REPORTED_DIMENSION = {
     "kf": 2, "hold_last": 2, "kf_aug": 2, "kf_closedq": 2, "oracle": 2,   # the two masses
-    "level_trend": 1, "tide_kf": 1,                                       # the water level
+    "level_trend": 1, "tide_kf": 1, "tide_month": 1,                      # the water level
     "wb_closed": 1,        # storage; closure is in the dynamics, so no constraint columns
     "wb_open": 2,          # storage and cumulative gauged inflow: A = [1, -1]
     "wb_aug": 3,           # ... and the cumulative ungauged term: A = [1, -1, -1]

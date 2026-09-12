@@ -73,13 +73,22 @@ from ..schema import Observation
 
 # Degrees per mean solar hour (Schureman 1958, SP 98); see the module docstring.
 CONSTITUENT_SPEED_DEG_PER_HOUR: dict[str, float] = {
-    "M2": 28.9841042,
-    "K1": 15.0410686,
-    "O1": 13.9430356,
-    "M4": 57.9682084,
+    "M2": 28.9841042,     # principal lunar semidiurnal
+    "S2": 30.0000000,     # principal solar semidiurnal
+    "N2": 28.4397295,     # larger lunar elliptic semidiurnal
+    "K1": 15.0410686,     # lunisolar diurnal
+    "O1": 13.9430356,     # lunar diurnal
+    "P1": 14.9589314,     # solar diurnal -- NOT modelled anywhere; see MONTH_CONSTITUENTS
+    "M4": 57.9682084,     # shallow-water overtide of M2
 }
+# What one DAY can support: S2 and N2 are absorbed into M2 over 24 hours, so modelling them
+# separately there would be fitting noise with a name on it.
 TIDE_CONSTITUENTS: tuple[str, ...] = ("M2", "K1", "O1", "M4")
-# Not modelled: the two semidiurnal constituents one day cannot separate from M2 (same source).
+# What a MONTH can support (Rayleigh): S2 separates from M2 over 14.8 days and N2 over 27.6,
+# and K1 from O1 over 13.7 -- all inside 31 days. P1 is still absorbed into K1, which needs
+# 182.6 days, so it stays unmodelled and the month report says so rather than pretending.
+MONTH_CONSTITUENTS: tuple[str, ...] = ("M2", "S2", "N2", "K1", "O1", "M4")
+# Kept as the one-day statement it has always been; every speed now lives in the table above.
 UNRESOLVED_ON_ONE_DAY_DEG_PER_HOUR: dict[str, float] = {"S2": 30.0000000, "N2": 28.4397295}
 CLOCK_TOLERANCE_S = 1e-9
 
@@ -92,6 +101,23 @@ def rayleigh_period_hours(a: str, b: str) -> float:
     """The record length, in hours, over which constituents a and b separate: 360 / |speed_a - speed_b|."""
     speeds = {**CONSTITUENT_SPEED_DEG_PER_HOUR, **UNRESOLVED_ON_ONE_DAY_DEG_PER_HOUR}
     return 360.0 / abs(speeds[a] - speeds[b])
+
+
+def resolvable(constituents, record_hours: float) -> dict:
+    """Which declared pairs a record of this length separates, and which it does not.
+
+    Returned rather than asserted: a report states the criterion and its own record length
+    and lets the pair table say what follows, so a constituent that is NOT resolved cannot
+    be quietly reported as if it were.
+    """
+    names = list(constituents)
+    out = {"record_hours": float(record_hours), "resolved": [], "unresolved": []}
+    for i, a in enumerate(names):
+        for b in names[i + 1:]:
+            need = rayleigh_period_hours(a, b)
+            entry = {"pair": [a, b], "rayleigh_hours": need, "rayleigh_days": need / 24.0}
+            out["resolved" if record_hours >= need else "unresolved"].append(entry)
+    return out
 
 
 def _check_q_scale(q_scale) -> float:
@@ -278,3 +304,25 @@ class TideKF(_SingleSeriesKF):
         h = self._rows[k]
         T = np.vstack([h, np.eye(self.N)])                      # (1 + N, N): level, then the states
         return T @ x, T @ P @ T.T
+
+
+class TideMonthKF(TideKF):
+    """TideKF over the six constituents a MONTH can separate, and nothing more.
+
+    Identical machinery to `tide_kf` -- a random walk on every state, the same Q = q^2 dt I,
+    the same reported transform -- differing only in which constituents are modelled. The
+    one-day filter carries M2, K1, O1, M4 because 24 hours cannot separate S2 or N2 from M2,
+    nor K1 from O1; over 31 days all three of those separations are inside the Rayleigh
+    criterion (14.8, 27.6 and 13.7 days), so they are modelled here.
+
+    What a month still cannot separate, and what is therefore NOT modelled: P1 from K1 needs
+    182.6 days. P1 is absorbed into the K1 coefficients exactly as S2 was absorbed into M2 on
+    one day, and the month report states it rather than reporting K1 as if it were clean.
+    `resolvable()` computes the whole pair table from the record's own length so the report
+    cannot drift from the criterion.
+    """
+
+    model_version = "water-level-harmonic-rw-m2s2n2k1o1m4-v1"
+    constituents = MONTH_CONSTITUENTS
+    aug_names = ("mean_level",) + tuple(f"{c}_{ab}" for c in MONTH_CONSTITUENTS for ab in ("a", "b"))
+    aug_nominal = (None,) * (1 + 2 * len(MONTH_CONSTITUENTS))

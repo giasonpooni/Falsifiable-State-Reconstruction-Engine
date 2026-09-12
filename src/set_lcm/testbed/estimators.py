@@ -66,7 +66,7 @@ import numpy as np
 
 from ..schema import Observation
 from .estimators_balance import WaterBalanceAugmented, WaterBalanceClosed, WaterBalanceOpen
-from .estimators_water import LevelTrendKF, TideKF
+from .estimators_water import LevelTrendKF, TideKF, TideMonthKF
 from .simulator import MODEL_VERSION
 
 B = np.array([-1.0, 1.0])   # commanded transfer moves mass from reservoir 1 to reservoir 2
@@ -432,6 +432,7 @@ ESTIMATORS = {
     # one tide-gauge series, n_report = 1 (the water level); see estimators_water
     "level_trend": LevelTrendKF,
     "tide_kf": TideKF,
+    "tide_month": TideMonthKF,   # six constituents; needs a record of weeks, not a day
     # one reservoir, four gauges; see estimators_balance
     "wb_open": WaterBalanceOpen,
     "wb_aug": WaterBalanceAugmented,
