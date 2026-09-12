@@ -40,8 +40,8 @@ You need [uv](https://docs.astral.sh/uv/getting-started/installation/) and a che
 repository. The project supports Python 3.12 and 3.13; its runtime dependency is NumPy.
 
 ```bash
-git clone https://github.com/giasonpooni/Fluid-State-Reconstruction-Engine.git
-cd Fluid-State-Reconstruction-Engine
+git clone https://github.com/giasonpooni/Fluid-State-Reconstruction-Testbed.git
+cd Fluid-State-Reconstruction-Testbed
 uv run --frozen --python 3.13 python examples/quickstart.py
 ```
 
