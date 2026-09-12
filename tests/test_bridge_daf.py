@@ -301,6 +301,42 @@ def test_identical_re_extraction_is_deduplicated():
     assert all(len(o.evidence_ids) == len(set(o.evidence_ids)) for o in bs.observations)
 
 
+def test_deduplication_compares_whole_contents_not_only_the_fields_the_bridge_reads():
+    """Two records at one grid point with the same value and the same stated uncertainty,
+    whose contents differ in a field the bridge does not read (here DAF's `sigma`), are two
+    observations DAF keeps apart: a conflict, never merged into one reading. (Edited copy of
+    a real record under a new id: DAF never produced it.)"""
+    recs = _load(F_MLLW)
+    other = copy.deepcopy(recs[12])
+    other["content"]["sigma"] = other["content"]["sigma"] + 0.001
+    other["id"] = "edited-copy-" + recs[12]["id"][:16]
+    assert (other["content"]["value"], other["content"]["uncertainty"]) == \
+        (recs[12]["content"]["value"], recs[12]["content"]["uncertainty"])
+    e = _refusal("conflict", recs + [other])
+    assert e.evidence_ids == tuple(sorted((recs[12]["id"], other["id"])))
+    bs = _bridge(recs + [other], conflict_policy="report_and_keep_both")
+    (c,) = bs.provenance["conflicts"]
+    assert c["grid_index"] == 12 and c["differs_in"] == ["sigma"]
+    assert not bs.observations[12].mask[0] and bs.observations[12].evidence_ids == ()
+    assert (bs.provenance["n_used"], bs.provenance["n_deduplicated"], bs.provenance["n_in_conflict"]) == (239, 0, 2)
+    # the SYNTHETIC revision's conflict names the fields that moved
+    syn = _bridge(_load(F_SYN) + _load(F_SYN_REV), series=[SYN], cadence_s=21600,
+                  conflict_policy="report_and_keep_both")
+    assert syn.provenance["conflicts"][0]["differs_in"] == ["sigma", "uncertainty", "value"]
+
+
+def test_one_id_names_one_record_ids_extraction_method_and_content():
+    """The fields DAF's Observation.id is computed from are compared, never re-hashed: one id
+    with the same content but another record_ids is refused."""
+    recs = _load(F_MLLW)
+    again = copy.deepcopy(recs[3])
+    again["record_ids"] = ["0" * 64]
+    assert _refusal("id_reused", recs + [again]).evidence_ids == (recs[3]["id"],)
+    stamped = copy.deepcopy(recs[3])                       # extracted_at and confidence are not identity
+    stamped["extracted_at"], stamped["confidence"] = "2026-09-01T00:00:00Z", 0.5
+    assert _bridge(recs + [stamped]).provenance["n_deduplicated"] == 1
+
+
 # ---------------------------------------------------------------------------
 # arrival
 # ---------------------------------------------------------------------------

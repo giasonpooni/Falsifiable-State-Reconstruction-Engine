@@ -36,6 +36,7 @@ Per file:
 - Binding `daf.orchestration.bindings.noaa_water_level_measurement_binding` (adapter id `noaa-water-level-measurements`, DAF code version `a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8`), plan parameters station=8454000 product=water_level start_date=20240115 end_date=20240115, datum=MLLW units=metric.
 - Adapter request URL (replayed, never sent): `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240115&end_date=20240115&datum=MLLW&units=metric&time_zone=gmt&format=json` -- the `time_zone=gmt` the measurement times are expressed in comes from this URL; DAF's content carries no zone.
 - DAF locator `8454000:water_level:MLLW:metric:20240115:20240115`, version id (Document.id) `3bc9041f042eb48fdddaa04654a503138a9d63e14a2af22836231877a1993723`.
+- NOAA flags in the raw fixture, per reading (DAF's extractor keeps `q`, revision metadata, and `f`, the QC flag vector, out of Observation.content, so no exported observation carries them; counted here as provenance of the raw artifact, read by nothing on the bridging path): q `v` 240; f `0,0,0,0` 240.
 - Output sha256 `f4eafca84c9a34d240a75b58d97540b0ffb009a157b76510dc188450acdd64bc`.
 
 ### `noaa_live_8454000_20240115_stnd.observations.json`
@@ -46,6 +47,7 @@ Per file:
 - Binding `daf.orchestration.bindings.noaa_water_level_measurement_binding` (adapter id `noaa-water-level-measurements`, DAF code version `a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8`), plan parameters station=8454000 product=water_level start_date=20240115 end_date=20240115, datum=STND units=metric.
 - Adapter request URL (replayed, never sent): `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240115&end_date=20240115&datum=STND&units=metric&time_zone=gmt&format=json` -- the `time_zone=gmt` the measurement times are expressed in comes from this URL; DAF's content carries no zone.
 - DAF locator `8454000:water_level:STND:metric:20240115:20240115`, version id (Document.id) `493d8acc0957140a19b6b65abcaf1e0c70f06896c2b4f6d9c463a6c2b496f3a1`.
+- NOAA flags in the raw fixture, per reading (DAF's extractor keeps `q`, revision metadata, and `f`, the QC flag vector, out of Observation.content, so no exported observation carries them; counted here as provenance of the raw artifact, read by nothing on the bridging path): q `v` 240; f `0,0,0,0` 240.
 - Output sha256 `275472ef11df3d15f028fd80ba988d3f5e66f114bcb533b945cb7eedfdf01043`.
 
 ### `noaa_live_8454000_preliminary.observations.json`
@@ -56,6 +58,7 @@ Per file:
 - Binding `daf.orchestration.bindings.noaa_water_level_measurement_binding` (adapter id `noaa-water-level-measurements`, DAF code version `a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8`), plan parameters station=8454000 product=water_level start_date=20260823 end_date=20260823, datum=MLLW units=metric.
 - Adapter request URL (replayed, never sent): `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20260823&end_date=20260823&datum=MLLW&units=metric&time_zone=gmt&format=json` -- the `time_zone=gmt` the measurement times are expressed in comes from this URL; DAF's content carries no zone.
 - DAF locator `8454000:water_level:MLLW:metric:20260823:20260823`, version id (Document.id) `1f28ddecdc6b5177191c729663876892eeee27caabcba7e732dfd12141335a7e`.
+- NOAA flags in the raw fixture, per reading (DAF's extractor keeps `q`, revision metadata, and `f`, the QC flag vector, out of Observation.content, so no exported observation carries them; counted here as provenance of the raw artifact, read by nothing on the bridging path): q `p` 240; f `0,0,0,0` 161, `1,0,0,0` 79.
 - Output sha256 `2654d61c71019bc5731d2f760b1122915190caa98d54650f435d24dcb8161915`.
 
 ### `SYNTHETIC_noaa_window_20260101_20260103.observations.json` -- SYNTHETIC
@@ -66,6 +69,7 @@ Per file:
 - Binding `daf.orchestration.bindings.noaa_water_level_measurement_binding` (adapter id `noaa-water-level-measurements`, DAF code version `a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8`), plan parameters station=9999999 product=water_level start_date=20260101 end_date=20260103, datum=MLLW units=metric.
 - Adapter request URL (replayed, never sent): `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=9999999&begin_date=20260101&end_date=20260103&datum=MLLW&units=metric&time_zone=gmt&format=json` -- the `time_zone=gmt` the measurement times are expressed in comes from this URL; DAF's content carries no zone.
 - DAF locator `9999999:water_level:MLLW:metric:20260101:20260103`, version id (Document.id) `876483a383e0488505717778386fa13a6fa5a7bca5dded9c2bf70516495d21fb`.
+- NOAA flags in the raw fixture, per reading (DAF's extractor keeps `q`, revision metadata, and `f`, the QC flag vector, out of Observation.content, so no exported observation carries them; counted here as provenance of the raw artifact, read by nothing on the bridging path): q `p` 1, `v` 3; f `0,0,0,0` 4.
 - Output sha256 `c2fb682272574e6a092d1cbde6920a24e31d4385d5980de5ea2b27f88ae2427a`.
 
 ### `SYNTHETIC_noaa_window_20260101_20260103_revised.observations.json` -- SYNTHETIC
@@ -76,6 +80,7 @@ Per file:
 - Binding `daf.orchestration.bindings.noaa_water_level_measurement_binding` (adapter id `noaa-water-level-measurements`, DAF code version `a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8`), plan parameters station=9999999 product=water_level start_date=20260101 end_date=20260103, datum=MLLW units=metric.
 - Adapter request URL (replayed, never sent): `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=9999999&begin_date=20260101&end_date=20260103&datum=MLLW&units=metric&time_zone=gmt&format=json` -- the `time_zone=gmt` the measurement times are expressed in comes from this URL; DAF's content carries no zone.
 - DAF locator `9999999:water_level:MLLW:metric:20260101:20260103`, version id (Document.id) `a9f98cba4260ae4f5ac7704d4d4c5b45536de5d105721091385bc41adb09b999`.
+- NOAA flags in the raw fixture, per reading (DAF's extractor keeps `q`, revision metadata, and `f`, the QC flag vector, out of Observation.content, so no exported observation carries them; counted here as provenance of the raw artifact, read by nothing on the bridging path): q `v` 4; f `0,0,0,0` 4.
 - Output sha256 `620983ba63ad6ab8370d22b6a5ccfd7b7c15af7b0db203f53065f60d0d7ceb76`.
 
 ## Licence

@@ -38,13 +38,15 @@ What the caller must declare (keyword-only, no defaults):
                      where absent or naive, or earlier than the measurement). An
                      observation built from several records arrives when the last of them
                      did; one with no reading arrives at its own t.
-    conflict_policy  two records for the same (series, grid point) that disagree -- in
-                     value or in the uncertainty that becomes R -- are a conflict:
-                     "refuse" raises naming every id; "report_and_keep_both" leaves the
-                     point missing (neither value used) and lists the conflict in
-                     provenance. Identical readings (an identical re-extraction, the same
-                     reading in an original and a revised window) are deduplicated with
-                     every id kept.
+    conflict_policy  two records for the same (series, grid point) whose contents differ
+                     in any field -- the value, the uncertainty that becomes R, or any other
+                     field of Observation.content (extracted_at, confidence and the ids are
+                     not content) -- are a conflict: "refuse" raises naming every id;
+                     "report_and_keep_both" leaves the point missing (neither value used,
+                     neither id carried) and lists the conflict, with the content fields
+                     that differ, in provenance. Records with identical content (an
+                     identical re-extraction, the same reading in an original and a revised
+                     window) are deduplicated with every id kept: the reading enters once.
     daf_commit       the DAF commit the records came from (caller-supplied; recorded).
 
 Uncertainty. R_ii = uncertainty**2 where uncertainty_kind == "stated" (NOAA's `s`: the
@@ -68,10 +70,13 @@ R_source per series and a sha256 over the sorted evidence ids used.
 The DAF boundary this respects (docs/DAF_STATE_SPACE_BOUNDARY.md, sections 10-13, 18):
 t is the source event time read out of Observation.content, never retrieved_at or
 extracted_at; extracted_at is read only under "as_acquired", as an arrival clock, never as
-identity or for deduplication; contradictory observations are never averaged and the
-later (revised) one never silently wins -- a revision is not a state transition; nothing
-here needs a RawDocument, an adapter or a DAF type; and DAF's evidence ids are carried as
-provenance (Observation.evidence_ids, read by no estimator), never as model identity.
+identity or for deduplication, which compares whole contents; contradictory observations
+are never averaged, never merged, and the later (revised) one never silently wins -- a
+revision is not a state transition; nothing here needs a RawDocument, an adapter or a DAF
+type; DAF's ids are never recomputed here (verify_ids asks DAF's own code to do that), only
+compared: one id must name one (record_ids, extraction_method, content), the fields DAF's
+Observation.id is computed from; and DAF's evidence ids are carried as provenance
+(Observation.evidence_ids, read by no estimator), never as model identity.
 """
 from __future__ import annotations
 
@@ -188,7 +193,8 @@ class _Reading:
     value: float
     stated_sd: float | None       # the source-stated uncertainty (a standard deviation), or None
     extracted_at: Any
-    idx: int = -1                # grid index, set once the epoch is known
+    content_json: str             # canonical Observation.content: what deduplication compares
+    idx: int = -1                 # grid index, set once the epoch is known
 
 
 # ---------------------------------------------------------------------------
@@ -313,6 +319,10 @@ def _measurement_instant(eid: str, text, tz) -> datetime:
         raise BridgeRefusal("measurement_time", f"record {eid}: measurement_time {text!r}: {exc}", [eid]) from None
 
 
+def _canonical(obj) -> str:
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), default=str)
+
+
 def _reading(eid: str, c: Mapping, col: int, extracted_at, tz) -> _Reading:
     if c.get("property") != PROPERTY:
         raise BridgeRefusal("malformed", f"record {eid} has property {c.get('property')!r}, not {PROPERTY!r}", [eid])
@@ -332,7 +342,7 @@ def _reading(eid: str, c: Mapping, col: int, extracted_at, tz) -> _Reading:
     return _Reading(
         eid=eid, col=col, measurement_time=c.get("measurement_time"),
         instant=_measurement_instant(eid, c.get("measurement_time"), tz), value=float(c["value"]),
-        stated_sd=stated, extracted_at=extracted_at,
+        stated_sd=stated, extracted_at=extracted_at, content_json=_canonical(dict(c)),
     )
 
 
@@ -390,16 +400,20 @@ def bridge(
     source_ids = tuple(series_source_id(k) for k in keys)
 
     # 1. classify: listed series or ignored (and counted). A content-addressed id names one
-    # content wherever it appears -- in one grid point, two, or a group that is ignored.
+    # (record_ids, extraction_method, content) -- the fields DAF computes Observation.id from
+    # -- wherever it appears: in one grid point, two, or a group that is ignored. The id is
+    # compared, never recomputed.
     readings: list[_Reading] = []
     ignored: Counter = Counter()
-    content_of: dict[str, str] = {}
+    identity_of: dict[str, str] = {}
     for r in records:
         eid, c, key = _record_key(r)
-        cj = json.dumps(dict(c), sort_keys=True, separators=(",", ":"), default=str)
-        if content_of.setdefault(eid, cj) != cj:
-            raise BridgeRefusal("id_reused", f"evidence id {eid} carries two different contents; a "
-                                             "content-addressed id cannot", [eid])
+        rids = r.get("record_ids")
+        ident = _canonical({"record_ids": sorted(map(str, rids)) if isinstance(rids, (list, tuple)) else rids,
+                            "extraction_method": r.get("extraction_method"), "content": dict(c)})
+        if identity_of.setdefault(eid, ident) != ident:
+            raise BridgeRefusal("id_reused", f"evidence id {eid} carries two different (record_ids, extraction_method, "
+                                             "content); a content-addressed id cannot", [eid])
         if key not in col_of:
             ignored[key] += 1
             continue
@@ -447,7 +461,10 @@ def bridge(
             f"{_iso(epoch)}: {listing}{' ...' if len(off_grid) > 10 else ''}", [e for e, _, _ in off_grid])
     n_grid = max(rd.idx for rd in readings) + 1
 
-    # 4. one value per (series, grid point): deduplicate identical readings, surface conflicts
+    # 4. one value per (series, grid point): deduplicate records whose Observation.content is
+    # identical, surface every other difference as a conflict. Whole contents are compared --
+    # never stamps, and never only the fields the bridge reads -- so two observations whose
+    # contents DAF keeps apart are never merged into one reading.
     groups: dict[tuple[int, int], list[_Reading]] = defaultdict(list)
     for rd in readings:
         groups[(rd.col, rd.idx)].append(rd)
@@ -455,24 +472,24 @@ def bridge(
     conflicts: list[dict] = []
     n_used = n_dedup = n_conflict = 0
     for (col, idx), rs in sorted(groups.items()):
-        first: dict[str, _Reading] = {}
-        for rd in rs:          # one content per id is already guaranteed (step 1)
-            first.setdefault(rd.eid, rd)
         sd_of = (lambda rd: declared[keys[col]]) if keys[col] in declared else (lambda rd: rd.stated_sd)
-        distinct: dict[tuple[float, float], list[str]] = defaultdict(list)
+        ids = tuple(sorted({rd.eid for rd in rs}))
+        by_content: dict[str, list[_Reading]] = defaultdict(list)
         for rd in rs:
-            distinct[(rd.value, sd_of(rd))].append(rd.eid)
-        ids = tuple(sorted(first))
-        if len(distinct) == 1:
-            ((value, sd),) = distinct.keys()
-            used[(col, idx)] = (value, sd, ids, rs)
+            by_content[rd.content_json].append(rd)
+        if len(by_content) == 1:
+            used[(col, idx)] = (rs[0].value, sd_of(rs[0]), ids, rs)
             n_used += len(rs)
             n_dedup += len(rs) - 1
             continue
+        contents = [json.loads(cj) for cj in by_content]
+        differs = sorted(f for f in set().union(*contents)
+                         if len({_canonical(c.get(f)) for c in contents}) > 1)
         entry = {
             "series": source_ids[col], "grid_index": idx, "measurement_time": rs[0].measurement_time,
             "readings": [{"evidence_id": e, "value": v, "sigma": s}
-                         for (v, s), es in sorted(distinct.items()) for e in sorted(set(es))],
+                         for v, s, e in sorted({(rd.value, sd_of(rd), rd.eid) for rd in rs})],
+            "differs_in": differs,
             "resolution": "point left missing; neither value used",
         }
         if conflict_policy == "refuse":

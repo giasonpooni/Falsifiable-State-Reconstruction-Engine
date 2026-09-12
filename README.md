@@ -86,10 +86,11 @@ committed files (`tests/test_real_noaa.py`).
 `results/` is a verified artifact, not a hand-committed file: the slow test
 `tests/test_results_reproduce.py` regenerates the whole grid and asserts equality with
 the committed `results/summary.json` value for value (latency and the provenance
-stamp excluded). Every results file carries a provenance block — Python and numpy
-versions, platform, a line-ending-independent SHA-256 of the source tree, and git
-HEAD at generation time (the parent of the commit that contains the results) — and
-prints it as the first line of the markdown. Every scenario is
+stamp excluded), and the slow test in `tests/test_calibration_sweep.py` does the same for
+`results/calibration.json` and `results/sweep.json`. Every results file carries a provenance
+block — Python and numpy versions, platform, a line-ending-independent SHA-256 of the source
+tree, and git HEAD at generation time (the parent of the commit that contains the results) —
+and prints it as the first line of the markdown. Every scenario is
 run over 20 seeds (simulation and degradation seeds offset together); tables report
 mean ± sd across seeds and the JSON keeps every per-seed metric. A single seed is a
 realization, not a result: seed 0 of the noisy-valve scenario on its own puts `kf+hard`
@@ -112,9 +113,9 @@ within 8 % of `kf` during the blackout (0.386 vs 0.419 kg, the per-seed entries 
 | `src/set_lcm/testbed/evaluate.py` | RMSE (overall and windowed), 95 % interval coverage, normalised error, error along row(A) and null(A), residuals, correction magnitude, false alarms and censored detection delay for the constraint flag, per sensor for the CUSUM and per parameter for the α / L flags, α error against the hidden pump-rate ratio over pump-on steps, L error against the hidden leak, mean normalised innovation per window, solver failures, latency. The scoring evaluator: it reads the hidden truth after the run; nothing on the estimator side does. |
 | `src/set_lcm/testbed/truth_free.py` | `evaluate_truth_free(run, windows)`: reads nothing but the `RunResult`. Per sensor and window: observed samples, fraction missing, mean / RMS / lag-1 autocorrelation of the normalised innovation z and the fraction with \|z\| > 1.96 (sampling clock), CUSUM alarms and the first alarm step (report clock); where a constraint was declared, flag and status counts, the mean consistency statistic and its per-step exceedance; extra-state flag counts; evidence ids ingested; latency. |
 | `src/set_lcm/bridge/daf.py` | `bridge(records, *, series, time_zone, cadence_s, arrival_policy, conflict_policy, daf_commit, latency_s, declared_sigma)`: serialized DAF per-measurement NOAA observations → `BridgedSeries` (`PublicInputs` on a uniform grid, one `Observation` per grid point with DAF evidence ids, provenance), refusing what it cannot represent (see "DAF bridge"); `load_records` with a strict JSON reader; `verify_ids(records, daf_root)`, the one function that imports DAF, optional. Imports nothing from DAF at runtime. |
-| `tools/export_daf_fixtures.py`, `data/daf/` | Runs DAF's own per-measurement NOAA binding on DAF's committed fixtures (replayed, no network) and writes what DAF admitted with DAF's `observation_to_dict`; `data/daf/PROVENANCE.md` and `manifest.json` record the pins, fixture hashes, binding parameters and command. |
+| `tools/export_daf_fixtures.py`, `data/daf/` | Runs DAF's own per-measurement NOAA binding on DAF's committed fixtures (replayed, no network) and writes what DAF admitted with DAF's `observation_to_dict`; `data/daf/PROVENANCE.md` and `manifest.json` record the pins, fixture hashes, binding parameters and command, and count per fixture NOAA's revision flag `q` and QC flag vector `f` as the raw bytes carry them — fields DAF keeps out of `Observation.content`, recorded as provenance and read by nothing on the bridging path. |
 | `src/set_lcm/experiments/phase1.py` | Where hidden truth is read and routed: `run_spec` hands the runner `PublicInputs.from_truth(truth)` and, through `oracle_inputs_for`, the hidden (u_actual, leak) to the oracle kind and to nothing else; the grid, the sweep and the calibration all run through it. The scenario grid with its per-scenario constraint builder (`ExactTotal` for the first six scenarios, `UncertainTotal` for `closed_uncertain_total`), the eleven estimator specs, multi-seed aggregation and report writer; `run_experiments.py` is a thin CLI over it. |
-| `src/set_lcm/experiments/real_noaa.py` | P4: the three committed NOAA days through the bridge (each file checked against `data/daf/manifest.json`; UTC, 360 s, replay with latency 0, refuse conflicts), both water-level filters through `run()`, `q_scale` fitted by innovation log-likelihood on a declared 13-point grid on 2024-01-15 MLLW only, evaluated on the held-out 2026-08-23 preliminary day and in-sample, R × 10 and × 100 sensitivity, the MLLW / STND datum check, a model-free second-difference check, and `results/real_noaa.{md,json}` with a provenance block (DAF commit, each day's bridge provenance, source hash). Every qualitative sentence of the report is a computed condition (`claims`); if one stops holding the report is not written. |
+| `src/set_lcm/experiments/real_noaa.py` | P4: the three committed NOAA days through the bridge (each file checked against `data/daf/manifest.json`; UTC, 360 s, replay with latency 0, refuse conflicts), both water-level filters through `run()`, `q_scale` fitted by innovation log-likelihood on a declared 13-point grid on 2024-01-15 MLLW only, evaluated on the held-out 2026-08-23 preliminary day and in-sample, R × 10 and × 100 sensitivity, the MLLW / STND datum check, a model-free second-difference check, the manifest's raw `q` / `f` counts per day (reported, never used), and `results/real_noaa.{md,json}` with a provenance block (DAF commit, each day's bridge provenance, source hash). Every qualitative sentence of the report that depends on the data is a computed condition (`claims`); if one stops holding the report is not written. |
 | `src/set_lcm/experiments/provenance.py` | The provenance block every results file carries: interpreter and numpy versions, platform, source-tree SHA-256, git HEAD and a dirty flag. |
 | `src/set_lcm/experiments/calibration.py` | In-loop null of the consistency statistic (mean, tail quantiles, empirical vs nominal exceedance, autocorrelation time), a threshold × debounce sweep of the guard, and the null of the CUSUM channel over the same windows for h ∈ {4, 6, 8, 10}. |
 | `src/set_lcm/experiments/sweep.py` | Fault-magnitude sweep on four axes (declared-total error, sensor bias, leak rate, uncertain declared total with soft λ = 1/σ_b²); `kf_aug` runs on the first and third, `kf_closedq` and `kf+hard+fb+guard` on the first. Two axes also hand the same `b` to specs whose `ConstraintSet` declares `b_var`: `kf+hard(b_var)` and its guard on the uncertain total (b_var = σ_b²), `kf+hard(b_var=0.25)` and its guard on the declared-total error. |
@@ -702,10 +703,10 @@ What this does **not** show:
   explain write the same record; the evaluator names the sensor whose z moves, as the CUSUM
   does, not the cause.
 - **Evidence handling.** The runner carries `evidence_ids` as opaque strings — not checked
-  against any evidence store or resolved. The DAF bridge (next section) deduplicates identical
-  readings and refuses or reports conflicting ones before anything reaches the runner, and
-  `verify_ids` can have DAF recompute the ids; nothing here decides when a revised artifact
-  should change the state.
+  against any evidence store or resolved. The DAF bridge (next section) deduplicates records
+  with identical content and refuses or reports conflicting ones before anything reaches the
+  runner, and `verify_ids` can have DAF recompute the ids; nothing here decides when a revised
+  artifact should change the state.
 - **General estimators.** The runner no longer assumes two sensors or two reported
   components, and a test-only three-sensor estimator exercises that path; at this stage every
   estimator in the tree was the two-reservoir model with `n_report = 2` (P4's water-level
@@ -770,17 +771,23 @@ the evidence ids involved, for anything about the evidence, the zone or the unit
 - *arrival_policy* — `"replay"` with an explicit `latency_s` (arrival_t = t + latency_s), or
   `"as_acquired"`, arrival from each record's `extracted_at` on the same clock, refused where it
   is absent, naive or earlier than the measurement. Which one is recorded.
-- *conflict_policy* — two records for the same (series, grid point) that disagree in value or
-  in the uncertainty that becomes R: `"refuse"` raises naming both ids; `"report_and_keep_both"`
-  leaves the point missing — neither value used, neither id ingested — and lists the conflict.
+- *conflict_policy* — two records for the same (series, grid point) whose `Observation.content`
+  differs in any field — the value, the uncertainty that becomes R, or a field the bridge does not
+  read (DAF's `sigma`, `conditions`, …); stamps, `confidence` and ids are not content:
+  `"refuse"` raises naming both ids; `"report_and_keep_both"` leaves the point missing — neither
+  value used, neither id ingested — and lists the conflict with the content fields that differ.
+  Only records with identical content are deduplicated, so two observations whose contents DAF
+  keeps apart are never merged into one reading, even where their values agree.
   On the SYNTHETIC pair, 2026-01-03 00:00 reads 1.200 (s 0.011) in the original and 1.207
   (s 0.006) in the revision: refused, or left missing with the conflict listed, while the three
   unchanged readings are deduplicated with both ids kept (8 records in, 6 used, 3
   deduplicated, 2 in conflict). The revision never silently wins.
 - Also refused: a record that is not a per-measurement NOAA water-level observation (another
   extraction method, a missing field, a non-finite value), one evidence id carrying two
-  contents (anywhere in the input, listed series or not), a listed series that matched nothing, and a file with a bare NaN / Infinity or a
-  repeated key (the strict reader refuses what DAF's `strict_json_loads` refuses, and more).
+  different (record_ids, extraction_method, content) — the fields DAF computes `Observation.id`
+  from, compared, never re-hashed — anywhere in the input, listed series or not; a listed series
+  that matched nothing; and a file with a bare NaN / Infinity or a repeated key (the strict reader
+  refuses what DAF's `strict_json_loads` refuses, and more).
 
 **What it records.** `BridgedSeries.provenance`: the caller-supplied DAF commit; records in,
 used, ignored (by group), in conflict (n_records_in = n_used + n_ignored + n_in_conflict) and
@@ -799,8 +806,11 @@ without `DAF_ROOT`) and a one-mm edit is caught.
 **The DAF invariants it respects** (DAF's `docs/DAF_STATE_SPACE_BOUNDARY.md`, sections 10–13,
 18). `t` is the source event time read out of `Observation.content`; `retrieved_at` /
 `extracted_at` are never identity — `extracted_at` is read only as the `"as_acquired"` arrival
-clock, and deduplication compares content, never stamps. Contradictory observations coexist
-and are never averaged. The state-space side needs no `RawDocument`, adapter or DAF type.
+clock, and deduplication compares whole contents, never stamps. Contradictory observations are
+never averaged and never merged: under `"refuse"` the bridge builds nothing, under
+`"report_and_keep_both"` both stay listed in provenance and neither enters the record. The bridge
+never recomputes a DAF id (only `verify_ids` does, with DAF's own code). The state-space side
+needs no `RawDocument`, adapter or DAF type.
 Evidence identity is not model identity: DAF's ids ride as provenance that no estimator reads.
 A revised artifact does not imply a state transition: the bridge reports the disagreement and
 leaves the decision with the caller.
@@ -815,6 +825,11 @@ What the bridge does **not** do:
   (next section).
 - **Decide what a revision means.** A disagreeing revision is a conflict for the caller, not an
   update, and nothing chooses between preliminary and verified.
+- **See NOAA's revision or QC flags.** DAF's extractor keeps `q` (preliminary / verified) and the
+  QC flag vector `f` out of `Observation.content` by design, so a bridged reading cannot say
+  whether it is preliminary or flagged. The export tool counts both in the raw fixtures into
+  `data/daf/manifest.json` as provenance: 2024-01-15 (both datums) 240 of 240 `q = v`, `f` all
+  zero; the 2026-08-23 day 240 of 240 `q = p`, 79 with `f = 1,0,0,0`.
 - **Claim NOAA's `s` is the error of the six-minute value.** It is the dispersion of the
   one-second samples behind it (waves included), reported to 1 mm; R = s² is the source's
   statement passed through, and a stated 0.000 becomes R = 0.
@@ -840,10 +855,16 @@ wide (level 0 ± 10 m, rate 0 ± 1e-3 m/s, each coefficient 0 ± 2 m); R is NOAA
 reading; the one free parameter, `q_scale`, is the value on a declared 13-point, half-decade grid
 that maximises the innovation log-likelihood on **2024-01-15 MLLW only**, then held fixed on the
 2026-08-23 preliminary day (held out: a different day, no evidence id in common — tested) and on
-2024-01-15 again (in-sample, labelled so). Nothing about the simulated results changed: `run()`
-gained a keyword-only `est_cfg` and passes the clock to an estimator that asks for it, and a fresh
-grid equals `results/summary.json` value for value (the slow reproduction test), as fresh
-calibration and sweep runs equal `results/calibration.json` and `results/sweep.json`. Numbers below
+2024-01-15 again (in-sample, labelled so). "Held out" is a statement about `q_scale` alone: the
+priors, the two model structures, the q grids and the report's wording were written with every
+committed day in the repository. The prior widths are sized against the largest reading, the
+fastest six-minute change and the widest half-range in `data/daf/`, and the report computes that
+all three fall on 2024-01-15 (2.775 m, 0.083 m per step, 0.9575 m, against the held-out day's
+1.373 m, 0.041 m and 0.4160 m), so the held-out day sets none of them. Nothing about the simulated
+results changed: `run()` gained a keyword-only `est_cfg` and passes the clock to an estimator that
+asks for it, and a fresh grid equals `results/summary.json` value for value (the slow reproduction
+test), as fresh calibration and sweep runs equal `results/calibration.json` and
+`results/sweep.json` (the slow calibration and sweep test). Numbers below
 are from `results/real_noaa.md`, which the fast suite regenerates and compares value for value
 (latency and the generation stamp excluded).
 
@@ -860,12 +881,14 @@ What the numbers show:
   +0.703 / 0.021 / 1 (step 10) and `tide_kf` 631.2 / −0.095 / 0.759 / +0.855 / 0.017 / 1 (step
   109). No reading is missing on either evaluated day (missing fraction 0.000), every run
   ingests the day's 240 evidence ids, and every step's reconciliation status is `skipped`.
-- **The two-state filter predicts both days better** than the nine-state harmonic one by the
-  one-step log-likelihood: 709.5 against 673.3 held out, 690.7 against 631.2 in-sample, each
-  with one fitted parameter.
+- **The two-state filter gives both days' readings a higher one-step predictive
+  log-likelihood** than the nine-state harmonic one: 709.5 against 673.3 held out, 690.7 against
+  631.2 in-sample, each with one fitted parameter. That ranks how well each predicts the next
+  reading, not how close either is to the water.
 - **The datum does not change what the filters say, once the prior is gone — computed, not
-  assumed.** 2024-01-15 on MLLW and on STND differ by 1.064000 m at every step. With the same q
-  and prior, `level_trend`'s innovations agree to 2.8e-05 from the second reading on and to
+  assumed.** 2024-01-15 on MLLW and on STND differ by 1.064000 m at every step and state the same
+  σ at every step (so both runs use the same gains; computed). With the same q and prior,
+  `level_trend`'s innovations agree to 2.8e-05 from the second reading on and to
   2.04e-09 after the first 20 steps, and its level states differ by 1.064000 m; `tide_kf`'s agree
   to 6.52e-03 in z after step 20 (worst at step 28) and its mean-level states differ by
   0.9826–1.0640 m after step 20 and by 1.063968 m at the last step. The first reading splits the
@@ -878,7 +901,8 @@ What the numbers show:
   bound. One day's mean square scatters about its expectation, but under that hypothesis the error
   part's relative sd is only 0.17 and 0.18 (independent Gaussian errors of the stated σ; the
   water–error cross term adds scatter this does not count), far less than those factors.
-- **R × 10 and R × 100 predict worse at the fitted q** on both days for both filters (held out,
+- **R × 10 and R × 100 give the readings a lower predictive log-likelihood at the fitted q** on
+  both days for both filters (held out,
   `level_trend` 709.5 → 584.1 → 400.8, `tide_kf` 673.3 → 575.1 → 398.4), with z RMS falling
   (0.993 → 0.690 → 0.369 for `level_trend` held out) and lag-1 rising (+0.560 → +0.637 → +0.713).
 
@@ -905,8 +929,16 @@ What they do **not** show:
   constraint is declared; the consistency statistic, the guard and the projection — the
   reconciliation this repository is about — have not run on a real record yet.
 - **A tidal analysis.** One day of data cannot separate S2 or N2 from M2 (Rayleigh periods 14.8 and
-  27.6 days) nor K1 from O1 (13.7 days), and M2 sits at the limit against K1 (25.8 h) and O1
-  (23.9 h); `tide_kf`'s coefficients are nuisance states for the next six-minute prediction.
+  27.6 days) nor K1 from O1 (13.7 days), and on the day's 23.90 h record M2 falls short of the
+  criterion even against K1 (25.82 h) and, narrowly, O1 (23.93 h); `tide_kf`'s coefficients are
+  nuisance states for the next six-minute prediction.
+- **That NOAA's QC-flagged readings behave like the rest.** On the held-out day 79 of 240
+  readings carry a QC flag vector `f` with a non-zero entry (`1,0,0,0`) and all 240 are
+  preliminary (`q = p`); on 2024-01-15 none is flagged and all are verified. DAF keeps `q` and `f`
+  out of `Observation.content`, so the bridge, both filters and every number in the report score
+  each reading alike; the counts come from the export manifest and are reported, not used. Whether
+  the held-out day's z tail (|z| > 1.96 on 0.054 of `level_trend`'s steps) sits on the flagged
+  readings is not examined: nothing in the report joins the flags to the innovations.
 - **Generality.** One held-out day, preliminary (q=p), at one station; a day of another range,
   season or weather could order the filters differently. A NOAA revision would arrive as a new DAF
   observation, which the bridge reports or refuses as a conflict; nothing follows it.

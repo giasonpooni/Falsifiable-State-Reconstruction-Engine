@@ -41,8 +41,8 @@ Rayleigh period 360 / |speed difference| hours: S2 (30.0000000 deg/h) from M2 ne
 days and N2 (28.4397295 deg/h) from M2 27.6 days, so one day of data cannot separate S2 or
 N2 from M2 -- both are absorbed into (a_M2, b_M2); K1 from O1 needs 13.7 days, so on one day
 only their sum is resolved and the individual K1 / O1 coefficients are not interpretable;
-even M2 against K1 (25.8 h) and against O1 (23.9 h) sits at the one-day limit
-(rayleigh_period_hours). The coefficients are nuisance states that let the filter predict the
+and M2 against K1 needs 25.82 h and against O1 23.93 h, both longer than the 23.90 h that
+240 six-minute readings span, O1 narrowly (rayleigh_period_hours). The coefficients are nuisance states that let the filter predict the
 next six minutes, not a harmonic analysis; nothing in the tree reads them as constituent
 amplitudes.
 
@@ -52,9 +52,12 @@ declares 0 m with a 10 m std, over three times the largest reading in data/daf (
 the STND datum); the rest from the configs below: rate ~ N(0, (1e-3 m/s)^2), i.e. 3.6 m/h, over
 four times the fastest six-minute change in data/daf (0.083 m in six minutes, 0.83 m/h), and
 each harmonic coefficient ~ N(0, (2 m)^2), twice the half-range of the widest day in data/daf
-(-0.204 to 1.711 m MLLW on 2024-01-15). The only free parameter is q_scale, which has no
-default: it is identified by experiments.real_noaa on a declared window and evaluated on
-another.
+(-0.204 to 1.711 m MLLW on 2024-01-15). All three extremes fall on 2024-01-15 (the fit day
+and its STND copy; experiments.real_noaa recomputes them and says so in its report), so the
+held-out day does not set any prior width -- but it was in data/daf when these widths, the
+two model structures and the q grids were written: "held out" there is a statement about
+q_scale alone. The only free parameter is q_scale, which has no default: it is identified
+by experiments.real_noaa on a declared window and evaluated on another.
 
 Neither filter accepts feedback (set_state raises) and neither has anything to flag: a single
 series declares no constraint, so the reconciliation stage skips every step.

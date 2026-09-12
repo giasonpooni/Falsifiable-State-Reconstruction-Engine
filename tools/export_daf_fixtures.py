@@ -26,9 +26,12 @@ vendored substrate is not at the commit DAF pins.
 
 Outputs (default --out data/daf): one `<name>.observations.json` per fixture -- a JSON
 array of DAF observation dicts, one per line, sorted by (measurement_time, id) -- plus
-manifest.json and PROVENANCE.md. Files prefixed SYNTHETIC_ come from DAF's synthetic
-test fixtures (station 9999999, "NOT A REAL NOAA STATION") and exist only to exercise
-revision conflicts. Re-running against the same DAF commit reproduces every output
+manifest.json and PROVENANCE.md. The manifest also counts, per fixture, NOAA's revision
+flag `q` and QC flag vector `f` as the raw bytes carry them: DAF's extractor keeps both out
+of Observation.content by design (revision and acquisition metadata), so they are recorded
+as provenance of the raw artifact only, and nothing on the bridging path reads them.
+Files prefixed SYNTHETIC_ come from DAF's synthetic test fixtures (station 9999999, "NOT A
+REAL NOAA STATION") and exist only to exercise revision conflicts. Re-running against the same DAF commit reproduces every output
 byte for byte (nothing wall-clock is written).
 """
 from __future__ import annotations
@@ -42,6 +45,7 @@ import platform
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -172,6 +176,9 @@ def _export_one(job: Job, root: Path, d: dict) -> tuple[list[dict], dict]:
     blob = _git(root, "rev-parse", f"HEAD:{job.fixture}")
     raw = _git(root, "cat-file", "blob", blob, binary=True)   # the committed bytes, not the working tree's
     readings = json.loads(raw)["data"]
+    # NOAA's per-reading revision flag q (p / v) and QC flag vector f, which DAF's extractor
+    # deliberately leaves out of Observation.content: counted from the raw bytes, provenance only.
+    raw_flags = {k: dict(sorted(Counter(str(r.get(k)) for r in readings).items())) for k in ("q", "f")}
     seen: list[str] = []
 
     def replay(url: str) -> bytes:
@@ -233,6 +240,7 @@ def _export_one(job: Job, root: Path, d: dict) -> tuple[list[dict], dict]:
         "source_fixture_git_blob": blob,
         "n_readings": len(readings),
         "n_observations": len(dicts),
+        "raw_flag_counts": raw_flags,
         "request_url": seen[0],
         "binding": {"factory": "daf.orchestration.bindings.noaa_water_level_measurement_binding",
                     "adapter_id": binding.adapter_id, "version": binding.version,
@@ -315,6 +323,11 @@ def _provenance_md(man: dict) -> str:
             f"- Adapter request URL (replayed, never sent): `{f['request_url']}` -- the `time_zone={b['time_zone']}` "
             "the measurement times are expressed in comes from this URL; DAF's content carries no zone.",
             f"- DAF locator `{f['daf_locator']}`, version id (Document.id) `{f['daf_version_id']}`.",
+            "- NOAA flags in the raw fixture, per reading (DAF's extractor keeps `q`, revision metadata, and "
+            "`f`, the QC flag vector, out of Observation.content, so no exported observation carries them; "
+            "counted here as provenance of the raw artifact, read by nothing on the bridging path): q "
+            + ", ".join(f"`{k}` {v}" for k, v in f["raw_flag_counts"]["q"].items()) + "; f "
+            + ", ".join(f"`{k}` {v}" for k, v in f["raw_flag_counts"]["f"].items()) + ".",
             f"- Output sha256 `{f['output_sha256']}`.",
             "",
         ]

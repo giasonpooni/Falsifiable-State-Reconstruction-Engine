@@ -5,8 +5,8 @@
       "numpy": "2.5.3",
       "platform": "Windows-11-10.0.26200-SP0",
       "machine": "AMD64",
-      "source_sha256": "7868d7aac188e799ee38d70f48b0f18ea23ffa7cd1e4992ed68b5a9613bb95c4",
-      "git_head": "4ba76898b3b3f62026bad5a9bc9ebf9d07ab4778",
+      "source_sha256": "50c2c46529ce19dfedb4f6bfb409ecfb15607f3b10d34723031c569829a61b3f",
+      "git_head": "9719e5cbcb618e9562e88c91f5de5cf1ab19b366",
       "source_dirty": true,
       "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
     },
@@ -276,10 +276,24 @@
         "null_expected_mean_square": 0.00066440756302521,
         "null_rel_sd_mean_square": 0.17472284180953276
       },
+      "series_extremes": {
+        "max_abs_reading": 1.711,
+        "max_abs_step_change": 0.08299999999999999,
+        "half_range": 0.9575
+      },
+      "record_hours": 23.9,
       "file_sha256": "f4eafca84c9a34d240a75b58d97540b0ffb009a157b76510dc188450acdd64bc",
       "daf_version_id": "3bc9041f042eb48fdddaa04654a503138a9d63e14a2af22836231877a1993723",
       "request_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240115&end_date=20240115&datum=MLLW&units=metric&time_zone=gmt&format=json",
-      "note": "Real NOAA CO-OPS response, station 8454000 (Providence, RI), 2024-01-15, verified (q=v), recorded verbatim from the live API by DAF (docs/PHASE_17_LIVE_SCIENTIFIC_OBSERVATION.md, section 7: datum=MLLW units=metric time_zone=gmt)."
+      "note": "Real NOAA CO-OPS response, station 8454000 (Providence, RI), 2024-01-15, verified (q=v), recorded verbatim from the live API by DAF (docs/PHASE_17_LIVE_SCIENTIFIC_OBSERVATION.md, section 7: datum=MLLW units=metric time_zone=gmt).",
+      "raw_flag_counts": {
+        "f": {
+          "0,0,0,0": 240
+        },
+        "q": {
+          "v": 240
+        }
+      }
     },
     "held_out": {
       "label": "2026-08-23 MLLW (preliminary)",
@@ -304,10 +318,25 @@
         "null_expected_mean_square": 0.00027931092436974785,
         "null_rel_sd_mean_square": 0.17888166435086048
       },
+      "series_extremes": {
+        "max_abs_reading": 1.373,
+        "max_abs_step_change": 0.041000000000000036,
+        "half_range": 0.416
+      },
+      "record_hours": 23.9,
       "file_sha256": "2654d61c71019bc5731d2f760b1122915190caa98d54650f435d24dcb8161915",
       "daf_version_id": "1f28ddecdc6b5177191c729663876892eeee27caabcba7e732dfd12141335a7e",
       "request_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20260823&end_date=20260823&datum=MLLW&units=metric&time_zone=gmt&format=json",
-      "note": "Real NOAA CO-OPS response, station 8454000, 2026-08-23, preliminary (q=p). DAF does not record this recording's request; the readings' own timestamps fix the day, and MLLW/metric is the binding's default and the datum DAF's own test extracts this fixture with (tests/test_live_scientific_observation.py, _extract)."
+      "note": "Real NOAA CO-OPS response, station 8454000, 2026-08-23, preliminary (q=p). DAF does not record this recording's request; the readings' own timestamps fix the day, and MLLW/metric is the binding's default and the datum DAF's own test extracts this fixture with (tests/test_live_scientific_observation.py, _extract).",
+      "raw_flag_counts": {
+        "f": {
+          "0,0,0,0": 161,
+          "1,0,0,0": 79
+        },
+        "q": {
+          "p": 240
+        }
+      }
     },
     "stnd": {
       "label": "2024-01-15 STND",
@@ -323,10 +352,24 @@
       "n_grid": 240,
       "evidence_ids_sha256": "772c3d2f7e603501a0adbd707b7b8728abbcd7171564d5c1f927cd10925de473",
       "series_check": null,
+      "series_extremes": {
+        "max_abs_reading": 2.775,
+        "max_abs_step_change": 0.08299999999999996,
+        "half_range": 0.9575
+      },
+      "record_hours": 23.9,
       "file_sha256": "275472ef11df3d15f028fd80ba988d3f5e66f114bcb533b945cb7eedfdf01043",
       "daf_version_id": "493d8acc0957140a19b6b65abcaf1e0c70f06896c2b4f6d9c463a6c2b496f3a1",
       "request_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240115&end_date=20240115&datum=STND&units=metric&time_zone=gmt&format=json",
-      "note": "Real NOAA CO-OPS response, same station and day on the STND datum (DAF Phase R's datum case, docs/PHASE_18_NOAA_ARTIFACT_IDENTITY.md): a different physical quantity, never pooled with MLLW."
+      "note": "Real NOAA CO-OPS response, same station and day on the STND datum (DAF Phase R's datum case, docs/PHASE_18_NOAA_ARTIFACT_IDENTITY.md): a different physical quantity, never pooled with MLLW.",
+      "raw_flag_counts": {
+        "f": {
+          "0,0,0,0": 240
+        },
+        "q": {
+          "v": 240
+        }
+      }
     }
   },
   "fit": {
@@ -486,8 +529,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 72.7999722585082,
-          "latency_us_p99": 131.5129990689456
+          "latency_us_p50": 61.80000491440296,
+          "latency_us_p99": 75.9739964269101
         },
         "R x10": {
           "q_scale": 1e-06,
@@ -508,8 +551,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 72.40002742037177,
-          "latency_us_p99": 184.7300096414983
+          "latency_us_p50": 62.000006437301636,
+          "latency_us_p99": 81.49303845129906
         },
         "R x100": {
           "q_scale": 1e-06,
@@ -530,8 +573,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 68.54993989691138,
-          "latency_us_p99": 100.63404217362375
+          "latency_us_p50": 58.49997978657484,
+          "latency_us_p99": 116.87400401569899
         }
       },
       "held_out": {
@@ -554,8 +597,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 72.09996692836285,
-          "latency_us_p99": 179.60601602680958
+          "latency_us_p50": 63.30001633614302,
+          "latency_us_p99": 85.58606961742039
         },
         "R x10": {
           "q_scale": 1e-06,
@@ -576,8 +619,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 66.90004374831915,
-          "latency_us_p99": 126.33595964871334
+          "latency_us_p50": 65.00002928078175,
+          "latency_us_p99": 85.93202685005961
         },
         "R x100": {
           "q_scale": 1e-06,
@@ -598,8 +641,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 67.50004831701517,
-          "latency_us_p99": 116.8609585147351
+          "latency_us_p50": 64.99997107312083,
+          "latency_us_p99": 80.59303159825502
         }
       }
     },
@@ -624,8 +667,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 100.65000969916582,
-          "latency_us_p99": 173.3279682230202
+          "latency_us_p50": 95.5999712459743,
+          "latency_us_p99": 165.71509768255052
         },
         "R x10": {
           "q_scale": 0.00031622776601683794,
@@ -646,8 +689,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 93.59995601698756,
-          "latency_us_p99": 168.60697767697246
+          "latency_us_p50": 96.29991836845875,
+          "latency_us_p99": 158.60904357396043
         },
         "R x100": {
           "q_scale": 0.00031622776601683794,
@@ -668,8 +711,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 94.54990504309535,
-          "latency_us_p99": 220.70597973652178
+          "latency_us_p50": 94.90002412348986,
+          "latency_us_p99": 152.5080425199121
         }
       },
       "held_out": {
@@ -692,8 +735,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 94.15001841261983,
-          "latency_us_p99": 170.9640666376796
+          "latency_us_p50": 95.90003173798323,
+          "latency_us_p99": 124.20994346030054
         },
         "R x10": {
           "q_scale": 0.00031622776601683794,
@@ -714,8 +757,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 101.19995567947626,
-          "latency_us_p99": 194.55794245004614
+          "latency_us_p50": 95.80003097653389,
+          "latency_us_p99": 160.62701353803274
         },
         "R x100": {
           "q_scale": 0.00031622776601683794,
@@ -736,8 +779,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 103.05002797394991,
-          "latency_us_p99": 194.79708629660297
+          "latency_us_p50": 94.60002183914185,
+          "latency_us_p99": 135.05402603186664
         }
       }
     }
@@ -757,7 +800,8 @@
       "offset_max_after_burn_in": 1.0640000000010301,
       "reported_level_offset_final": 1.0639999999999998,
       "data_offset_min": 1.0639999999999998,
-      "data_offset_max": 1.0640000000000003
+      "data_offset_max": 1.0640000000000003,
+      "stated_R_identical": true
     },
     "tide_kf": {
       "q_scale": 0.00031622776601683794,
@@ -773,7 +817,8 @@
       "offset_max_after_burn_in": 1.063967604902699,
       "reported_level_offset_final": 1.063999801412803,
       "data_offset_min": 1.0639999999999998,
-      "data_offset_max": 1.0640000000000003
+      "data_offset_max": 1.0640000000000003,
+      "stated_R_identical": true
     }
   },
   "claims": {
@@ -789,6 +834,11 @@
     "tide_kf_datum_offset_absorbed_slowly": true,
     "data_offset_constant": true,
     "level_trend_predicts_both_days_better": true,
-    "tide_one_day_limits": true
+    "tide_one_day_limits": true,
+    "m2_short_of_k1_and_o1_on_the_record": true,
+    "datum_runs_share_stated_R": true,
+    "held_out_preliminary_fit_verified": true,
+    "held_out_has_qc_flagged_readings_fit_day_none": true,
+    "prior_width_extremes_on_2024_01_15": true
   }
 }

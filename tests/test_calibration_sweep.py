@@ -78,8 +78,26 @@ def test_sweep_uncertain_total_declares_b_var_on_the_constraint_set():
 
 
 @pytest.mark.slow
-def test_full_calibration_and_sweep_write_files(tmp_path):
+def test_full_calibration_and_sweep_reproduce_the_committed_files(tmp_path):
+    """Full-size calibration and sweep, compared with the committed results/calibration.json
+    and results/sweep.json value for value, with only the provenance stamp and the latency
+    columns excluded (as tests/test_results_reproduce.py does for the grid)."""
+    import json
+
+    from set_lcm.experiments.provenance import REPO_ROOT
+
+    def strip(o):
+        if isinstance(o, dict):
+            return {k: strip(v) for k, v in o.items() if k != "provenance" and not k.startswith("latency_us")}
+        if isinstance(o, list):
+            return [strip(v) for v in o]
+        return o
+
     calibration.main(tmp_path, quiet=True)
     sweep.main(tmp_path, quiet=True)
     for name in ("calibration.md", "calibration.json", "sweep.md", "sweep.json"):
         assert (tmp_path / name).exists()
+    for name in ("calibration.json", "sweep.json"):
+        fresh = json.loads((tmp_path / name).read_text(encoding="utf-8"))
+        committed = json.loads((REPO_ROOT / "results" / name).read_text(encoding="utf-8"))
+        assert strip(fresh) == strip(committed), f"results/{name} does not match a fresh run of the source tree"

@@ -28,6 +28,14 @@
       "note": "Real NOAA CO-OPS response, station 8454000 (Providence, RI), 2024-01-15, verified (q=v), recorded verbatim from the live API by DAF (docs/PHASE_17_LIVE_SCIENTIFIC_OBSERVATION.md, section 7: datum=MLLW units=metric time_zone=gmt).",
       "output": "noaa_live_8454000_20240115_mllw.observations.json",
       "output_sha256": "f4eafca84c9a34d240a75b58d97540b0ffb009a157b76510dc188450acdd64bc",
+      "raw_flag_counts": {
+        "f": {
+          "0,0,0,0": 240
+        },
+        "q": {
+          "v": 240
+        }
+      },
       "request_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240115&end_date=20240115&datum=MLLW&units=metric&time_zone=gmt&format=json",
       "requested_at": "2026-08-25T00:00:00Z",
       "source_fixture": "tests/fixtures/noaa_live_8454000_20240115_mllw.json",
@@ -59,6 +67,14 @@
       "note": "Real NOAA CO-OPS response, same station and day on the STND datum (DAF Phase R's datum case, docs/PHASE_18_NOAA_ARTIFACT_IDENTITY.md): a different physical quantity, never pooled with MLLW.",
       "output": "noaa_live_8454000_20240115_stnd.observations.json",
       "output_sha256": "275472ef11df3d15f028fd80ba988d3f5e66f114bcb533b945cb7eedfdf01043",
+      "raw_flag_counts": {
+        "f": {
+          "0,0,0,0": 240
+        },
+        "q": {
+          "v": 240
+        }
+      },
       "request_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240115&end_date=20240115&datum=STND&units=metric&time_zone=gmt&format=json",
       "requested_at": "2026-08-25T00:00:00Z",
       "source_fixture": "tests/fixtures/noaa_live_8454000_20240115_stnd.json",
@@ -90,6 +106,15 @@
       "note": "Real NOAA CO-OPS response, station 8454000, 2026-08-23, preliminary (q=p). DAF does not record this recording's request; the readings' own timestamps fix the day, and MLLW/metric is the binding's default and the datum DAF's own test extracts this fixture with (tests/test_live_scientific_observation.py, _extract).",
       "output": "noaa_live_8454000_preliminary.observations.json",
       "output_sha256": "2654d61c71019bc5731d2f760b1122915190caa98d54650f435d24dcb8161915",
+      "raw_flag_counts": {
+        "f": {
+          "0,0,0,0": 161,
+          "1,0,0,0": 79
+        },
+        "q": {
+          "p": 240
+        }
+      },
       "request_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20260823&end_date=20260823&datum=MLLW&units=metric&time_zone=gmt&format=json",
       "requested_at": "2026-08-25T00:00:00Z",
       "source_fixture": "tests/fixtures/noaa_live_8454000_preliminary.json",
@@ -121,6 +146,15 @@
       "note": "SYNTHETIC. DAF's hand-written test window (station 9999999, 'SYNTHETIC TEST STATION -- NOT A REAL NOAA STATION'), four readings; requested_at as in DAF's tests/test_noaa_water_level_integration.py.",
       "output": "SYNTHETIC_noaa_window_20260101_20260103.observations.json",
       "output_sha256": "c2fb682272574e6a092d1cbde6920a24e31d4385d5980de5ea2b27f88ae2427a",
+      "raw_flag_counts": {
+        "f": {
+          "0,0,0,0": 4
+        },
+        "q": {
+          "p": 1,
+          "v": 3
+        }
+      },
       "request_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=9999999&begin_date=20260101&end_date=20260103&datum=MLLW&units=metric&time_zone=gmt&format=json",
       "requested_at": "2026-08-25T00:00:00Z",
       "source_fixture": "tests/fixtures/noaa_window_synthetic_20260101_20260103.json",
@@ -152,6 +186,14 @@
       "note": "SYNTHETIC. The same window re-fetched after a (synthetic) QC revision: the 2026-01-03 00:00 reading moves from 1.200 (s 0.011, q=p) to 1.207 (s 0.006, q=v); the other three are unchanged. requested_at a day later, as in DAF's integration test.",
       "output": "SYNTHETIC_noaa_window_20260101_20260103_revised.observations.json",
       "output_sha256": "620983ba63ad6ab8370d22b6a5ccfd7b7c15af7b0db203f53065f60d0d7ceb76",
+      "raw_flag_counts": {
+        "f": {
+          "0,0,0,0": 4
+        },
+        "q": {
+          "v": 4
+        }
+      },
       "request_url": "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=9999999&begin_date=20260101&end_date=20260103&datum=MLLW&units=metric&time_zone=gmt&format=json",
       "requested_at": "2026-08-26T00:00:00Z",
       "source_fixture": "tests/fixtures/noaa_window_synthetic_20260101_20260103_revised.json",

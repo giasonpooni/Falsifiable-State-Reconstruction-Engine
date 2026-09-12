@@ -12,7 +12,9 @@ simulated ones do -- one sensor, n_report = 1 (the water level), no constraint d
     tide_kf       [mean level, (a, b) for M2, K1, O1, M4], random walk on every state,
                   q_scale in m s^-1/2
 
-Declared, not fitted, and not changed after the first run of this report:
+Declared, not fitted (but written with every committed day in the repository, the held-out
+one included: "held out" below is a statement about q_scale alone, and the report prints the
+extremes the prior widths are sized against, all on the fit day):
 
     priors        level / mean level ~ N(0 m, (10 m)^2); rate ~ N(0, (1e-3 m/s)^2);
                   every harmonic coefficient ~ N(0, (2 m)^2)          (estimators_water)
@@ -223,6 +225,8 @@ def datum_check(kind: str, q_scale: float, bs_mllw: BridgedSeries, bs_stnd: Brid
     dz = np.abs(rm.innov_z[:, 0] - rs.innov_z[:, 0])
     off = _level_state(kind, rs) - _level_state(kind, rm)
     y_off = np.array([o.y[0] for o in bs_stnd.observations]) - np.array([o.y[0] for o in bs_mllw.observations])
+    r_m = np.array([float(o.R[0, 0]) for o in bs_mllw.observations])
+    r_s = np.array([float(o.R[0, 0]) for o in bs_stnd.observations])
     late = dz[BURN_IN:]
     return {
         "q_scale": q_scale,
@@ -239,7 +243,17 @@ def datum_check(kind: str, q_scale: float, bs_mllw: BridgedSeries, bs_stnd: Brid
         "reported_level_offset_final": float(rs.x[-1, 0] - rm.x[-1, 0]),
         "data_offset_min": float(y_off.min()),
         "data_offset_max": float(y_off.max()),
+        # the linearity argument (same gains in both runs) needs the same stated sigma at every step
+        "stated_R_identical": bool(np.array_equal(r_m, r_s)),
     }
+
+
+def series_extremes(bs: BridgedSeries) -> dict:
+    """What testbed.estimators_water sizes its declared prior widths against: the largest
+    reading, the fastest six-minute change and the half-range of the day."""
+    y = np.array([o.y[0] for o in bs.observations if o.mask[0]])
+    return {"max_abs_reading": float(np.max(np.abs(y))), "max_abs_step_change": float(np.max(np.abs(np.diff(y)))),
+            "half_range": float((y.max() - y.min()) / 2.0)}
 
 
 def series_check(bs: BridgedSeries) -> dict:
@@ -303,8 +317,14 @@ def compute() -> dict:
             "first_grid_point": start, "last_grid_point": end, "n_grid": bs[d.key].provenance["n_grid"],
             "evidence_ids_sha256": bs[d.key].provenance["evidence_ids_sha256"],
             "series_check": series_check(bs[d.key]) if d is not DATUM else None,
+            "series_extremes": series_extremes(bs[d.key]),
+            "record_hours": float(bs[d.key].inputs.t[-1] - bs[d.key].inputs.t[0]) / 3600.0,
             "file_sha256": entry["output_sha256"], "daf_version_id": entry["daf_version_id"],
             "request_url": entry["request_url"], "note": entry["note"],
+            # NOAA's revision flag q and QC flag vector f, counted from the raw fixture by the export
+            # tool (data/daf/manifest.json): DAF keeps both out of Observation.content, so nothing on the
+            # estimation path sees them; reported here, never used.
+            "raw_flag_counts": entry["raw_flag_counts"],
         }
     out = {
         "provenance": {
@@ -380,11 +400,29 @@ def claims(r: dict) -> dict:
         "level_trend_predicts_both_days_better": all(
             r["runs"]["level_trend"][d]["R x1"]["loglik"] > r["runs"]["tide_kf"][d]["R x1"]["loglik"]
             for d in (FIT.key, HELD_OUT.key)),
-        "tide_one_day_limits": (r["declared"]["rayleigh_period_hours"]["S2-M2"] > 24.0
-                                and r["declared"]["rayleigh_period_hours"]["N2-M2"] > 24.0
-                                and r["declared"]["rayleigh_period_hours"]["K1-O1"] > 24.0),
+        "tide_one_day_limits": all(r["declared"]["rayleigh_period_hours"][pair] > r["days"][d]["record_hours"]
+                                   for pair in ("S2-M2", "N2-M2", "K1-O1") for d in (FIT.key, HELD_OUT.key)),
+        "m2_short_of_k1_and_o1_on_the_record": all(
+            r["declared"]["rayleigh_period_hours"][pair] > r["days"][d]["record_hours"]
+            for pair in ("M2-K1", "M2-O1") for d in (FIT.key, HELD_OUT.key)),
+        "datum_runs_share_stated_R": all(r["datum_invariance"][k]["stated_R_identical"] for k in KINDS),
+        "held_out_preliminary_fit_verified": (
+            r["days"][HELD_OUT.key]["raw_flag_counts"]["q"] == {"p": r["days"][HELD_OUT.key]["n_grid"]}
+            and r["days"][FIT.key]["raw_flag_counts"]["q"] == {"v": r["days"][FIT.key]["n_grid"]}),
+        "held_out_has_qc_flagged_readings_fit_day_none": (
+            r["days"][HELD_OUT.key]["raw_flag_counts"]["f"].get("0,0,0,0", 0) < r["days"][HELD_OUT.key]["n_grid"]
+            and r["days"][FIT.key]["raw_flag_counts"]["f"] == {"0,0,0,0": r["days"][FIT.key]["n_grid"]}),
+        "prior_width_extremes_on_2024_01_15": all(
+            max(r["days"][d.key]["series_extremes"][m] for d in (FIT, DATUM))
+            >= r["days"][HELD_OUT.key]["series_extremes"][m]
+            for m in ("max_abs_reading", "max_abs_step_change", "half_range")),
     }
     return c
+
+
+def _flagged(counts: dict) -> int:
+    """Readings whose NOAA QC flag vector f has any non-zero entry."""
+    return sum(n for f, n in counts.items() if any(x.strip() not in ("0", "") for x in f.split(",")))
 
 
 def _alarms(p: dict) -> str:
@@ -451,7 +489,18 @@ def render(r: dict) -> str:
           + "; ".join(f"`{k}` {r['declared']['q_grids'][k][0]:.0e} … {r['declared']['q_grids'][k][-1]:.0e} "
                       f"{r['declared']['q_units'][k]}" for k in KINDS) + ".",
           f"- Evaluation: the held-out {held['label']} day (a different day, no evidence id in common) and "
-          f"{fit['label']} again, labelled in-sample.", ""]
+          f"{fit['label']} again, labelled in-sample.",
+          "- Held out means q_scale only. The prior widths are sized (`testbed/estimators_water.py`) against the "
+          "largest reading, the fastest six-minute change and the widest half-range in `data/daf/`, all on "
+          + (lambda e: f"2024-01-15 ({e['max_abs_reading']:.3f} m, {e['max_abs_step_change']:.3f} m per step, "
+                       f"{e['half_range']:.4f} m)")(
+              {m: max(r["days"][d.key]["series_extremes"][m] for d in (FIT, DATUM))
+               for m in ("max_abs_reading", "max_abs_step_change", "half_range")})
+          + f" against the held-out day's {r['days'][HELD_OUT.key]['series_extremes']['max_abs_reading']:.3f} m, "
+          f"{r['days'][HELD_OUT.key]['series_extremes']['max_abs_step_change']:.3f} m and "
+          f"{r['days'][HELD_OUT.key]['series_extremes']['half_range']:.4f} m, so the held-out day sets none of them; "
+          "but it was in the repository when the priors, the two model structures, the q grids and this report's "
+          "wording were written.", ""]
     L += ["## Identification on 2024-01-15 MLLW", "",
           "| i | level_trend q [m s^-3/2] | log-lik | tide_kf q [m s^-1/2] | log-lik |", "|---|---|---|---|---|"]
     for i in range(len(Q_GRIDS["level_trend"])):
@@ -498,7 +547,8 @@ def render(r: dict) -> str:
                  f"{x['max_abs_dz_all_steps']:.4f} | {x['offset_final']:.6f} | {x['offset_min_after_burn_in']:.4f} – "
                  f"{x['offset_max_after_burn_in']:.4f} | {x['data_offset_min']:.6f} – {x['data_offset_max']:.6f} |")
     dl, dt = r["datum_invariance"]["level_trend"], r["datum_invariance"]["tide_kf"]
-    L += ["", "By linearity, the STND − MLLW difference between the two runs is the filter's own response to a "
+    L += ["", "By linearity — the two files state the same σ at every step, so both runs use the same gains — the "
+          "STND − MLLW difference between the two runs is the filter's own response to a "
           "constant offset read from a prior mean of 0; both models represent a constant exactly (level or mean level "
           "equal to it, every other state 0), so the difference tends to it, and the table measures how fast. "
           f"`level_trend` absorbs it at the first reading (its 10 m prior std dwarfs √R): its innovations agree to "
@@ -556,8 +606,8 @@ def render(r: dict) -> str:
           "- **R and Q are not separated here, and one gauge cannot separate them without trusting the model.** "
           "Only q is fitted; R is held at "
           "σ², so the fitted q absorbs whatever σ² does not explain. At the fitted q the log-likelihood falls when R "
-          "is scaled by 10 and by 100 on both days and for both filters: those alternatives predict worse *at this "
-          "q*, which does not make σ² right. A joint fit would split the variance only through the model's own "
+          "is scaled by 10 and by 100 on both days and for both filters: those alternatives give the readings a lower "
+          "one-step predictive likelihood *at this q*, which does not make σ² right. A joint fit would split the variance only through the model's own "
           "assumptions (a white measurement error, these dynamics); telling sensor error from unmodelled water "
           "motion needs an independent measurement of the same water surface, which one gauge does not provide.",
           f"- **The CUSUM alarms cannot be classified.** `level_trend`: {_alarm_phrase(r, FIT.key, lt_f)} on "
@@ -574,15 +624,26 @@ def render(r: dict) -> str:
           "records.",
           "- **The harmonic coefficients are not a tidal analysis.** One day of data cannot separate S2 or N2 from "
           f"M2 (Rayleigh periods {rp['S2-M2'] / 24:.1f} and {rp['N2-M2'] / 24:.1f} days), nor K1 from O1 "
-          f"({rp['K1-O1'] / 24:.1f} days), and M2 sits at the limit against K1 ({rp['M2-K1']:.1f} h) and O1 "
-          f"({rp['M2-O1']:.1f} h). The coefficients are nuisance states for the next six-minute prediction; "
-          "nothing reads them as amplitudes.",
-          "- **One held-out day is one day.** By the one-step log-likelihood `level_trend` predicts the held-out "
-          f"day better than `tide_kf` ({lt_h['loglik']:.1f} against {td_h['loglik']:.1f}) and the fit day too "
-          f"({lt_f['loglik']:.1f} against {td_f['loglik']:.1f}); that orders two misspecified filters on two days, "
-          "and a day of another tidal range, season or weather could order them differently. The held-out day is "
-          "preliminary (q=p): a revision by NOAA would arrive as a new DAF observation with a new id, and the "
+          f"({rp['K1-O1'] / 24:.1f} days), and on a record of {fit['record_hours']:.2f} h M2 falls short of the "
+          f"criterion even against K1 ({rp['M2-K1']:.2f} h) and, narrowly, O1 ({rp['M2-O1']:.2f} h). The "
+          "coefficients are nuisance states for the next six-minute prediction; nothing reads them as amplitudes.",
+          "- **One held-out day is one day.** `level_trend` gives the held-out day's readings a higher one-step "
+          f"predictive log-likelihood than `tide_kf` ({lt_h['loglik']:.1f} against {td_h['loglik']:.1f}), and the "
+          f"fit day's too ({lt_f['loglik']:.1f} against {td_f['loglik']:.1f}); that orders two misspecified filters "
+          "by how well they predict the next reading on two days — not by how close either is to the water — and "
+          "a day of another tidal range, season or weather could order them differently. Every reading of the "
+          f"held-out day is preliminary (q = p on {held['raw_flag_counts']['q'].get('p', 0)} of {held['n_grid']}), "
+          f"every reading of the fit day verified (q = v on {fit['raw_flag_counts']['q'].get('v', 0)} of "
+          f"{fit['n_grid']}): a revision by NOAA would arrive as a new DAF observation with a new id, and the "
           "bridge reports or refuses a disagreement, it does not follow it.",
+          f"- **Readings NOAA's own QC flagged are scored like every other.** On the held-out day "
+          f"{_flagged(held['raw_flag_counts']['f'])} of {held['n_grid']} readings carry a QC flag vector f with a "
+          "non-zero entry (" + ", ".join(f"`{k}` {v}" for k, v in held["raw_flag_counts"]["f"].items()) + f"); on "
+          f"{fit['label']} {_flagged(fit['raw_flag_counts']['f'])} do. DAF keeps q and f out of "
+          "Observation.content by design (revision and acquisition metadata), so the bridge, both filters and every "
+          "number above treat each reading alike. These counts come from `data/daf/manifest.json`, where the export "
+          "tool counted them in the raw fixture; they are reported, not used, and what each flag means is NOAA's "
+          "definition, not interpreted here.",
           "- **Nothing here is an error against the water level.** Every number is a property of the record and the "
           "filter together; a filter can be confidently wrong with white, unit-variance innovations if the "
           "evidence is wrong in a way its model explains.", ""]
