@@ -10,7 +10,8 @@ can be traced through estimation and reconciliation to a measured error against
 hidden simulated truth — and, on top of it, the P2 work that answers what the
 Phase 1 review left open: a detector that does not read the constraint, an
 estimator that carries the faults the constraint cannot see, and the baselines
-that would show the constraint row adds nothing. Nothing more.
+that would show the constraint row adds nothing — plus the first P2b item,
+uncertainty declared on the constraint itself (`b_var`). Nothing more.
 
 As built, it is an *evidence-preserving reconciliation stage over a
 state-estimation testbed*. Its lineage is data validation and reconciliation
@@ -67,22 +68,26 @@ within 8 % of `kf` during the blackout (0.386 vs 0.419 kg, the per-seed entries 
 
 | Module | Responsibility |
 |---|---|
-| `src/set_lcm/schema/` | `Observation`; `ConstraintSet` — `A`, `b`, a version and a description, `dof` = rows, `rank` = χ² dof; it carries no uncertainty on `b` (P2b); `StateEstimate` envelope with `Status` (`NOT_CONVERGED` reserved, nothing emits it), unprojected state always retained, correction, residuals pre/post, consistency stat. |
-| `src/set_lcm/lcm/` | Hard (KKT closed form) and soft (penalty) linear-equality projection weighted by `P⁻¹`; feasibility check and reduction of dependent rows; SPD / singularity guards; χ² consistency statistic and the detectability `d(f)` of a fault direction; `reconcile()` that never mutates its input. |
+| `src/set_lcm/schema/` | `Observation`; `ConstraintSet` — `A`, `b`, a version and a description, `dof` = rows, `rank` = χ² dof, and `b_var`, the declared uncertainty of `b`: `None` (the default) declares the set exact, otherwise a `(rows,)` vector of variances or a `(rows, rows)` symmetric PSD covariance Σ_b, validated at construction (wrong shape, a negative or non-finite variance, asymmetry or indefiniteness raise `ValueError`) and stored as a read-only copy; `StateEstimate` envelope with `Status` (`NOT_CONVERGED` reserved, nothing emits it), unprojected state always retained, correction, residuals pre/post, consistency stat. |
+| `src/set_lcm/lcm/` | Hard (KKT closed form) and soft (penalty) linear-equality projection weighted by `P⁻¹`; feasibility check and reduction of dependent rows; SPD / singularity guards; χ² consistency statistic and the detectability `d(f)` of a fault direction; `reconcile()` that never mutates its input. With `b_var` declared, S = A P Aᵀ + Σ_b: the statistic is rᵀS⁻¹r, `d(f)` = fᵀAᵀS⁻¹Af, hard projection is the Kalman update with pseudo-measurement noise Σ_b (Joseph form), soft is hard with Σ_b + (1/λ) I; dependent rows are refused rather than reduced, and only the exact (zero-variance) part of a set can be infeasible. With `b_var = None` the arithmetic is the pre-`b_var` arithmetic. |
 | `src/set_lcm/testbed/simulator.py` | Two-reservoir material transfer. Hidden `m`, hidden leak, hidden actual pump *parameter* rate (`u_actual`: the per-step pump fluctuation is process noise, not part of it); public commanded pump rate and declared initial total. |
 | `src/set_lcm/testbed/degrade.py` | Noise, random dropout, sensor blackout, undeclared bias, quantization (declared into `R`), arrival delay written into `arrival_t`. Seed-controlled. |
 | `src/set_lcm/testbed/estimators.py` | Five estimator kinds behind one `ingest` / `report` interface, each initialised from a *declared* prior and reporting by predicting forward from the last *arrived* observation. `hold_last`. `kf`: linear KF on x = [m1, m2] with a *diagonal* Q, σ_w = 0.05 kg per step (`KFConfig`; closure is the constraint's declared claim, not the filter's). `kf_aug`: x = [m1, m2, α, L] — pump scale and boundary flux as states with their own uncertainty, a time-varying *linear* KF (`AugConfig`: α ~ N(1, 0.1²), L ~ N(0, 0.02²), random walks of 1e-3 (α, dimensionless) and 2e-3 kg/s (L) per step, same σ_w). Two baselines built to remove the case for a constraint row: `kf_closedq`, the KF with closure written into its process noise, Q = σ_q² dt² B Bᵀ + ε I with σ_q = 0.01 kg/s (the simulator's declared pump fluctuation) and ε = 1e-8 (`ClosedQConfig`), and `oracle`, a KF given the *hidden* actual pump parameter rate and leak as known inputs with Q = ε I only (`OracleConfig`) — a bound, never a candidate. Every filter records, per ingested step and sensor, the innovation, its variance and the normalised innovation; hold-last records NaN. `kf` and `kf_closedq` implement `set_state(x, P)` for fed-back projection; `kf_aug` (the mass marginal cannot be replaced without its cross-covariances) and hold-last raise `NotImplementedError`. |
 | `src/set_lcm/testbed/cusum.py` | Per-sensor two-sided CUSUM on the normalised innovation (`CusumConfig(k=0.5, h=8.0)`): the evidence side's own detector, reading no constraint. |
 | `src/set_lcm/testbed/runner.py` | Runs a (scenario, estimator) pair step by step, ingesting observations only once `arrival_t ≤ t_k`. Three detection channels that never talk to each other: the debounced consistency flag (with the optional guard that *holds* projection and reports `MODEL_INCONSISTENT`), the CUSUM on the ingest clock with alarms stamped at the report step of ingestion, and one debounced flag per extra state (\|α̂ − 1\|/σ_α > 3.29, \|L̂\|/σ_L > 3.29, three consecutive reports). Reconciliation always acts on the mass marginal (x[:2], P[:2, :2]); an augmented estimator's extra states go to `RunResult.extra`. `EstimatorSpec.feedback` pushes each applied projection (x*, P*) back into the filter at its own last ingested step, at most once per ingested step. The one place hidden truth crosses to the estimator side is marked here: `truth.u_actual` and `truth.leak` go to the constructor of kind `"oracle"` and to nothing else. |
 | `src/set_lcm/testbed/evaluate.py` | RMSE (overall and windowed), 95 % interval coverage, normalised error, error along row(A) and null(A), residuals, correction magnitude, false alarms and censored detection delay for the constraint flag, per sensor for the CUSUM and per parameter for the α / L flags, α error against the hidden pump-rate ratio over pump-on steps, L error against the hidden leak, mean normalised innovation per window, solver failures, latency. Only reader of truth. |
-| `src/set_lcm/experiments/phase1.py` | The scenario grid, the eleven estimator specs, multi-seed aggregation and report writer; `run_experiments.py` is a thin CLI over it. |
+| `src/set_lcm/experiments/phase1.py` | The scenario grid with its per-scenario constraint builder (`ExactTotal` for the first six scenarios, `UncertainTotal` for `closed_uncertain_total`), the eleven estimator specs, multi-seed aggregation and report writer; `run_experiments.py` is a thin CLI over it. |
 | `src/set_lcm/experiments/provenance.py` | The provenance block every results file carries: interpreter and numpy versions, platform, source-tree SHA-256, git HEAD and a dirty flag. |
 | `src/set_lcm/experiments/calibration.py` | In-loop null of the consistency statistic (mean, tail quantiles, empirical vs nominal exceedance, autocorrelation time), a threshold × debounce sweep of the guard, and the null of the CUSUM channel over the same windows for h ∈ {4, 6, 8, 10}. |
-| `src/set_lcm/experiments/sweep.py` | Fault-magnitude sweep on four axes (declared-total error, sensor bias, leak rate, uncertain declared total with soft λ = 1/σ_b²); `kf_aug` runs on the first and third, `kf_closedq` and `kf+hard+fb+guard` on the first. |
+| `src/set_lcm/experiments/sweep.py` | Fault-magnitude sweep on four axes (declared-total error, sensor bias, leak rate, uncertain declared total with soft λ = 1/σ_b²); `kf_aug` runs on the first and third, `kf_closedq` and `kf+hard+fb+guard` on the first. Two axes also hand the same `b` to specs whose `ConstraintSet` declares `b_var`: `kf+hard(b_var)` and its guard on the uncertain total (b_var = σ_b²), `kf+hard(b_var=0.25)` and its guard on the declared-total error. |
 
 ## Scenarios
 
-All six declare the same constraint, `m1 + m2 = 100 kg`, version `closed-boundary-v1`.
+The first six declare the same exact constraint, `m1 + m2 = 100 kg`, version
+`closed-boundary-v1`, with no uncertainty on `b`. The seventh, `closed_uncertain_total`,
+declares a total that is itself off — `100 kg` plus an offset drawn per seed from
+N(0, 1 kg²) — together with that uncertainty (`b_var = [1.0]`, version
+`closed-boundary-uncertain-v1`); each scenario's constraint comes from its own builder.
 The estimator is initialised from a *declared* prior (mean and std, stated per
 scenario), never from the simulator's state, and it may use an observation only
 once `Observation.arrival_t` has passed.
@@ -95,6 +100,7 @@ once `Observation.arrival_t` has passed.
 | `leak_stale_constraint` | **stale** from step 300 | 10 kg leaks out. Does hard projection make the estimate confidently wrong? Does the guard notice and stop enforcing? |
 | `bias_quant_delay` | true, evidence is not | Sensor 1 gains an undeclared +3 kg bias. Does the guard flag it? Note it cannot tell bias from leak. |
 | `closed_wrong_prior` | true | The declared initial fill is 74/26 kg against a truth of 70/30 (5 kg prior std). Is the wrong prior forgotten from the evidence? (KF: 0.60 kg while settling → 0.23 steady; hold-last stays at ~2.0.) |
+| `closed_uncertain_total` | true *within its declared uncertainty* | `b` is off by N(0, 1 kg²) per seed and says so (`b_var` = 1 kg²). Does hard projection that honours the declaration stay calibrated, and does the guard stay quiet? See "Declared constraint uncertainty (b_var)". |
 
 The grid runs eleven estimator specs on every scenario:
 
@@ -106,7 +112,9 @@ The grid runs eleven estimator specs on every scenario:
   as, a constraint row), and `oracle (bound)` (hidden inputs known; a bound, not a
   candidate).
 
-The `uncertain_total` sweep axis adds `kf+soft(λ = 1/σ_b²)` at each point.
+The `uncertain_total` sweep axis adds `kf+soft(λ = 1/σ_b²)` at each point, and
+`kf+hard(b_var)` and its guard, whose constraint set declares b_var = σ_b²; the
+`declared_total_error` axis adds `kf+hard(b_var=0.25)` and its guard.
 
 ## What a flag means
 
@@ -116,7 +124,9 @@ stated uncertainty is calibrated.* A flag rejects that conjunction. It does not 
 which conjunct failed — a stale constraint, an undeclared sensor bias, a wrong pump
 parameter, and under-modelled process noise all produce flags. Each scenario's
 `fault_onset` is the first step at which the conjunction is false; flags before it are
-false alarms, flags after it are detections.
+false alarms, flags after it are detections. When the constraint declares `b_var`, the
+statistic is rᵀ(A P Aᵀ + Σ_b)⁻¹ r, still χ²(rank A), and "the declared constraint is
+true" reads "b is within its declared uncertainty".
 
 ## What the Phase 1 results do and do not show
 
@@ -195,8 +205,8 @@ nz is the RMS normalised error eᵢ/σᵢ: 1.0 when calibrated, above 1 over-con
   at every σ_b (cov95 0.98–0.99, nz 0.72–0.74) at or below kf's RMSE, while hard
   projection and the guard, which treat the constraint as exact, degrade to
   0.75 / 0.37 / 3.34 and 0.41 / 0.67 / 1.75 at σ_b = 2 kg. An arbitrary λ is not a
-  mode; a declared σ_b is. That the σ_b has to be smuggled in from the sweep side, because
-  `ConstraintSet` cannot carry it, is a P2b item.
+  mode; a declared σ_b is. The σ_b no longer has to be smuggled in from the sweep side:
+  `ConstraintSet` carries it as `b_var` (P2b, "Declared constraint uncertainty (b_var)").
 - **Two truth leaks, now closed.** The estimator used to be initialised from the
   simulator's exact initial mass and delay was passed out of band. It is now
   initialised from a declared prior (`closed_wrong_prior` exercises a wrong one), and
@@ -207,15 +217,16 @@ nz is the RMS normalised error eᵢ/σᵢ: 1.0 when calibrated, above 1 over-con
   `P`, or a singular `A P Aᵀ`, raises instead of yielding `stat = 0.0` with `status =
   ok` (which is what a hard-projected covariance fed back in used to produce).
   Dependent constraint rows are reduced to an independent set and the χ² dof is
-  `rank(A)`, not `rows(A)`.
+  `rank(A)`, not `rows(A)` (for an exact set; with declared `b_var` dependent rows are
+  refused, see P2b).
 - **Not evidence of anything:** "no solver failures" (nothing can emit
   `not_converged`; the closed-form kernel has no iteration to fail, and the first
   producer is a P2b item); the latency column, tagged "(this machine)" — interpreter
   overhead on 2×2 matrices (4×4 for `kf_aug`) on one laptop, and what it counts has
   grown: the kernel guards' eigenvalue and condition checks every step, the per-sensor
   CUSUM update on every ingest, the 4-state predict and update, and the projection
-  itself for the projected variants (`closed_noise` p50: kf 328 µs, kf_aug 353,
-  kf+hard 499); determinism beyond same-process (the reproduction test proves
+  itself for the projected variants (`closed_noise` p50: kf 360 µs, kf_aug 390,
+  kf+hard 546); determinism beyond same-process (the reproduction test proves
   same-build, same-machine reproduction, nothing more); the shipped soft variant at
   1/λ = 4 kg² as a meaningfully different estimator against S ≈ 0.2 kg² — the
   `uncertain_total` sweep is where soft mode earns its place.
@@ -460,29 +471,155 @@ blackout against 1.31 / 0.21 / 2.90) and is still at 0.68 / 0.20 in the steady w
   its `set_state` raises, and the constraint never reads α̂ or L̂; the consistency statistic
   is computed on its marginal and nothing acts on it. Both directions are P2b.
 
+## P2b
+
+The first P2b item is built: the constraint's uncertainty is declared on the
+`ConstraintSet` itself. The others — inequality rows with the first `NOT_CONVERGED`
+producer, and feeding α̂ and L̂ back into the constraint — are still under "Deliberately out
+of scope".
+
+### Declared constraint uncertainty (b_var)
+
+`ConstraintSet.b_var` declares b = A x_true + e with e ~ N(0, Σ_b), as a `(rows,)` vector of
+variances or a `(rows, rows)` PSD covariance; `None` declares the set exact, which is what
+every constraint declared before, and for an exact set the kernel runs the arithmetic it
+ran before, so every result of the six exact scenarios and of the pre-existing sweep specs
+is unchanged value for value. With Σ_b declared and S = A P Aᵀ + Σ_b (kernel tests in
+`tests/test_lcm.py`):
+
+- **consistency** is rᵀS⁻¹r, χ²(rank A) under a joint hypothesis that now includes "b is
+  within its declared uncertainty" (20,000 i.i.d. draws with b ~ N(b_true, Σ_b): mean ≈ 1,
+  ≈ 0.1 % beyond χ²₁(0.999));
+- **detectability** is d(f) = fᵀAᵀS⁻¹Af, which shrinks as Σ_b grows; null(A) stays at
+  exactly 0;
+- **hard** is the Kalman update with pseudo-measurement noise Σ_b: K = P Aᵀ S⁻¹,
+  x* = x − K r, P* = (I − K A) P (I − K A)ᵀ + K Σ_b Kᵀ. Σ_b = 0 gives the exact projection to
+  1e-12; Σ_b > 0 leaves a residual and a positive-definite P*;
+- **soft** is hard with Σ_b + (1/λ) I, an undeclared slack on top of the declared
+  uncertainty. On an exact set soft(λ) equals hard with b_var = (1/λ) I to 1e-12 (λ up to
+  100; at λ = 1e4 the penalised form itself loses ~1e-10 to its conditioning): soft mode was
+  always a pseudo-measurement with an undeclared variance, and `b_var` is where that
+  variance belongs;
+- **dependent rows** with `b_var` are refused (`ValueError`), not reduced: the SVD reduction
+  keeps U_rᵀb and drops U_⊥ᵀb, which carries information about b's errors whenever Σ_b is
+  not isotropic across the dependent rows (an exact row duplicated by an uncertain one would
+  come out with a positive variance). Only the exact part of a set — null(Σ_b), the
+  zero-variance rows of a vector — can be infeasible. `check_spd(P)` still refuses a
+  rank-deficient P; with Σ_b > 0, S is non-singular even where A P Aᵀ is not.
+
+**The honest case: `closed_uncertain_total`.** `b` is off by N(0, 1 kg²) per seed and
+declares b_var = 1 kg², so the joint hypothesis holds and every flag is a false alarm. From
+`results/summary.md` (20 seeds; RMSE kg / cov95 / nz, steady window):
+
+- `kf+hard`, honouring `b_var`, reads 0.21 / 0.99 / 0.69 (whole run 0.26 / 0.99 / 0.76). It
+  leaves a mean residual of 0.74 kg of the 0.91 kg it started from (`|res| post`;
+  `mean_abs_res_pre` in `results/summary.json`): about a fifth is removed, because the
+  declared 1 kg² is several times the filter's own sum-direction variance (A P Aᵀ ≈ 0.2 kg²,
+  see the dead-band bullet above). `kf+hard+guard` is identical and never flags — FA
+  0 / 0.0e+00, 0 steps held — and no spec in the scenario flags in any seed.
+- What that buys over the unconstrained filter here: nothing measurable. `kf` reads
+  0.21 / 0.99 / 0.66. A row whose declared uncertainty dominates the filter's own carries
+  almost no information; what declaring it buys is that the row stops doing damage. The
+  same σ_b = 1 kg treated as exact costs 0.41 / 0.68 / 1.84 on the `uncertain_total` axis of
+  `results/sweep.md` (below), where the declared variant reads 0.22 / 0.99 / 0.72.
+- **Feedback is not rescued.** `kf+hard+fb` reads 0.45 ± 0.24 / 0.63 / 1.73, with a
+  row-direction error of 0.57 kg against the post-stage's 0.20. The filter is told the same
+  offset b at every step as if it were a fresh, independent pseudo-measurement and converges
+  onto it: its own mean residual before projection is 0.11 kg (`mean_abs_res_pre`) against
+  the post-stage's 0.91. Its constraint flag never fires (FA 0); the evidence-side CUSUM
+  does (`CUSUM FA max` 4 / 5) — the sensors disagree with a filter that has absorbed a wrong
+  total.
+- `kf_closedq+hard` reads what `kf_closedq` reads (0.11 / 0.97 / 0.81): with closure in Q
+  the filter's sum-direction variance is far below 1 kg² and the declared row barely moves
+  it (`|corr|` 0.04 kg).
+
+**Exact against declared against soft, `uncertain_total`.** b = total0 + N(0, σ_b²) per seed;
+`kf+hard` and `kf+hard+guard` treat it as exact, `kf+soft(λ = 1/σ_b²)` carries σ_b² as λ on
+an exact set, `kf+hard(b_var)` and its guard get the same b with b_var = σ_b² on the set,
+and their flags are scored as false alarms because their hypothesis holds. From
+`results/sweep.md` (20 seeds, steady window):
+
+| σ_b [kg] | kf+hard (exact) | kf+hard+guard (exact) | kf+soft(λ = 1/σ_b²) | kf+hard(b_var) | exact guard: det, held | b_var guard: FA, held |
+|---|---|---|---|---|---|---|
+| 0.1 | 0.17 / 0.98 / 0.75 | 0.17 / 0.98 / 0.75 | 0.17 / 0.98 / 0.73 | 0.17 / 0.98 / 0.73 | 0/20, 0 | 0, 0 |
+| 0.3 | 0.21 / 0.96 / 0.92 | 0.21 / 0.96 / 0.92 | 0.19 / 0.99 / 0.74 | 0.19 / 0.99 / 0.74 | 0/20, 2 | 0, 0 |
+| 0.5 | 0.26 / 0.88 / 1.15 | 0.26 / 0.89 / 1.13 | 0.20 / 0.99 / 0.73 | 0.20 / 0.99 / 0.73 | 0/20, 11 | 0, 0 |
+| 1 | 0.41 / 0.68 / 1.84 | 0.33 / 0.81 / 1.43 | 0.22 / 0.99 / 0.72 | 0.22 / 0.99 / 0.72 | 4/20, 72 | 0, 0 |
+| 2 | 0.75 / 0.37 / 3.34 | 0.41 / 0.67 / 1.75 | 0.23 / 0.99 / 0.72 | 0.23 / 0.99 / 0.72 | 10/20, 183 | 0, 0 |
+
+Declaring `b_var` on the set gives, to every printed digit, the estimate the sweep used to
+get from λ = 1/σ_b² on an exact set — the same pseudo-measurement in two algebraic forms —
+and it gives the guard the right hypothesis: the declared guard never fires at any σ_b,
+where the exact guard rejects the (false) exact hypothesis in up to 10/20 seeds within 100
+steps, holds for 183 steps on average at σ_b = 2 kg, and still lands at 0.41 / 0.67 / 1.75.
+
+**A wrong total with an honest-scale declaration, `declared_total_error`.** b is off by a
+fixed δ; `kf+hard(b_var=0.25)` declares σ_b = 0.5 kg, the scale of the exact guard's dead
+band. From `results/sweep.md` (20 seeds, steady window; det = seeds flagged within 100
+steps):
+
+| δ [kg] | kf+hard (exact) | kf+hard+guard (exact) | kf+hard(b_var=0.25) | kf+hard(b_var=0.25)+guard | det exact / declared | held exact / declared |
+|---|---|---|---|---|---|---|
+| 0 | 0.16 / 0.98 / 0.72 | 0.16 / 0.98 / 0.72 | 0.19 / 0.99 / 0.67 | 0.19 / 0.99 / 0.67 | FA 0 / FA 0 | 0 / 0 |
+| 0.25 | 0.21 / 0.97 / 0.92 | 0.21 / 0.97 / 0.92 | 0.19 / 0.99 / 0.68 | 0.19 / 0.99 / 0.68 | 0/20 / 0/20 | 0 / 0 |
+| 0.5 | 0.30 / 0.88 / 1.33 | 0.30 / 0.88 / 1.33 | 0.21 / 0.99 / 0.74 | 0.21 / 0.99 / 0.74 | 0/20 / 0/20 | 0 / 0 |
+| 1 | 0.53 / 0.35 / 2.34 | 0.52 / 0.40 / 2.28 | 0.28 / 0.96 / 0.99 | 0.28 / 0.96 / 0.99 | 3/20 / 0/20 | 38 / 0 |
+| 1.5 | 0.77 / 0.03 / 3.41 | 0.54 / 0.56 / 2.32 | 0.37 / 0.89 / 1.31 | 0.37 / 0.89 / 1.32 | 13/20 / 2/20 | 289 / 7 |
+| 2 | 1.01 / 0.00 / 4.50 | 0.29 / 0.94 / 1.04 | 0.47 / 0.74 / 1.67 | 0.45 / 0.76 / 1.60 | 20/20 / 7/20 | 524 / 142 |
+| 4 | 2.01 / 0.00 / 8.91 | 0.23 / 0.99 / 0.73 | 0.90 / 0.04 / 3.20 | 0.23 / 0.99 / 0.73 | 20/20 / 20/20 | 592 / 590 |
+
+Declaring an honest σ_b narrows the damage where the error is within about two declared
+σ_b: at δ = 0.5 and 1 kg the declared variant reads 0.21 / 0.99 / 0.74 and
+0.28 / 0.96 / 0.99, where exact hard reads 0.30 / 0.88 / 1.33 and 0.53 / 0.35 / 2.34 and the
+exact guard, silent or nearly so (0/20, 3/20), has nothing better to hand back. It costs part
+of the exact gain when the total is right (0.19 against 0.16 at δ = 0; `kf` 0.23). And it
+moves the dead band instead of removing it: the declared test is weaker, so its guard
+catches 2/20 at 1.5 kg and 7/20 at 2 kg where the exact guard catches 13/20 and 20/20, and at
+δ = 2 kg — four declared σ_b, i.e. a dishonest declaration — the declared variant is worse
+than the exact guard (0.45 / 0.76 / 1.60 against 0.29 / 0.94 / 1.04). At 4 kg both guards
+catch it in 20/20 and hand back 0.23 / 0.99 / 0.73, while the unguarded declared projection
+is still confidently wrong (0.90 / 0.04 / 3.20).
+
+What `b_var` does **not** show:
+
+- **An efficiency gain from an uncertain constraint.** In `closed_uncertain_total`, `kf+hard`
+  honouring b_var = 1 kg² reads what `kf` reads (0.21 against 0.21). `b_var` makes an
+  uncertain row harmless and its test honest; it does not make it informative.
+- **A measured in-loop null of the b_var statistic.** `results/calibration.md` was not
+  extended to it. The in-loop evidence is zero flags from every spec over 20 seeds × 600
+  steps of `closed_uncertain_total` and FA 0 for the declared guard at every σ_b of the
+  `uncertain_total` axis: counts, not a rate estimate. The unconstrained filter's own
+  in-loop statistic is deflated (mean 0.46–0.64 in `results/calibration.md`); a large
+  declared Σ_b dilutes that deflation, it does not remove it.
+- **That feedback becomes legitimate.** 0.45 / 0.63 / 1.73 fed back against 0.21 / 0.99 /
+  0.69 as a post-stage: the declared uncertainty of b is one draw per declaration, not white
+  noise per step, and a Kalman update repeated every step assumes the latter.
+- **That any declared σ_b protects.** Only an honest one: a fixed 2 kg error declared as
+  σ_b = 0.5 kg is over-confident (nz 1.67) and its guard is slower than the exact one.
+- **Dependent uncertain rows, a correlated Σ_b, or more than one row in the loop.** The
+  kernel refuses the first; the other two are exercised only by `tests/test_lcm.py`. Every
+  constraint in the grid and the sweep is the single sum row.
+
 ## Deliberately out of scope
 
 - **IMM (deferred, not rejected).** An interacting-multiple-model filter over {closed,
   leaking, mis-scaled pump} hypotheses would be a second, discrete answer to the question
   `kf_aug` already answers continuously with α and L and their own σ, at the price of
-  declared mode-transition priors, so it earns a comparison only once P2b has put
-  uncertainty on the constraint side and the two can be scored on the same statistic.
+  declared mode-transition priors. `b_var` now puts uncertainty on the constraint side, so
+  the two could be scored on the same statistic; that comparison is not built.
 - **P2b: inequality constraints and `NOT_CONVERGED` producers.** `Status.NOT_CONVERGED`
   is reserved and nothing emits it because the closed-form kernel has no iteration to
   fail; an inequality row (m2 ≥ 0, a bounded flux) needs an active-set or QP solve, which
   is the first producer of that status and the first place "no solver failures" becomes a
   measurement.
-- **P2b: constraint uncertainty declared on `ConstraintSet` itself (`b_var`).** Today the
-  set is A x = b, exact by declaration, and the `uncertain_total` sweep brings σ_b in from
-  the sweep side as the soft λ. With `b_var` on the set the consistency statistic becomes
-  rᵀ(A P Aᵀ + B_var)⁻¹ r, the guard's 1–3σ dead band is tested against the declared
-  uncertainty instead of against zero, and soft mode's λ stops being a free parameter.
 - **P2b: feeding α̂ and L̂ back into the constraint as a prior.** The augmented filter
   estimates the flux the constraint author did not know about; a constraint set could
-  carry it (b − ∫L̂ dt with its variance) instead of going stale. Not built, deliberately:
-  a constraint that follows the estimate re-opens the fed-back-projection question — the
-  test stops disagreeing with what it tests — so it needs `b_var` first and a negative
-  control of its own.
+  carry it (b − ∫L̂ dt with its variance, now expressible as `b_var`) instead of going
+  stale. Not built, deliberately: a constraint that follows the estimate re-opens the
+  fed-back-projection question — the test stops disagreeing with what it tests — and it
+  still needs a negative control of its own. `closed_uncertain_total`'s fed-back row is the
+  warning: an uncertain b told to the filter at every step is absorbed as if it were fresh
+  evidence (0.45 / 0.63 / 1.73, constraint flag silent).
 - nonlinear constraints, multi-variable factors beyond one linear row
 - out-of-sequence measurement handling beyond uniform delay
 - the spectral processor, the Rust ingestion boundary, any manifold machinery

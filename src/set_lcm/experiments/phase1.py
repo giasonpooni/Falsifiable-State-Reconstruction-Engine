@@ -1,8 +1,13 @@
-"""Experiment grid: 6 scenarios x 11 estimator specs (SPECS) x N seeds.
+"""Experiment grid: 7 scenarios x 11 estimator specs (SPECS) x N seeds.
 
-Every scenario declares the same constraint (closed boundary, m1 + m2 = 100 kg).
-In four of them that constraint is true throughout; in the other two something
-the constraint author did not know about makes it stale or misleading.
+Each scenario builds its constraint with its own builder (Scenario.constraint_builder).
+Six of them declare the same exact constraint (closed boundary, m1 + m2 = 100 kg, no
+uncertainty on b): in four that constraint is true throughout; in the other two
+something the constraint author did not know about makes it stale or misleading.
+The seventh, closed_uncertain_total, declares a total that is itself uncertain --
+b = 100 kg + an offset drawn per seed from N(0, 1 kg^2) -- together with that
+uncertainty (b_var = 1 kg^2), so the joint hypothesis holds; every projecting spec
+honours b_var because it is on the ConstraintSet.
 
 Each scenario is run over N_SEEDS independent seeds (simulation and degradation
 seeds offset together). Tables report mean ± sd across seeds. A single seed is a
@@ -20,12 +25,59 @@ from ..schema import ConstraintSet
 from ..testbed.degrade import DegradeConfig, observe
 from ..testbed.evaluate import evaluate
 from ..testbed.runner import EstimatorSpec, run
-from ..testbed.simulator import SimConfig, simulate
+from ..testbed.simulator import SimConfig, Truth, simulate
 
 SEED = 20260911
 N_SEEDS = 20
 SEED_STRIDE = 1000
 DETECT_WITHIN = 100   # steps after onset within which a flag counts as a timely detection
+
+
+def constraint_for(truth) -> ConstraintSet:
+    return ConstraintSet(
+        version="closed-boundary-v1",
+        A=np.array([[1.0, 1.0]]),
+        b=np.array([truth.total0]),
+        description=f"m1 + m2 = {truth.total0:g} kg (boundary assumed closed)",
+    )
+
+
+@dataclass(frozen=True)
+class ExactTotal:
+    """Constraint builder: m1 + m2 = total0, declared exact (b_var None). What every
+    scenario declared before b_var existed; the seed index is not used."""
+
+    def __call__(self, truth: Truth, i: int) -> ConstraintSet:
+        return constraint_for(truth)
+
+    def describe(self) -> dict:
+        return {"kind": "ExactTotal"}
+
+
+@dataclass(frozen=True)
+class UncertainTotal:
+    """Constraint builder: m1 + m2 = total0 + offset, offset ~ N(0, std^2) drawn for seed
+    index i from default_rng(seed + SEED_STRIDE * i), declared WITH its uncertainty
+    (b_var = [std^2]). The declared b is off, by exactly as much as it says it may be."""
+    std: float
+    seed: int
+
+    def offset(self, i: int) -> float:
+        return float(np.random.default_rng(self.seed + SEED_STRIDE * i).normal(0.0, self.std))
+
+    def __call__(self, truth: Truth, i: int) -> ConstraintSet:
+        total = truth.total0 + self.offset(i)
+        return ConstraintSet(
+            version="closed-boundary-uncertain-v1",
+            A=np.array([[1.0, 1.0]]),
+            b=np.array([total]),
+            description=f"m1 + m2 = {total:.4g} kg, declared b_var = {self.std ** 2:g} kg^2 "
+                        f"(boundary assumed closed)",
+            b_var=np.array([self.std ** 2]),
+        )
+
+    def describe(self) -> dict:
+        return {"kind": "UncertainTotal", "std": self.std, "b_var": self.std ** 2, "seed": self.seed}
 
 
 @dataclass(frozen=True)
@@ -40,8 +92,10 @@ class Scenario:
     declared_m0: tuple[float, float] | None = None
     declared_m0_std: float = 5.0
     # Direction in state space along which the scenario's fault pushes the estimate;
-    # the evaluator reports d(f) = f^T A^T (A P A^T)^-1 A f for it.
+    # the evaluator reports d(f) = f^T A^T (A P A^T + Sigma_b)^-1 A f for it (Sigma_b = 0 if exact).
     fault_direction: tuple[float, float] | None = None
+    # The per-scenario constraint builder: (truth, seed index) -> the declared ConstraintSet.
+    constraint_builder: ExactTotal | UncertainTotal = ExactTotal()
 
 
 SCENARIOS: dict[str, Scenario] = {
@@ -104,6 +158,19 @@ SCENARIOS: dict[str, Scenario] = {
              "initial fill of 74/26 kg (truth 70/30) with 5 kg prior std. Constraint is TRUE; "
              "the prior is wrong and has to be forgotten from the evidence.",
     ),
+    "closed_uncertain_total": Scenario(
+        sim=SimConfig(seed=SEED),
+        deg=DegradeConfig(seed=SEED + 8, dropout_p=0.05),
+        fault_onset=None,
+        windows={"steady": (300, 600)},
+        constraint_builder=UncertainTotal(std=1.0, seed=SEED + 9),
+        note="Closed system as closed_noise (own degradation seed). The declared total is "
+             "100 kg + an offset drawn per seed from N(0, 1 kg²), and the constraint DECLARES "
+             "that uncertainty (b_var = 1 kg²): b is within its declared uncertainty, so the "
+             "joint hypothesis holds and every flag is a false alarm. Every projecting spec "
+             "honours b_var: hard is the Kalman update with pseudo-measurement variance 1 kg², "
+             "soft adds its 1/λ on top.",
+    ),
 }
 
 SPECS = [
@@ -127,13 +194,9 @@ SPECS = [
 ]
 
 
-def constraint_for(truth) -> ConstraintSet:
-    return ConstraintSet(
-        version="closed-boundary-v1",
-        A=np.array([[1.0, 1.0]]),
-        b=np.array([truth.total0]),
-        description=f"m1 + m2 = {truth.total0:g} kg (boundary assumed closed)",
-    )
+def scenario_constraint(sc: Scenario, truth: Truth, i: int) -> ConstraintSet:
+    """The ConstraintSet scenario sc declares for seed index i."""
+    return sc.constraint_builder(truth, i)
 
 
 def declared_prior(sc: Scenario, sim: SimConfig) -> tuple[tuple[float, float], float]:
@@ -248,23 +311,28 @@ def aggregate(per_seed: list[dict]) -> dict:
 def run_scenario(name: str, n_seeds: int = N_SEEDS, specs=SPECS) -> tuple[dict, list[dict], dict]:
     sc = SCENARIOS[name]
     per_seed: list[dict] = []
+    declared: list[ConstraintSet] = []
     for i in range(n_seeds):
         sim = replace(sc.sim, seed=sc.sim.seed + SEED_STRIDE * i)
         deg = replace(sc.deg, seed=sc.deg.seed + SEED_STRIDE * i)
         truth = simulate(sim)
         obs = observe(truth, deg)
-        cs = constraint_for(truth)
+        cs = scenario_constraint(sc, truth, i)
+        declared.append(cs)
         m0, m0_std = declared_prior(sc, sim)
         per_seed.append({
             spec.name: evaluate(run(truth, obs, cs, spec, m0, m0_std), truth, sc.fault_onset, sc.windows,
                                 cs=cs, fault_direction=sc.fault_direction)
             for spec in specs
         })
-    meta = {"sim": asdict(sc.sim), "deg": asdict(sc.deg), "constraint": "closed-boundary-v1",
+    meta = {"sim": asdict(sc.sim), "deg": asdict(sc.deg), "constraint": declared[0].version,
             "fault_onset": sc.fault_onset, "windows": sc.windows, "note": sc.note,
             "declared_m0": sc.declared_m0, "declared_m0_std": sc.declared_m0_std,
             "fault_direction": sc.fault_direction,
-            "n_seeds": n_seeds, "seed_stride": SEED_STRIDE}
+            "n_seeds": n_seeds, "seed_stride": SEED_STRIDE,
+            "constraint_builder": sc.constraint_builder.describe(),
+            "declared_b_per_seed": [float(cs.b[0]) for cs in declared],
+            "declared_b_var": None if declared[0].b_var is None else declared[0].b_var.tolist()}
     return aggregate(per_seed), per_seed, meta
 
 
@@ -277,7 +345,7 @@ def iter_runs(name: str, spec: EstimatorSpec, n_seeds: int = N_SEEDS):
         deg = replace(sc.deg, seed=sc.deg.seed + SEED_STRIDE * i)
         truth = simulate(sim)
         obs = observe(truth, deg)
-        cs = constraint_for(truth)
+        cs = scenario_constraint(sc, truth, i)
         m0, m0_std = declared_prior(sc, sim)
         yield i, truth, obs, cs, run(truth, obs, cs, spec, m0, m0_std)
 
@@ -390,6 +458,10 @@ LEGEND = (
     "d(f) = fᵀAᵀ(APAᵀ)⁻¹Af for the scenario's fault direction on the unprojected P at the end of the "
     "first post-onset window; 0 means the consistency test is structurally blind to that fault. "
     "Flags use χ²(rank A)(0.999) with a 3-step debounce. "
+    "Declared constraint uncertainty: where the constraint declares b_var (closed_uncertain_total only), "
+    "the statistic is rᵀ(APAᵀ + Σ_b)⁻¹r and the joint hypothesis includes 'b is within its declared "
+    "uncertainty'; hard projection is the Kalman update with pseudo-measurement variance Σ_b (residual "
+    "post > 0), soft adds its 1/λ on top, and d(f) uses APAᵀ + Σ_b. "
     "CUSUM sᵢ = the evidence-side channel: a two-sided CUSUM (k = 0.5, h = 8) on sensor i's normalised "
     "innovation z = (y − H x_pred)/√Sᵢᵢ, updated when the observation is ingested and stamped at that "
     "report step, so its delay includes arrival delay; cells are (seeds alarmed within N steps of onset, "
@@ -429,7 +501,9 @@ def main(out_dir: Path, *, quiet: bool = False) -> int:
     summary = {"seed": SEED, "n_seeds": N_SEEDS, "detect_within": DETECT_WITHIN, "provenance": prov, "scenarios": {}}
     md = ["# SET + LCM Phase 1 results", "", header_line(prov), "",
           f"Two-reservoir material transfer, 600 steps, hidden truth, {N_SEEDS} seeds per scenario "
-          "(mean ± sd across seeds where shown). Declared constraint: m1 + m2 = 100 kg.",
+          "(mean ± sd across seeds where shown). Declared constraint: m1 + m2 = 100 kg, exact, in every "
+          "scenario except closed_uncertain_total, which declares m1 + m2 = 100 kg + an offset drawn per "
+          "seed from N(0, 1 kg²) together with b_var = 1 kg².",
           LEGEND, ""]
     for name, sc in SCENARIOS.items():
         agg, per_seed, meta = run_scenario(name)

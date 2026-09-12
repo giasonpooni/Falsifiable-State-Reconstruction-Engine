@@ -21,10 +21,12 @@ back into the estimator with est.set_state(). When the estimator is current
 (its last ingested sampling step j equals k) that is literally the reported
 (x*, P*); under arrival delay (j < k) the report is a prediction from the
 state at j, so the projection of that state -- same mode, same constraint --
-is what goes back, which keeps the feedback on the estimator's own clock. P*
-is rank-deficient along the constraint; the next predict adds Q, so the
-reported covariance the kernel sees at k + 1 is SPD again (asserted in
-tests). While the guard holds (model_inconsistent) nothing is fed back, and
+is what goes back, which keeps the feedback on the estimator's own clock. For
+an exact constraint set P* is rank-deficient along the constraint; the next
+predict adds Q, so the reported covariance the kernel sees at k + 1 is SPD
+again (asserted in tests). With declared b_var > 0, P* is SPD already -- and
+the filter is then told the same uncertain b as if it were a fresh, independent
+pseudo-measurement at every step, which it is not. While the guard holds (model_inconsistent) nothing is fed back, and
 each ingested step is fed back at most once: if the ingest clock stalls (a
 late observation blocks the sampling order for several report steps) the
 state at j already carries the projection and is not projected again.
@@ -47,6 +49,11 @@ PARAM_FLAG_DEBOUNCE consecutive reports. The last are estimator outputs, not
 reconciliation statuses; Status is unchanged. The reconciliation stage acts on
 the mass marginal (x[:2], P[:2, :2]) only and reads none of the channels except
 the first, through the guard.
+
+Declared constraint uncertainty (ConstraintSet.b_var) is never read here; the
+kernel reads it in consistency_stat, reconcile and the projections, so every
+spec -- guard and feedback included -- honours whatever the set declares, and
+the flag threshold stays chi2(rank A).
 """
 from __future__ import annotations
 

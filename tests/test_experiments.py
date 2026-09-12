@@ -5,13 +5,16 @@ Claims are asserted on means over several seeds; a single seed is a realization.
 Detection claims use censored summaries (k/n detected within N steps, censored
 median), never a mean over the seeds that happened to detect.
 """
+from dataclasses import replace
 from functools import lru_cache
 
 import numpy as np
 import pytest
 
-from set_lcm.experiments.phase1 import SCENARIOS, SPECS, constraint_for, declared_prior, run_scenario
-from set_lcm.schema import Observation
+from set_lcm.experiments.phase1 import (
+    SCENARIOS, SEED_STRIDE, SPECS, constraint_for, declared_prior, run_scenario, scenario_constraint,
+)
+from set_lcm.schema import ConstraintSet, Observation
 from set_lcm.testbed.degrade import DegradeConfig, observe
 from set_lcm.testbed.runner import run
 from set_lcm.testbed.simulator import SimConfig, simulate
@@ -190,3 +193,67 @@ def test_undeclared_sensor_bias_is_flagged_as_inconsistent():
 def test_no_solver_failures(name):
     for est, a in agg(name).items():
         assert a["solver_failures"] == 0, est
+
+
+def test_every_scenario_but_one_declares_the_exact_total():
+    """The per-scenario builder hands the six pre-b_var scenarios exactly constraint_for(truth)
+    (so their results are unchanged), and closed_uncertain_total an offset total that carries
+    its declared variance."""
+    for name, sc in SCENARIOS.items():
+        truth = simulate(sc.sim)
+        cs = scenario_constraint(sc, truth, 3)
+        if name == "closed_uncertain_total":
+            continue
+        ref = constraint_for(truth)
+        assert cs.b_var is None and cs.version == ref.version
+        np.testing.assert_array_equal(cs.A, ref.A)
+        np.testing.assert_array_equal(cs.b, ref.b)
+    sc = SCENARIOS["closed_uncertain_total"]
+    truth = simulate(sc.sim)
+    bs = [float(scenario_constraint(sc, truth, i).b[0]) for i in range(8)]
+    cs = scenario_constraint(sc, truth, 0)
+    np.testing.assert_array_equal(cs.b_var, [1.0])
+    assert all(b != truth.total0 for b in bs) and len(set(bs)) == 8
+    assert bs == [float(scenario_constraint(sc, truth, i).b[0]) for i in range(8)]   # seeded, reproducible
+    assert sc.fault_onset is None
+
+
+def test_declared_constraint_uncertainty_keeps_hard_projection_calibrated():
+    """closed_uncertain_total: b is off by N(0, 1 kg^2) per seed and says so (b_var = 1).
+    Hard projection honours the declaration -- a partial correction, residual left in
+    place, calibrated -- and the guard, testing r^T (A P A^T + 1)^-1 r, does not fire.
+    The same seed with the same wrong b declared EXACT is over-confident. Feeding the
+    declared projection back is not rescued by b_var: the filter is told the same
+    uncertain b every step as if it were fresh evidence and becomes over-confident."""
+    a = agg("closed_uncertain_total")
+    h = a["kf+hard"]
+    assert cov(a, "kf+hard", "steady") > 0.9
+    assert h["nz_rms_by_window"]["steady"]["mean"] < 1.0
+    assert h["mean_abs_res_post"]["mean"] > 0.1                   # not an exact projection
+    g = a["kf+hard+guard"]
+    assert g["false_alarms"]["rate"] < 1e-3 and g["held_steps"]["mean"] < 1.0
+    assert not g["detection"]["applicable"]                         # the joint hypothesis holds
+    assert cov(a, "kf+hard+fb", "steady") < 0.8
+    assert a["kf+hard+fb"]["nz_rms_by_window"]["steady"]["mean"] > 1.3
+
+    sc = SCENARIOS["closed_uncertain_total"]
+    i = 3                                                           # seed index 3: b off by +1.42 kg
+    sim = replace(sc.sim, seed=sc.sim.seed + SEED_STRIDE * i)
+    truth = simulate(sim)
+    obs = observe(truth, replace(sc.deg, seed=sc.deg.seed + SEED_STRIDE * i))
+    m0, m0_std = declared_prior(sc, sim)
+    declared = scenario_constraint(sc, truth, i)
+    assert float(declared.b[0]) - truth.total0 > 1.0
+    exact = ConstraintSet(declared.version, declared.A, declared.b, declared.description)
+    spec = next(s for s in SPECS if s.name == "kf+hard")
+    lo, hi = sc.windows["steady"]
+
+    def steady_cov(rr):
+        sd = np.sqrt(np.stack([np.diag(p) for p in rr.P[lo:hi]]))
+        return float((np.abs(rr.x[lo:hi] - truth.m[lo:hi]) <= 1.96 * sd).mean())
+
+    with_var = run(truth, obs, declared, spec, m0, m0_std)
+    without = run(truth, obs, exact, spec, m0, m0_std)
+    assert steady_cov(with_var) > 0.9 > 0.5 > steady_cov(without)
+    # the unprojected filter is the same either way; only the reconciliation differs
+    np.testing.assert_array_equal(with_var.x_unproj, without.x_unproj)

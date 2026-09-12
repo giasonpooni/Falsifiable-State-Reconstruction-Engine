@@ -29,6 +29,42 @@ by construction (A P* A^T = 0); feeding it back in used to yield stat = 0.0
 with Status.OK, which is a silent lie. Duplicated or dependent constraint rows
 are reduced to an independent set first, so the dof is rank(A), not rows(A).
 
+Declared constraint uncertainty (ConstraintSet.b_var). When b_var is None the
+set is exact and every function below runs exactly the arithmetic described
+above -- the b_var branches are separate code, so results for exact sets are
+bit-identical to what they were before b_var existed. When b_var is declared,
+with Sigma_b its (rows, rows) covariance and S = A P A^T + Sigma_b:
+
+    consistency   stat = r^T S^-1 r ~ chi^2(rank A) under the joint hypothesis,
+                  which now includes "b is within its declared uncertainty";
+    detectability d(f) = f^T A^T S^-1 A f, which shrinks as Sigma_b grows;
+    hard          the Kalman update with pseudo-measurement noise Sigma_b:
+                  K = P A^T S^-1, x* = x - K r,
+                  P* = (I - K A) P (I - K A)^T + K Sigma_b K^T   (Joseph form).
+                  Sigma_b = 0 reduces to the exact projection (tested to 1e-12);
+                  for Sigma_b > 0 the residual after projection is NOT zero and
+                  P* stays positive definite;
+    soft          hard with Sigma_b + (1/lam) I: an extra, undeclared slack on top
+                  of the declared uncertainty. (With b_var None, soft is the
+                  penalised form above, which equals hard with Sigma_b = (1/lam) I.)
+
+Dependent rows with b_var declared are REFUSED (ValueError), not reduced. The
+SVD reduction used for exact sets keeps U_r^T b, which is unbiased with covariance
+U_r^T Sigma_b U_r, but it discards U_perp^T b, and that part carries information
+about the errors whenever Sigma_b is not isotropic across the dependent rows: an
+exact row duplicated by an uncertain one would come out with a positive variance
+instead of zero, and two unequal variances would be averaged with equal weights.
+The right reduction conditions on U_perp^T b (a Schur complement of U^T Sigma_b U);
+it is not built, so merge dependent rows before declaring their uncertainty.
+Feasibility is still reported for such sets: a row (or combination of rows) with
+nonzero declared variance is a noisy statement and cannot contradict anything;
+only the exact part -- the combinations in null(Sigma_b), i.e. the zero-variance
+rows of a vector b_var -- can be infeasible.
+
+The guards are unchanged: check_spd(P) still refuses a rank-deficient P whatever
+b_var says, and S is still checked for singularity; with Sigma_b > 0, S is
+non-singular even where A P A^T is not.
+
 Nothing in this module overwrites the incoming estimate. `reconcile` returns a
 StateEstimate that carries the unprojected state, the correction, and both
 residuals.
@@ -82,10 +118,33 @@ def check_spd(P: np.ndarray, name: str = "P") -> None:
 
 
 def is_feasible(cs: ConstraintSet) -> bool:
-    """A x = b has at least one solution  <=>  rank([A | b]) == rank(A)."""
+    """A x = b has at least one solution  <=>  rank([A | b]) == rank(A).
+
+    With b_var declared only the exact part of the set can contradict itself: for a
+    basis N of null(Sigma_b) (the zero-variance rows of a vector b_var), the set is
+    feasible iff rank([N^T A | N^T b]) == rank(N^T A). Rows with nonzero declared
+    variance never make a set infeasible.
+    """
     A = np.atleast_2d(np.asarray(cs.A, dtype=float))
+    if cs.b_var is not None:
+        N = _exact_directions(cs)
+        if N.shape[1] == 0:
+            return True
+        Ae = N.T @ A
+        be = N.T @ np.asarray(cs.b, dtype=float).reshape(-1)
+        return np.linalg.matrix_rank(np.hstack([Ae, be.reshape(-1, 1)])) == np.linalg.matrix_rank(Ae)
     Ab = np.hstack([A, np.asarray(cs.b, dtype=float).reshape(-1, 1)])
     return np.linalg.matrix_rank(Ab) == np.linalg.matrix_rank(A)
+
+
+def _exact_directions(cs: ConstraintSet) -> np.ndarray:
+    """Columns spanning null(Sigma_b): the row combinations b_var declares exact."""
+    v = cs.b_var
+    if v.ndim == 1:
+        return np.eye(v.shape[0])[:, v == 0.0]
+    w, V = np.linalg.eigh(v)
+    tol = max(float(w[-1]), 0.0) * v.shape[0] * np.finfo(float).eps
+    return V[:, w <= tol]
 
 
 def residual(x: np.ndarray, cs: ConstraintSet) -> np.ndarray:
@@ -98,6 +157,8 @@ def reduced(cs: ConstraintSet) -> tuple[np.ndarray, np.ndarray]:
     Full-row-rank A is returned unchanged (bit-identical arithmetic downstream).
     Dependent rows are reduced through the SVD: A = U S V^T  =>  S_r V_r^T x = U_r^T b,
     which is valid only when the system is consistent; an infeasible set raises.
+    A set with dependent rows AND declared b_var raises: U_r^T b alone is not the right
+    reduction when b is uncertain (see the module docstring); merge the rows first.
     """
     A = np.atleast_2d(np.asarray(cs.A, dtype=float))
     b = np.asarray(cs.b, dtype=float).reshape(-1)
@@ -106,6 +167,11 @@ def reduced(cs: ConstraintSet) -> tuple[np.ndarray, np.ndarray]:
     r = int((s > tol).sum())
     if r == A.shape[0]:
         return A, b
+    if cs.b_var is not None:
+        raise ValueError(
+            f"constraint set {cs.version!r} has dependent rows (rank {r} < {A.shape[0]} rows) and a "
+            "declared b_var; the SVD reduction would discard information about b's errors, so the "
+            "kernel refuses it -- merge dependent rows before declaring their uncertainty")
     if not is_feasible(cs):
         raise ValueError("constraint set is infeasible; dependent rows disagree")
     return s[:r, None] * Vt[:r], U[:, :r].T @ b
@@ -118,10 +184,39 @@ def _S(A: np.ndarray, P: np.ndarray) -> np.ndarray:
     return S
 
 
+def _S_declared(A: np.ndarray, P: np.ndarray, Sigma_b: np.ndarray) -> np.ndarray:
+    """S = A P A^T + Sigma_b for a set with declared b_var, with the same singularity guard."""
+    S = A @ P @ A.T + Sigma_b
+    if np.linalg.cond(S) > _COND_MAX:
+        raise ValueError("A P A^T + Sigma_b is numerically singular: neither P nor the declared b_var "
+                         "carries uncertainty along a constraint")
+    return S
+
+
+def _pseudo_measurement_update(x: np.ndarray, P: np.ndarray, A: np.ndarray, b: np.ndarray,
+                               Sigma: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Kalman update with the pseudo-measurement b = A x + e, e ~ N(0, Sigma):
+    K = P A^T S^-1 with S = A P A^T + Sigma, x* = x - K r, and P* in Joseph form
+    (I - K A) P (I - K A)^T + K Sigma K^T, which stays symmetric PSD by construction."""
+    r = A @ x - b
+    S = _S_declared(A, P, Sigma)
+    K = P @ A.T @ np.linalg.inv(S)
+    x_star = x - K @ r
+    I_KA = np.eye(P.shape[0]) - K @ A
+    P_star = I_KA @ P @ I_KA.T + K @ Sigma @ K.T
+    P_star = 0.5 * (P_star + P_star.T)
+    return x_star, P_star
+
+
 def consistency_stat(x: np.ndarray, P: np.ndarray, cs: ConstraintSet) -> float:
+    """r^T S^-1 r with S = A P A^T (+ Sigma_b when the set declares b_var); chi^2(rank A)
+    under the joint hypothesis."""
     check_spd(P)
     A, b = reduced(cs)
     r = A @ x - b
+    if cs.b_var is not None:
+        S = _S_declared(A, P, cs.b_cov)
+        return float(r @ np.linalg.solve(S, r))
     S = _S(A, P)
     return float(r @ np.linalg.pinv(S) @ r)
 
@@ -129,16 +224,20 @@ def consistency_stat(x: np.ndarray, P: np.ndarray, cs: ConstraintSet) -> float:
 def detectability(f, P: np.ndarray, cs: ConstraintSet) -> float:
     """How visible a unit error along direction f is to the consistency statistic:
 
-        d(f) = f^T A^T (A P A^T)^-1 A f
+        d(f) = f^T A^T (A P A^T + Sigma_b)^-1 A f        (Sigma_b = 0 when b is exact)
 
     An error e = c f shifts the statistic by c^2 d(f). d(f) = 0 exactly when f lies in
     null(A): the constraint test is structurally blind to it, whatever P is. For a
     single sum constraint A = [1, 1] that is every fault that moves mass between the
-    reservoirs (pump-rate error, valve transfer).
+    reservoirs (pump-rate error, valve transfer). Declared uncertainty on b makes every
+    other direction less visible too: d(f) shrinks as Sigma_b grows.
     """
     check_spd(P)
     A, _ = reduced(cs)
     Af = A @ np.asarray(f, dtype=float).reshape(-1)
+    if cs.b_var is not None:
+        S = _S_declared(A, P, cs.b_cov)
+        return float(Af @ np.linalg.solve(S, Af))
     S = _S(A, P)
     return float(Af @ np.linalg.pinv(S) @ Af)
 
@@ -154,9 +253,13 @@ def constraint_bases(cs: ConstraintSet) -> tuple[np.ndarray, np.ndarray]:
 
 
 def project_hard(x: np.ndarray, P: np.ndarray, cs: ConstraintSet) -> tuple[np.ndarray, np.ndarray]:
-    """Minimum P^-1-weighted correction that satisfies A x = b exactly."""
+    """Minimum P^-1-weighted correction that satisfies A x = b exactly -- or, when the
+    set declares b_var, the Kalman update with pseudo-measurement noise Sigma_b (Joseph
+    form); for Sigma_b > 0 that leaves a nonzero residual and a positive-definite P*."""
     check_spd(P)
     A, b = reduced(cs)
+    if cs.b_var is not None:
+        return _pseudo_measurement_update(x, P, A, b, cs.b_cov)
     r = A @ x - b
     S = _S(A, P)
     K = P @ A.T @ np.linalg.pinv(S)
@@ -167,8 +270,18 @@ def project_hard(x: np.ndarray, P: np.ndarray, cs: ConstraintSet) -> tuple[np.nd
 
 
 def project_soft(x: np.ndarray, P: np.ndarray, cs: ConstraintSet, lam: float) -> tuple[np.ndarray, np.ndarray]:
-    """Penalised correction; leaves a nonzero residual for every finite lam."""
+    """Penalised correction; leaves a nonzero residual for every finite lam.
+
+    With b_var declared: hard with Sigma_b + (1/lam) I, i.e. an extra, undeclared slack of
+    variance 1/lam per row on top of the declared uncertainty (lam = inf is hard). lam
+    must be positive there."""
     check_spd(P)
+    if cs.b_var is not None:
+        if not lam > 0.0:
+            raise ValueError(f"soft projection needs lam > 0, got {lam!r}")
+        A, b = reduced(cs)
+        Sigma = cs.b_cov + np.eye(A.shape[0]) / lam
+        return _pseudo_measurement_update(x, P, A, b, Sigma)
     A = np.atleast_2d(np.asarray(cs.A, dtype=float))
     b = np.asarray(cs.b, dtype=float).reshape(-1)
     Pinv = np.linalg.inv(P)

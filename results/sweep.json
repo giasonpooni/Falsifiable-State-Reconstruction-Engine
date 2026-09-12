@@ -5,8 +5,8 @@
     "numpy": "2.5.3",
     "platform": "Windows-11-10.0.26200-SP0",
     "machine": "AMD64",
-    "source_sha256": "2d4f6e9f99d2fc2e309bc59c91faad144deb5ee82d7d1652c713078dd5ab4d8a",
-    "git_head": "6f66c4cc37168843171fca95066ffbf08cfff86b",
+    "source_sha256": "c54d14fbfd5a16bd8fc85eec858b952ca61eaa12fcbaa9ae8804d77c39b6743b",
+    "git_head": "d7344cd108c249a6817db217d711fdb887d082e8",
     "source_dirty": true,
     "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
   },
@@ -24,7 +24,9 @@
       ],
       "unit": "kg",
       "window": "steady",
-      "note": "The declared total is wrong by delta. The joint hypothesis is false from step 0 for delta > 0. kf_aug and kf_closedq read the constraint only through its consistency flag and never project, so their rows are the same at every delta. kf+hard+fb+guard feeds each applied projection back into the filter and stops while the guard holds."
+      "note": "The declared total is wrong by delta. The joint hypothesis is false from step 0 for delta > 0. kf_aug and kf_closedq read the constraint only through its consistency flag and never project, so their rows are the same at every delta. kf+hard+fb+guard feeds each applied projection back into the filter and stops while the guard holds.",
+      "declared_b_var": 0.25,
+      "declared_note": "kf+hard(b_var=0.25) and its guard get the same wrong total with b_var = 0.25 kg\u00b2 declared (\u03c3_b = 0.5 kg, the scale of the exact guard's dead band): hard becomes the Kalman update with that pseudo-measurement variance and the guard tests r\u1d40(APA\u1d40 + \u03c3_b\u00b2)\u207b\u00b9r. A fixed delta is not a draw from N(0, \u03c3_b\u00b2), so the onset stays at step 0 for delta > 0 and their flags count as detections."
     },
     "sensor_bias": {
       "base": "bias_quant_delay",
@@ -62,7 +64,9 @@
       ],
       "unit": "kg (sigma_b)",
       "window": "steady",
-      "note": "b = total0 + N(0, sigma_b^2) per seed. The guard tests the constraint as if exact; the soft variant uses the declared uncertainty as the pseudo-measurement variance."
+      "note": "b = total0 + N(0, sigma_b^2) per seed. The guard tests the constraint as if exact; the soft variant uses the declared uncertainty as the pseudo-measurement variance.",
+      "declared_b_var": "sigma_b^2",
+      "declared_note": "kf+hard(b_var) and its guard get the same b with b_var = sigma_b\u00b2 declared on the ConstraintSet: hard is the Kalman update with that pseudo-measurement variance (the same estimate as the soft variant, which carries it as \u03bb on an exact set) and the guard tests r\u1d40(APA\u1d40 + \u03c3_b\u00b2)\u207b\u00b9r, whose hypothesis -- b within its declared uncertainty -- holds; their flags are therefore false alarms (onset none; det cells read 'FA max / rate'). kf+hard and kf+hard+guard keep treating b as exact, for contrast."
     }
   },
   "results": {
@@ -88,12 +92,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 346.7825095867738,
-            "sd": 12.291547773333926
+            "mean": 366.90249980892986,
+            "sd": 26.39528038142919
           },
           "latency_us_p99": {
-            "mean": 573.690552264452,
-            "sd": 410.6851191091959
+            "mean": 552.8479000786318,
+            "sd": 83.7469299158502
           },
           "rmse_by_window": {
             "steady": {
@@ -240,12 +244,12 @@
             "sd": 0.04150006543681312
           },
           "latency_us_p50": {
-            "mean": 523.8624871708453,
-            "sd": 14.901426179450521
+            "mean": 556.287492509,
+            "sd": 36.83152543864381
           },
           "latency_us_p99": {
-            "mean": 735.2431596373207,
-            "sd": 72.27689849290981
+            "mean": 871.5988995973019,
+            "sd": 176.91459605617752
           },
           "rmse_by_window": {
             "steady": {
@@ -392,12 +396,12 @@
             "sd": 0.04150006543681312
           },
           "latency_us_p50": {
-            "mean": 521.6325080255046,
-            "sd": 12.662533644397687
+            "mean": 556.4074963331223,
+            "sd": 31.103808742342697
           },
           "latency_us_p99": {
-            "mean": 717.4300517654045,
-            "sd": 78.67679207636492
+            "mean": 924.7403952176679,
+            "sd": 360.04512482670987
           },
           "rmse_by_window": {
             "steady": {
@@ -544,12 +548,12 @@
             "sd": 0.0016003430185787843
           },
           "latency_us_p50": {
-            "mean": 532.7974940882996,
-            "sd": 13.675723862413866
+            "mean": 567.3275009030476,
+            "sd": 28.652114537702754
           },
           "latency_us_p99": {
-            "mean": 739.9376539979128,
-            "sd": 78.06276169984856
+            "mean": 824.6214583050457,
+            "sd": 103.8801753255227
           },
           "rmse_by_window": {
             "steady": {
@@ -690,12 +694,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 370.58000452816486,
-            "sd": 10.781160928679807
+            "mean": 393.3399944799021,
+            "sd": 27.361957764942204
           },
           "latency_us_p99": {
-            "mean": 523.1728241778908,
-            "sd": 66.38062085289022
+            "mean": 580.1986317383124,
+            "sd": 85.58778626998371
           },
           "rmse_by_window": {
             "steady": {
@@ -906,12 +910,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 420.8600119454786,
-            "sd": 321.9685604730381
+            "mean": 365.8475121483207,
+            "sd": 16.88629894655735
           },
           "latency_us_p99": {
-            "mean": 591.8877060175871,
-            "sd": 447.33489838910936
+            "mean": 569.5175661239771,
+            "sd": 102.46169982105778
           },
           "rmse_by_window": {
             "steady": {
@@ -1031,6 +1035,310 @@
           },
           "solver_failures": 0,
           "n_seeds": 20
+        },
+        "kf+hard(b_var=0.25)": {
+          "rmse_all": {
+            "mean": 0.21958815943872628,
+            "sd": 0.03869085794768217
+          },
+          "coverage95": {
+            "mean": 0.9909166666666666,
+            "sd": 0.012764454024740244
+          },
+          "nz_rms_all": {
+            "mean": 0.6957296768202166,
+            "sd": 0.10796657129748538
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.2908170143341763,
+            "sd": 0.0586801594549069
+          },
+          "mean_abs_res_post": {
+            "mean": 0.14977945746553506,
+            "sd": 0.029657401308157368
+          },
+          "mean_correction_norm": {
+            "mean": 0.09975927280301757,
+            "sd": 0.020871790607884893
+          },
+          "latency_us_p50": {
+            "mean": 449.5624976698309,
+            "sd": 30.401561228781322
+          },
+          "latency_us_p99": {
+            "mean": 715.0018397951499,
+            "sd": 83.27683621879955
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.18749950919395691,
+              "sd": 0.04202737382779097
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9909166666666668,
+              "sd": 0.019797771449988125
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.6680556480176042,
+              "sd": 0.14985858248302844
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.12682330714310677,
+                "sd": 0.034736583207368485
+              },
+              "null": {
+                "mean": 0.23020109803153307,
+                "sd": 0.060219831588068255
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": null,
+            "median_censored": null,
+            "censor_at": null,
+            "applicable": false
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf+hard(b_var=0.25)+guard": {
+          "rmse_all": {
+            "mean": 0.21958815943872628,
+            "sd": 0.03869085794768217
+          },
+          "coverage95": {
+            "mean": 0.9909166666666666,
+            "sd": 0.012764454024740244
+          },
+          "nz_rms_all": {
+            "mean": 0.6957296768202166,
+            "sd": 0.10796657129748538
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.2908170143341763,
+            "sd": 0.0586801594549069
+          },
+          "mean_abs_res_post": {
+            "mean": 0.14977945746553506,
+            "sd": 0.029657401308157368
+          },
+          "mean_correction_norm": {
+            "mean": 0.09975927280301757,
+            "sd": 0.020871790607884893
+          },
+          "latency_us_p50": {
+            "mean": 452.5124910287559,
+            "sd": 31.14973142474758
+          },
+          "latency_us_p99": {
+            "mean": 681.2955004861578,
+            "sd": 111.46935935365546
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.18749950919395691,
+              "sd": 0.04202737382779097
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9909166666666668,
+              "sd": 0.019797771449988125
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.6680556480176042,
+              "sd": 0.14985858248302844
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.12682330714310677,
+                "sd": 0.034736583207368485
+              },
+              "null": {
+                "mean": 0.23020109803153307,
+                "sd": 0.060219831588068255
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": null,
+            "median_censored": null,
+            "censor_at": null,
+            "applicable": false
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
         }
       },
       "0.25": {
@@ -1054,12 +1362,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 351.52500204276294,
-            "sd": 9.352294249643784
+            "mean": 372.23249091766775,
+            "sd": 19.084386436084493
           },
           "latency_us_p99": {
-            "mean": 495.7155130105092,
-            "sd": 62.453419632938754
+            "mean": 519.152249849867,
+            "sd": 90.10805039708129
           },
           "rmse_by_window": {
             "steady": {
@@ -1206,12 +1514,12 @@
             "sd": 0.061385450563606246
           },
           "latency_us_p50": {
-            "mean": 530.1824974594638,
-            "sd": 15.114696367717247
+            "mean": 570.290011819452,
+            "sd": 32.513222997574985
           },
           "latency_us_p99": {
-            "mean": 725.9777958388437,
-            "sd": 85.19067370506795
+            "mean": 855.9095406671984,
+            "sd": 118.02039987910878
           },
           "rmse_by_window": {
             "steady": {
@@ -1358,12 +1666,12 @@
             "sd": 0.061385450563606246
           },
           "latency_us_p50": {
-            "mean": 530.6625098455697,
-            "sd": 14.977429744582174
+            "mean": 569.5475032553077,
+            "sd": 28.976992802833717
           },
           "latency_us_p99": {
-            "mean": 775.1190153649075,
-            "sd": 80.45867684111742
+            "mean": 837.7962535596449,
+            "sd": 121.98011221832033
           },
           "rmse_by_window": {
             "steady": {
@@ -1510,12 +1818,12 @@
             "sd": 0.001586867806318053
           },
           "latency_us_p50": {
-            "mean": 543.2974954601377,
-            "sd": 13.304337928260423
+            "mean": 582.6399923535064,
+            "sd": 36.05888716962134
           },
           "latency_us_p99": {
-            "mean": 767.6609377376733,
-            "sd": 90.55255538124916
+            "mean": 856.290338153485,
+            "sd": 121.84591270120951
           },
           "rmse_by_window": {
             "steady": {
@@ -1656,12 +1964,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 376.83249393012375,
-            "sd": 8.697354703031598
+            "mean": 407.9675010871142,
+            "sd": 28.80342815547817
           },
           "latency_us_p99": {
-            "mean": 522.8276371490208,
-            "sd": 71.74827992245291
+            "mean": 582.1338635869323,
+            "sd": 123.53944621635351
           },
           "rmse_by_window": {
             "steady": {
@@ -1872,12 +2180,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 351.23248817399144,
-            "sd": 10.233897486106425
+            "mean": 378.3200023462996,
+            "sd": 22.285167624579504
           },
           "latency_us_p99": {
-            "mean": 500.5404148832894,
-            "sd": 78.14756117705858
+            "mean": 569.7701568715272,
+            "sd": 92.70813272884229
           },
           "rmse_by_window": {
             "steady": {
@@ -1997,6 +2305,310 @@
           },
           "solver_failures": 0,
           "n_seeds": 20
+        },
+        "kf+hard(b_var=0.25)": {
+          "rmse_all": {
+            "mean": 0.22634152218887943,
+            "sd": 0.035289224377763134
+          },
+          "coverage95": {
+            "mean": 0.9914999999999999,
+            "sd": 0.012631182985996643
+          },
+          "nz_rms_all": {
+            "mean": 0.717470599641332,
+            "sd": 0.09925949344302883
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.37879679254716675,
+            "sd": 0.08679918298585412
+          },
+          "mean_abs_res_post": {
+            "mean": 0.19870176108217683,
+            "sd": 0.045256047478606704
+          },
+          "mean_correction_norm": {
+            "mean": 0.12737961172869802,
+            "sd": 0.02964961019297104
+          },
+          "latency_us_p50": {
+            "mean": 464.1375126084313,
+            "sd": 29.599259582007075
+          },
+          "latency_us_p99": {
+            "mean": 699.5749764028003,
+            "sd": 146.1234278151064
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.19008294210831483,
+              "sd": 0.044325803335750695
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9924166666666666,
+              "sd": 0.015535989156288931
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.6771639527812657,
+              "sd": 0.15808127780868736
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.1329596599222897,
+                "sd": 0.04464609925603577
+              },
+              "null": {
+                "mean": 0.2301687761628187,
+                "sd": 0.0602326944171105
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": 600.0,
+            "median_censored": true,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf+hard(b_var=0.25)+guard": {
+          "rmse_all": {
+            "mean": 0.22634152218887943,
+            "sd": 0.035289224377763134
+          },
+          "coverage95": {
+            "mean": 0.9914999999999999,
+            "sd": 0.012631182985996643
+          },
+          "nz_rms_all": {
+            "mean": 0.717470599641332,
+            "sd": 0.09925949344302883
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.37879679254716675,
+            "sd": 0.08679918298585412
+          },
+          "mean_abs_res_post": {
+            "mean": 0.19870176108217683,
+            "sd": 0.045256047478606704
+          },
+          "mean_correction_norm": {
+            "mean": 0.12737961172869802,
+            "sd": 0.02964961019297104
+          },
+          "latency_us_p50": {
+            "mean": 457.0875025819987,
+            "sd": 22.787554931399367
+          },
+          "latency_us_p99": {
+            "mean": 655.1019043545236,
+            "sd": 87.75989299049589
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.19008294210831483,
+              "sd": 0.044325803335750695
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9924166666666666,
+              "sd": 0.015535989156288931
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.6771639527812657,
+              "sd": 0.15808127780868736
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.1329596599222897,
+                "sd": 0.04464609925603577
+              },
+              "null": {
+                "mean": 0.2301687761628187,
+                "sd": 0.0602326944171105
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": 600.0,
+            "median_censored": true,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
         }
       },
       "0.5": {
@@ -2020,12 +2632,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 351.80999257136136,
-            "sd": 8.49736573014469
+            "mean": 400.16499115154147,
+            "sd": 9.376490316598105
           },
           "latency_us_p99": {
-            "mean": 570.2832425595259,
-            "sd": 429.3622286236484
+            "mean": 598.3315918711014,
+            "sd": 55.791066164031164
           },
           "rmse_by_window": {
             "steady": {
@@ -2172,12 +2784,12 @@
             "sd": 0.07042614189119811
           },
           "latency_us_p50": {
-            "mean": 533.5774854756892,
-            "sd": 13.707891283497709
+            "mean": 608.3700020099059,
+            "sd": 15.356637594910145
           },
           "latency_us_p99": {
-            "mean": 715.4266918660139,
-            "sd": 73.6067635773953
+            "mean": 1159.8129464546214,
+            "sd": 979.3729400539504
           },
           "rmse_by_window": {
             "steady": {
@@ -2324,12 +2936,12 @@
             "sd": 0.0709197582699462
           },
           "latency_us_p50": {
-            "mean": 535.0050196284428,
-            "sd": 14.097533862559427
+            "mean": 615.2399961138144,
+            "sd": 29.262042256225612
           },
           "latency_us_p99": {
-            "mean": 741.8470953125504,
-            "sd": 81.99597562055742
+            "mean": 966.8634097324684,
+            "sd": 99.0061179321427
           },
           "rmse_by_window": {
             "steady": {
@@ -2476,12 +3088,12 @@
             "sd": 0.0015514340962429678
           },
           "latency_us_p50": {
-            "mean": 537.1799983549863,
-            "sd": 12.768441284036868
+            "mean": 623.7550202058628,
+            "sd": 15.566412782561464
           },
           "latency_us_p99": {
-            "mean": 741.5649103350004,
-            "sd": 78.6094045230379
+            "mean": 959.2479040147737,
+            "sd": 84.08733051363922
           },
           "rmse_by_window": {
             "steady": {
@@ -2622,12 +3234,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 373.3399964403361,
-            "sd": 8.297470797921275
+            "mean": 426.3699956936762,
+            "sd": 10.755145113617264
           },
           "latency_us_p99": {
-            "mean": 521.3617100962435,
-            "sd": 61.40505681718906
+            "mean": 634.2789585469288,
+            "sd": 53.5242156948112
           },
           "rmse_by_window": {
             "steady": {
@@ -2838,12 +3450,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 421.6099943732843,
-            "sd": 318.58207518000967
+            "mean": 401.2550081824884,
+            "sd": 12.399436043365792
           },
           "latency_us_p99": {
-            "mean": 626.320456911344,
-            "sd": 568.9281989931562
+            "mean": 629.5568530331366,
+            "sd": 51.26593914144585
           },
           "rmse_by_window": {
             "steady": {
@@ -2963,6 +3575,310 @@
           },
           "solver_failures": 0,
           "n_seeds": 20
+        },
+        "kf+hard(b_var=0.25)": {
+          "rmse_all": {
+            "mean": 0.24730363229601524,
+            "sd": 0.031286685647060844
+          },
+          "coverage95": {
+            "mean": 0.9875416666666667,
+            "sd": 0.01792095012035841
+          },
+          "nz_rms_all": {
+            "mean": 0.7903194958110102,
+            "sd": 0.09220929903810564
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.5647513372044133,
+            "sd": 0.09959273063330779
+          },
+          "mean_abs_res_post": {
+            "mean": 0.3000128266348903,
+            "sd": 0.05242942589935324
+          },
+          "mean_correction_norm": {
+            "mean": 0.1872410616713478,
+            "sd": 0.033705519024012386
+          },
+          "latency_us_p50": {
+            "mean": 496.8300083419308,
+            "sd": 22.27712886321871
+          },
+          "latency_us_p99": {
+            "mean": 782.3754075216129,
+            "sd": 84.74086703281141
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.20838275687368077,
+              "sd": 0.04601924412029596
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.98925,
+              "sd": 0.02219975106546063
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.7423098676225138,
+              "sd": 0.16414707370823473
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.17804334793263743,
+                "sd": 0.05388276398346493
+              },
+              "null": {
+                "mean": 0.23014076798155184,
+                "sd": 0.06024616020473576
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": 600.0,
+            "median_censored": true,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf+hard(b_var=0.25)+guard": {
+          "rmse_all": {
+            "mean": 0.24730363229601524,
+            "sd": 0.031286685647060844
+          },
+          "coverage95": {
+            "mean": 0.9875416666666667,
+            "sd": 0.01792095012035841
+          },
+          "nz_rms_all": {
+            "mean": 0.7903194958110102,
+            "sd": 0.09220929903810564
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.5647513372044133,
+            "sd": 0.09959273063330779
+          },
+          "mean_abs_res_post": {
+            "mean": 0.3000128266348903,
+            "sd": 0.05242942589935324
+          },
+          "mean_correction_norm": {
+            "mean": 0.1872410616713478,
+            "sd": 0.033705519024012386
+          },
+          "latency_us_p50": {
+            "mean": 496.49249704089016,
+            "sd": 18.149989115755208
+          },
+          "latency_us_p99": {
+            "mean": 792.1137998928314,
+            "sd": 75.93826778261685
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.20838275687368077,
+              "sd": 0.04601924412029596
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.98925,
+              "sd": 0.02219975106546063
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.7423098676225138,
+              "sd": 0.16414707370823473
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.17804334793263743,
+                "sd": 0.05388276398346493
+              },
+              "null": {
+                "mean": 0.23014076798155184,
+                "sd": 0.06024616020473576
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": 600.0,
+            "median_censored": true,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
         }
       },
       "1.0": {
@@ -2986,12 +3902,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 416.812498588115,
-            "sd": 321.23548859897664
+            "mean": 392.4874938093126,
+            "sd": 13.121525313916473
           },
           "latency_us_p99": {
-            "mean": 611.2188462866468,
-            "sd": 522.0729920009492
+            "mean": 629.4468743144533,
+            "sd": 84.83415502085919
           },
           "rmse_by_window": {
             "steady": {
@@ -3138,12 +4054,12 @@
             "sd": 0.08012568347214899
           },
           "latency_us_p50": {
-            "mean": 531.1200016876683,
-            "sd": 13.270367805301095
+            "mean": 609.8024954553694,
+            "sd": 44.09582900179767
           },
           "latency_us_p99": {
-            "mean": 998.3280471642498,
-            "sd": 811.1540615573226
+            "mean": 1008.5977002745492,
+            "sd": 236.84789009901027
           },
           "rmse_by_window": {
             "steady": {
@@ -3290,12 +4206,12 @@
             "sd": 0.06590329878346703
           },
           "latency_us_p50": {
-            "mean": 534.2000164091587,
-            "sd": 13.345874974455322
+            "mean": 606.1200023395941,
+            "sd": 47.29901166778042
           },
           "latency_us_p99": {
-            "mean": 838.9800510485654,
-            "sd": 550.0278285984015
+            "mean": 977.3933006799776,
+            "sd": 170.97051616063007
           },
           "rmse_by_window": {
             "steady": {
@@ -3442,12 +4358,12 @@
             "sd": 0.001488715278627903
           },
           "latency_us_p50": {
-            "mean": 540.5374919064343,
-            "sd": 15.684560532836507
+            "mean": 606.3524953788146,
+            "sd": 35.152037533316104
           },
           "latency_us_p99": {
-            "mean": 752.8787420596925,
-            "sd": 85.20492523651184
+            "mean": 930.8178524952382,
+            "sd": 111.98083863900452
           },
           "rmse_by_window": {
             "steady": {
@@ -3588,12 +4504,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 373.97751002572477,
-            "sd": 12.491893142396247
+            "mean": 420.9074948448688,
+            "sd": 27.611412094717075
           },
           "latency_us_p99": {
-            "mean": 524.1236971342005,
-            "sd": 74.42142453203135
+            "mean": 673.1075573479754,
+            "sd": 111.21812800052975
           },
           "rmse_by_window": {
             "steady": {
@@ -3804,12 +4720,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 354.21250213403255,
-            "sd": 9.223865828876107
+            "mean": 395.1774968300015,
+            "sd": 20.71490439335189
           },
           "latency_us_p99": {
-            "mean": 574.5229345629921,
-            "sd": 286.1781183891118
+            "mean": 625.7474582525901,
+            "sd": 82.99963531580231
           },
           "rmse_by_window": {
             "steady": {
@@ -3929,6 +4845,310 @@
           },
           "solver_failures": 0,
           "n_seeds": 20
+        },
+        "kf+hard(b_var=0.25)": {
+          "rmse_all": {
+            "mean": 0.31861849735702846,
+            "sd": 0.025775438061627475
+          },
+          "coverage95": {
+            "mean": 0.9553333333333333,
+            "sd": 0.029673417327743572
+          },
+          "nz_rms_all": {
+            "mean": 1.0396718642316272,
+            "sd": 0.08900914095458116
+          },
+          "mean_abs_res_pre": {
+            "mean": 1.0280292135126452,
+            "sd": 0.11331428731895757
+          },
+          "mean_abs_res_post": {
+            "mean": 0.5502231565067179,
+            "sd": 0.059097241976215485
+          },
+          "mean_correction_norm": {
+            "mean": 0.33792987125809876,
+            "sd": 0.03887919747089686
+          },
+          "latency_us_p50": {
+            "mean": 480.66749586723745,
+            "sd": 17.396288230983696
+          },
+          "latency_us_p99": {
+            "mean": 758.028896350879,
+            "sd": 62.285133667554554
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.277613553941233,
+              "sd": 0.046565164351085736
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9599166666666668,
+              "sd": 0.046958595050563504
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.9889807502580303,
+              "sd": 0.1661083930816476
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.31385875325555335,
+                "sd": 0.05942434405385667
+              },
+              "null": {
+                "mean": 0.23009768640748113,
+                "sd": 0.0602749485766435
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": 600.0,
+            "median_censored": true,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf+hard(b_var=0.25)+guard": {
+          "rmse_all": {
+            "mean": 0.31861849735702846,
+            "sd": 0.025775438061627475
+          },
+          "coverage95": {
+            "mean": 0.9553333333333333,
+            "sd": 0.029673417327743572
+          },
+          "nz_rms_all": {
+            "mean": 1.0396718642316272,
+            "sd": 0.08900914095458116
+          },
+          "mean_abs_res_pre": {
+            "mean": 1.0280292135126452,
+            "sd": 0.11331428731895757
+          },
+          "mean_abs_res_post": {
+            "mean": 0.5502231565067179,
+            "sd": 0.059097241976215485
+          },
+          "mean_correction_norm": {
+            "mean": 0.33792987125809876,
+            "sd": 0.03887919747089686
+          },
+          "latency_us_p50": {
+            "mean": 479.10501598380506,
+            "sd": 16.585187807814677
+          },
+          "latency_us_p99": {
+            "mean": 745.8624415448866,
+            "sd": 88.88640046429826
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.277613553941233,
+              "sd": 0.046565164351085736
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9599166666666668,
+              "sd": 0.046958595050563504
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.9889807502580303,
+              "sd": 0.1661083930816476
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.31385875325555335,
+                "sd": 0.05942434405385667
+              },
+              "null": {
+                "mean": 0.23009768640748113,
+                "sd": 0.0602749485766435
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": 600.0,
+            "median_censored": true,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
         }
       },
       "1.5": {
@@ -3952,12 +5172,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 347.7624908555299,
-            "sd": 9.150581631166423
+            "mean": 390.7200036337599,
+            "sd": 30.91797553691332
           },
           "latency_us_p99": {
-            "mean": 491.1502850591204,
-            "sd": 54.36487022743788
+            "mean": 613.8259547296911,
+            "sd": 81.30250165738786
           },
           "rmse_by_window": {
             "steady": {
@@ -4104,12 +5324,12 @@
             "sd": 0.08162751253664911
           },
           "latency_us_p50": {
-            "mean": 525.4624935332686,
-            "sd": 14.133842995137321
+            "mean": 592.8374914219603,
+            "sd": 36.186970313224265
           },
           "latency_us_p99": {
-            "mean": 736.5220013889482,
-            "sd": 97.6246485063325
+            "mean": 938.0699495668521,
+            "sd": 151.1898122121593
           },
           "rmse_by_window": {
             "steady": {
@@ -4256,12 +5476,12 @@
             "sd": 0.06832102213854827
           },
           "latency_us_p50": {
-            "mean": 462.5249915989116,
-            "sd": 71.96686489251482
+            "mean": 511.6225132951513,
+            "sd": 85.44935046395368
           },
           "latency_us_p99": {
-            "mean": 653.8311824551781,
-            "sd": 79.31757686217271
+            "mean": 780.5293308338148,
+            "sd": 121.25871972757268
           },
           "rmse_by_window": {
             "steady": {
@@ -4408,12 +5628,12 @@
             "sd": 0.0016003727144554881
           },
           "latency_us_p50": {
-            "mean": 535.6975016184151,
-            "sd": 13.062826186219668
+            "mean": 592.7475023781881,
+            "sd": 35.24203520984567
           },
           "latency_us_p99": {
-            "mean": 745.9496296360155,
-            "sd": 85.7818834333419
+            "mean": 907.8308575553817,
+            "sd": 166.10059316887845
           },
           "rmse_by_window": {
             "steady": {
@@ -4554,12 +5774,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 447.7474925806746,
-            "sd": 337.6722490711886
+            "mean": 421.0950108245015,
+            "sd": 32.95158639722374
           },
           "latency_us_p99": {
-            "mean": 632.847509754356,
-            "sd": 515.6087927222566
+            "mean": 711.6061864653601,
+            "sd": 194.5519901660699
           },
           "rmse_by_window": {
             "steady": {
@@ -4770,12 +5990,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 420.98499834537506,
-            "sd": 311.0107083444965
+            "mean": 390.35750087350607,
+            "sd": 29.274223890808706
           },
           "latency_us_p99": {
-            "mean": 596.1734098382293,
-            "sd": 498.0551997156213
+            "mean": 611.6365383495577,
+            "sd": 114.11226068789993
           },
           "rmse_by_window": {
             "steady": {
@@ -4895,6 +6115,310 @@
           },
           "solver_failures": 0,
           "n_seeds": 20
+        },
+        "kf+hard(b_var=0.25)": {
+          "rmse_all": {
+            "mean": 0.41142057321028347,
+            "sd": 0.024146658311757902
+          },
+          "coverage95": {
+            "mean": 0.868375,
+            "sd": 0.043198571661193286
+          },
+          "nz_rms_all": {
+            "mean": 1.3617729972386194,
+            "sd": 0.09161288303516939
+          },
+          "mean_abs_res_pre": {
+            "mean": 1.524093726033016,
+            "sd": 0.11543780326506504
+          },
+          "mean_abs_res_post": {
+            "mean": 0.8166206629621454,
+            "sd": 0.05955981780468612
+          },
+          "mean_correction_norm": {
+            "mean": 0.5003604938678741,
+            "sd": 0.04014249409963968
+          },
+          "latency_us_p50": {
+            "mean": 478.2725125551224,
+            "sd": 36.37263031911193
+          },
+          "latency_us_p99": {
+            "mean": 750.0998119940048,
+            "sd": 133.70057637443728
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.3687055040794012,
+              "sd": 0.045561847050736244
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.8862500000000001,
+              "sd": 0.08098601965843832
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 1.3136088459797033,
+              "sd": 0.16250624901689706
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.4648095925159253,
+                "sd": 0.059786097414163866
+              },
+              "null": {
+                "mean": 0.2300718381887541,
+                "sd": 0.06030629281456783
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 12,
+            "within": 100,
+            "detected_within": 2,
+            "median_delay": 467.5,
+            "median_censored": false,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf+hard(b_var=0.25)+guard": {
+          "rmse_all": {
+            "mean": 0.41430595364540157,
+            "sd": 0.024469648379111968
+          },
+          "coverage95": {
+            "mean": 0.866625,
+            "sd": 0.043045157676737625
+          },
+          "nz_rms_all": {
+            "mean": 1.3686123089002513,
+            "sd": 0.08979404382796297
+          },
+          "mean_abs_res_pre": {
+            "mean": 1.524093726033016,
+            "sd": 0.11543780326506504
+          },
+          "mean_abs_res_post": {
+            "mean": 0.8116081665603992,
+            "sd": 0.057021836924561455
+          },
+          "mean_correction_norm": {
+            "mean": 0.49695338924281673,
+            "sd": 0.037077357960472325
+          },
+          "latency_us_p50": {
+            "mean": 481.3899868167937,
+            "sd": 41.717528504223175
+          },
+          "latency_us_p99": {
+            "mean": 769.8248932138083,
+            "sd": 155.8619156747999
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.3716108089706135,
+              "sd": 0.04382017524776943
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.8855000000000001,
+              "sd": 0.08233986762905071
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 1.3213972752121084,
+              "sd": 0.157686565983595
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.46956736383141406,
+                "sd": 0.05580510088127648
+              },
+              "null": {
+                "mean": 0.23007812848635015,
+                "sd": 0.060259336255777105
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 12,
+            "within": 100,
+            "detected_within": 2,
+            "median_delay": 467.5,
+            "median_censored": false,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 7.25,
+            "sd": 9.198827156362466
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
         }
       },
       "2.0": {
@@ -4918,12 +6442,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 347.42249408736825,
-            "sd": 7.62888253233834
+            "mean": 405.49249679315835,
+            "sd": 31.46246039661192
           },
           "latency_us_p99": {
-            "mean": 493.61854762537394,
-            "sd": 54.94713051339919
+            "mean": 645.8482597372495,
+            "sd": 112.84641222155862
           },
           "rmse_by_window": {
             "steady": {
@@ -5070,12 +6594,12 @@
             "sd": 0.0818613096313242
           },
           "latency_us_p50": {
-            "mean": 629.1699944995344,
-            "sd": 465.3422460305644
+            "mean": 610.6924993218854,
+            "sd": 39.552404099635915
           },
           "latency_us_p99": {
-            "mean": 874.8832005658185,
-            "sd": 691.2739222443677
+            "mean": 954.2243445175698,
+            "sd": 123.20521764252737
           },
           "rmse_by_window": {
             "steady": {
@@ -5222,12 +6746,12 @@
             "sd": 0.29519268664385334
           },
           "latency_us_p50": {
-            "mean": 425.97500141710043,
-            "sd": 310.2276610681059
+            "mean": 407.52749191597104,
+            "sd": 35.7892896274113
           },
           "latency_us_p99": {
-            "mean": 713.229198998306,
-            "sd": 499.96378590733565
+            "mean": 743.4895848855375,
+            "sd": 170.7004661539863
           },
           "rmse_by_window": {
             "steady": {
@@ -5374,12 +6898,12 @@
             "sd": 0.0017983184571197478
           },
           "latency_us_p50": {
-            "mean": 544.2674999358132,
-            "sd": 13.105638136911649
+            "mean": 628.6824966082349,
+            "sd": 54.35667899944374
           },
           "latency_us_p99": {
-            "mean": 773.0703885899854,
-            "sd": 93.66058925728036
+            "mean": 997.2875015228053,
+            "sd": 170.9357917316647
           },
           "rmse_by_window": {
             "steady": {
@@ -5520,12 +7044,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 375.46249222941697,
-            "sd": 11.575059047541302
+            "mean": 432.00999789405614,
+            "sd": 33.53120500919768
           },
           "latency_us_p99": {
-            "mean": 536.5693488856776,
-            "sd": 72.78826152105187
+            "mean": 693.573189957533,
+            "sd": 105.4841502295035
           },
           "rmse_by_window": {
             "steady": {
@@ -5736,12 +7260,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 348.75249839387834,
-            "sd": 8.118184657434012
+            "mean": 400.4974995041266,
+            "sd": 30.436536269533157
           },
           "latency_us_p99": {
-            "mean": 484.1932567069306,
-            "sd": 67.61575229401521
+            "mean": 649.1744120139628,
+            "sd": 89.3357394832507
           },
           "rmse_by_window": {
             "steady": {
@@ -5861,6 +7385,310 @@
           },
           "solver_failures": 0,
           "n_seeds": 20
+        },
+        "kf+hard(b_var=0.25)": {
+          "rmse_all": {
+            "mean": 0.5143447271270896,
+            "sd": 0.024152720476571826
+          },
+          "coverage95": {
+            "mean": 0.7138333333333333,
+            "sd": 0.05418616383245073
+          },
+          "nz_rms_all": {
+            "mean": 1.7164245651715817,
+            "sd": 0.09422097398231007
+          },
+          "mean_abs_res_pre": {
+            "mean": 2.0227241662620212,
+            "sd": 0.11577199262964546
+          },
+          "mean_abs_res_post": {
+            "mean": 1.0838826154090153,
+            "sd": 0.0593810134533645
+          },
+          "mean_correction_norm": {
+            "mean": 0.6639959994190304,
+            "sd": 0.040594799857749574
+          },
+          "latency_us_p50": {
+            "mean": 492.83500702586025,
+            "sd": 38.6925243816335
+          },
+          "latency_us_p99": {
+            "mean": 797.1717533655462,
+            "sd": 133.24207724119282
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.4689427665519168,
+              "sd": 0.04457866599834035
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.7418333333333333,
+              "sd": 0.0854911848675551
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 1.670837287177284,
+              "sd": 0.15896368792416288
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.6195405346403595,
+                "sd": 0.05957720191067169
+              },
+              "null": {
+                "mean": 0.2300632041594027,
+                "sd": 0.06034028916955136
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 20,
+            "within": 100,
+            "detected_within": 7,
+            "median_delay": 131.5,
+            "median_censored": false,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf+hard(b_var=0.25)+guard": {
+          "rmse_all": {
+            "mean": 0.5034040727537866,
+            "sd": 0.027892880479998335
+          },
+          "coverage95": {
+            "mean": 0.733,
+            "sd": 0.058524373889699034
+          },
+          "nz_rms_all": {
+            "mean": 1.6536932966884283,
+            "sd": 0.12329722024507059
+          },
+          "mean_abs_res_pre": {
+            "mean": 2.0227241662620212,
+            "sd": 0.11577199262964546
+          },
+          "mean_abs_res_post": {
+            "mean": 1.0038126533962555,
+            "sd": 0.03432106458500469
+          },
+          "mean_correction_norm": {
+            "mean": 0.6298586671152568,
+            "sd": 0.03161232692450683
+          },
+          "latency_us_p50": {
+            "mean": 495.01999747008085,
+            "sd": 52.282587815888206
+          },
+          "latency_us_p99": {
+            "mean": 920.5653921235349,
+            "sd": 608.1806211222521
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.4544659151070426,
+              "sd": 0.048481281759131606
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.7612500000000001,
+              "sd": 0.09032571826515945
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 1.5979250527114028,
+              "sd": 0.18261526450457996
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.5976765016513694,
+                "sd": 0.06496911972193171
+              },
+              "null": {
+                "mean": 0.23002663934523415,
+                "sd": 0.05986800618049583
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 20,
+            "within": 100,
+            "detected_within": 7,
+            "median_delay": 131.5,
+            "median_censored": false,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 141.55,
+            "sd": 75.98786260422052
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
         }
       },
       "4.0": {
@@ -5884,12 +7712,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 420.43247958645225,
-            "sd": 317.49448755088844
+            "mean": 387.5599941238761,
+            "sd": 25.826950623855318
           },
           "latency_us_p99": {
-            "mean": 606.035874399822,
-            "sd": 517.0219699395393
+            "mean": 630.2206572145224,
+            "sd": 87.32984074155416
           },
           "rmse_by_window": {
             "steady": {
@@ -6036,12 +7864,12 @@
             "sd": 0.08211558042294116
           },
           "latency_us_p50": {
-            "mean": 529.0449887979776,
-            "sd": 13.01779803885049
+            "mean": 603.2599980244413,
+            "sd": 50.69351974078697
           },
           "latency_us_p99": {
-            "mean": 905.7364027830769,
-            "sd": 610.6946688191957
+            "mean": 998.4421376721002,
+            "sd": 233.92692904889284
           },
           "rmse_by_window": {
             "steady": {
@@ -6188,12 +8016,12 @@
             "sd": 0.8355775958824423
           },
           "latency_us_p50": {
-            "mean": 350.19250644836575,
-            "sd": 9.591981858474261
+            "mean": 400.812501902692,
+            "sd": 29.87789551624513
           },
           "latency_us_p99": {
-            "mean": 539.7740443004295,
-            "sd": 28.06067493477996
+            "mean": 704.1211883188225,
+            "sd": 120.92631671472195
           },
           "rmse_by_window": {
             "steady": {
@@ -6340,12 +8168,12 @@
             "sd": 0.0024790066479891356
           },
           "latency_us_p50": {
-            "mean": 544.317509047687,
-            "sd": 11.21834173596067
+            "mean": 629.2875070357695,
+            "sd": 70.73923110997215
           },
           "latency_us_p99": {
-            "mean": 742.3531989916227,
-            "sd": 93.69392300635961
+            "mean": 1066.950123698916,
+            "sd": 354.0672750669517
           },
           "rmse_by_window": {
             "steady": {
@@ -6486,12 +8314,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 375.24999352172017,
-            "sd": 8.943302884688524
+            "mean": 430.61251344624907,
+            "sd": 40.226899870366985
           },
           "latency_us_p99": {
-            "mean": 531.3861323520539,
-            "sd": 56.13848820285825
+            "mean": 767.7239064360036,
+            "sd": 211.45234190375672
           },
           "rmse_by_window": {
             "steady": {
@@ -6702,12 +8530,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 352.6025015162304,
-            "sd": 9.45148894472553
+            "mean": 407.20000688452274,
+            "sd": 35.57275884525514
           },
           "latency_us_p99": {
-            "mean": 473.0291701271196,
-            "sd": 63.16226737542009
+            "mean": 675.0127934501506,
+            "sd": 117.58443865399917
           },
           "rmse_by_window": {
             "steady": {
@@ -6827,6 +8655,310 @@
           },
           "solver_failures": 0,
           "n_seeds": 20
+        },
+        "kf+hard(b_var=0.25)": {
+          "rmse_all": {
+            "mean": 0.9600691291089657,
+            "sd": 0.025699532854062634
+          },
+          "coverage95": {
+            "mean": 0.043500000000000004,
+            "sd": 0.030982451173232797
+          },
+          "nz_rms_all": {
+            "mean": 3.23971018554358,
+            "sd": 0.09919911217137688
+          },
+          "mean_abs_res_pre": {
+            "mean": 4.021052266444353,
+            "sd": 0.11615060403114164
+          },
+          "mean_abs_res_post": {
+            "mean": 2.153279005296407,
+            "sd": 0.058608618101418916
+          },
+          "mean_correction_norm": {
+            "mean": 1.3209958789198772,
+            "sd": 0.041672654847878216
+          },
+          "latency_us_p50": {
+            "mean": 486.14999977871776,
+            "sd": 32.35384670636188
+          },
+          "latency_us_p99": {
+            "mean": 825.4870810196733,
+            "sd": 265.54960142399557
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.8980619191135999,
+              "sd": 0.04260895586085493
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.03608333333333334,
+              "sd": 0.03955259656124794
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 3.2001400653155883,
+              "sd": 0.15169048036392052
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 1.2476864170344188,
+                "sd": 0.05883579055697972
+              },
+              "null": {
+                "mean": 0.23020029106254677,
+                "sd": 0.060504702346567296
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 20,
+            "within": 100,
+            "detected_within": 20,
+            "median_delay": 9.0,
+            "median_censored": false,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf+hard(b_var=0.25)+guard": {
+          "rmse_all": {
+            "mean": 0.3504237773266686,
+            "sd": 0.03966728633218724
+          },
+          "coverage95": {
+            "mean": 0.9742916666666666,
+            "sd": 0.015068738698541174
+          },
+          "nz_rms_all": {
+            "mean": 0.8353307317344807,
+            "sd": 0.1144767385666326
+          },
+          "mean_abs_res_pre": {
+            "mean": 4.021052266444353,
+            "sd": 0.11615060403114164
+          },
+          "mean_abs_res_post": {
+            "mean": 0.5036893455688876,
+            "sd": 0.07034847586443026
+          },
+          "mean_correction_norm": {
+            "mean": 2.3532672998107897,
+            "sd": 0.7446074611997437
+          },
+          "latency_us_p50": {
+            "mean": 304.59250847343355,
+            "sd": 33.06293426340624
+          },
+          "latency_us_p99": {
+            "mean": 561.480807722546,
+            "sd": 171.91224803645417
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.23254318506209315,
+              "sd": 0.050077132787743665
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9868333333333332,
+              "sd": 0.022379632553202796
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 20,
+            "within": 100,
+            "detected_within": 20,
+            "median_delay": 9.0,
+            "median_censored": false,
+            "censor_at": 600,
+            "applicable": true
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": 600.0,
+                "median_censored": true,
+                "censor_at": 600,
+                "applicable": true
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 589.95,
+            "sd": 3.4561158606310154
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
         }
       }
     },
@@ -6852,12 +8984,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 362.82500659581274,
-            "sd": 13.746300350170005
+            "mean": 439.17499715462327,
+            "sd": 23.8165222211351
           },
           "latency_us_p99": {
-            "mean": 511.3319095107725,
-            "sd": 51.166733506407056
+            "mean": 858.839200926013,
+            "sd": 322.9332312237513
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -7050,12 +9182,12 @@
             "sd": 0.06099933414484296
           },
           "latency_us_p50": {
-            "mean": 646.6599879786372,
-            "sd": 493.79900417366935
+            "mean": 650.9524973807856,
+            "sd": 37.74717657897392
           },
           "latency_us_p99": {
-            "mean": 882.9013030044731,
-            "sd": 714.0064996461447
+            "mean": 1139.4605458481237,
+            "sd": 201.1525723827201
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -7248,12 +9380,12 @@
             "sd": 0.05942356481575993
           },
           "latency_us_p50": {
-            "mean": 540.7350021414459,
-            "sd": 20.130774495744127
+            "mean": 643.9074932131916,
+            "sd": 29.072051601478055
           },
           "latency_us_p99": {
-            "mean": 837.9644609522072,
-            "sd": 504.91549973770867
+            "mean": 1130.6140216765925,
+            "sd": 123.11691364239798
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -7442,12 +9574,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 347.10250329226255,
-            "sd": 10.869373567553627
+            "mean": 412.3599996091798,
+            "sd": 21.80903128653091
           },
           "latency_us_p99": {
-            "mean": 503.4085580264217,
-            "sd": 105.99535899088187
+            "mean": 725.0650557689365,
+            "sd": 336.11070400899297
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -7640,12 +9772,12 @@
             "sd": 0.06861833952769242
           },
           "latency_us_p50": {
-            "mean": 520.8649876294658,
-            "sd": 14.178731021365545
+            "mean": 607.1975047234446,
+            "sd": 28.686867323140337
           },
           "latency_us_p99": {
-            "mean": 837.1932323789224,
-            "sd": 641.6587918844807
+            "mean": 986.728135263547,
+            "sd": 175.51068580324733
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -7838,12 +9970,12 @@
             "sd": 0.06272899543882147
           },
           "latency_us_p50": {
-            "mean": 518.2749824598432,
-            "sd": 29.516609810636083
+            "mean": 612.414997885935,
+            "sd": 33.101443951864944
           },
           "latency_us_p99": {
-            "mean": 827.2731112083418,
-            "sd": 634.7132161667653
+            "mean": 957.3202833998946,
+            "sd": 171.80372694759092
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -8032,12 +10164,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 342.4699913011864,
-            "sd": 6.893283460674805
+            "mean": 417.39748849067837,
+            "sd": 16.304493684285365
           },
           "latency_us_p99": {
-            "mean": 489.1360096517018,
-            "sd": 40.03894986338645
+            "mean": 636.2583125010132,
+            "sd": 65.07408035241711
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -8230,12 +10362,12 @@
             "sd": 0.06909646247735392
           },
           "latency_us_p50": {
-            "mean": 515.4150130692869,
-            "sd": 11.167802930582983
+            "mean": 626.377493608743,
+            "sd": 25.244094431481198
           },
           "latency_us_p99": {
-            "mean": 681.5101078245789,
-            "sd": 43.77744363277199
+            "mean": 1053.0744116986166,
+            "sd": 389.83510769644863
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -8428,12 +10560,12 @@
             "sd": 0.09269653529386945
           },
           "latency_us_p50": {
-            "mean": 433.27749881427735,
-            "sd": 58.62297678630113
+            "mean": 548.7350048497319,
+            "sd": 67.19616022625854
           },
           "latency_us_p99": {
-            "mean": 644.2825535777955,
-            "sd": 45.26344301742865
+            "mean": 849.0915412548927,
+            "sd": 133.2100506066247
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -8622,12 +10754,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 346.94999922066927,
-            "sd": 9.027405922040753
+            "mean": 401.17001335602254,
+            "sd": 15.306058592742291
           },
           "latency_us_p99": {
-            "mean": 602.4398257723076,
-            "sd": 419.7500288466251
+            "mean": 599.8284742818214,
+            "sd": 68.02863446509151
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -8820,12 +10952,12 @@
             "sd": 0.06929582649383768
           },
           "latency_us_p50": {
-            "mean": 515.9800057299435,
-            "sd": 13.47329820397687
+            "mean": 601.8274958478287,
+            "sd": 43.828427541202174
           },
           "latency_us_p99": {
-            "mean": 699.4821320986375,
-            "sd": 71.77488957762279
+            "mean": 957.033802522346,
+            "sd": 283.3868535730798
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -9018,12 +11150,12 @@
             "sd": 0.056667697797155914
           },
           "latency_us_p50": {
-            "mean": 436.3450105302036,
-            "sd": 342.11489638486495
+            "mean": 412.71748777944595,
+            "sd": 23.667548690128957
           },
           "latency_us_p99": {
-            "mean": 784.1664537554606,
-            "sd": 649.8497086596059
+            "mean": 802.1596181788482,
+            "sd": 148.47853575559068
           },
           "rmse_by_window": {
             "pre_bias": {
@@ -9214,12 +11346,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 328.8449806859717,
-            "sd": 9.836180629768695
+            "mean": 369.72501256968826,
+            "sd": 10.502658439577097
           },
           "latency_us_p99": {
-            "mean": 463.99509283946816,
-            "sd": 43.91565256672191
+            "mean": 553.1484971288592,
+            "sd": 56.77755082392804
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -9412,12 +11544,12 @@
             "sd": 0.05568177244336322
           },
           "latency_us_p50": {
-            "mean": 496.0199847118929,
-            "sd": 12.788620945722869
+            "mean": 564.5900033414364,
+            "sd": 12.99110673306145
           },
           "latency_us_p99": {
-            "mean": 656.4413302112368,
-            "sd": 48.15263962046643
+            "mean": 856.1409717076456,
+            "sd": 65.92046230758761
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -9610,12 +11742,12 @@
             "sd": 0.055241215128700796
           },
           "latency_us_p50": {
-            "mean": 494.0500046359375,
-            "sd": 14.921979236957375
+            "mean": 563.6374931782484,
+            "sd": 15.72519484431927
           },
           "latency_us_p99": {
-            "mean": 686.5309046115724,
-            "sd": 64.35038631265427
+            "mean": 829.2582744034005,
+            "sd": 89.65579943866534
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -9802,12 +11934,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 350.40000220760703,
-            "sd": 9.338228840410894
+            "mean": 397.70500734448433,
+            "sd": 9.376082139864717
           },
           "latency_us_p99": {
-            "mean": 475.5119429319164,
-            "sd": 34.94735002983338
+            "mean": 607.2979517048225,
+            "sd": 77.10141419258997
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -10074,12 +12206,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 329.6024922747165,
-            "sd": 10.18229953183735
+            "mean": 440.5799933010712,
+            "sd": 321.7440732425544
           },
           "latency_us_p99": {
-            "mean": 477.5071970652788,
-            "sd": 46.56946023854898
+            "mean": 636.1254877992903,
+            "sd": 496.6534424429199
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -10272,12 +12404,12 @@
             "sd": 0.06196035501065074
           },
           "latency_us_p50": {
-            "mean": 500.46501273754984,
-            "sd": 15.207600016120038
+            "mean": 557.5774848693982,
+            "sd": 25.203138271331923
           },
           "latency_us_p99": {
-            "mean": 695.9016005857845,
-            "sd": 58.82126035406716
+            "mean": 803.1953028985298,
+            "sd": 99.78215274340513
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -10470,12 +12602,12 @@
             "sd": 0.05045478079509781
           },
           "latency_us_p50": {
-            "mean": 488.51251194719225,
-            "sd": 14.341914385669966
+            "mean": 550.9149952558801,
+            "sd": 26.04858196685448
           },
           "latency_us_p99": {
-            "mean": 640.3241970110683,
-            "sd": 54.10227766534348
+            "mean": 784.8433139733968,
+            "sd": 101.46631864177216
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -10662,12 +12794,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 348.98998856078833,
-            "sd": 10.480707012277158
+            "mean": 469.03750335332006,
+            "sd": 337.0973273991744
           },
           "latency_us_p99": {
-            "mean": 524.4031547917983,
-            "sd": 52.31991727356082
+            "mean": 669.2783844773655,
+            "sd": 428.6883375457089
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -10934,12 +13066,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 399.0899975178763,
-            "sd": 316.4167138365272
+            "mean": 362.44251241441816,
+            "sd": 24.15056559045795
           },
           "latency_us_p99": {
-            "mean": 559.5283431466669,
-            "sd": 408.28718929664666
+            "mean": 634.6262934384865,
+            "sd": 238.6520246791819
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -11132,12 +13264,12 @@
             "sd": 0.06276118726711727
           },
           "latency_us_p50": {
-            "mean": 608.007499249652,
-            "sd": 476.42219969858564
+            "mean": 547.3875004099682,
+            "sd": 27.141324080312877
           },
           "latency_us_p99": {
-            "mean": 856.8485472933387,
-            "sd": 600.7931039791849
+            "mean": 906.3205521088091,
+            "sd": 166.0194153332546
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -11330,12 +13462,12 @@
             "sd": 0.04744632752628897
           },
           "latency_us_p50": {
-            "mean": 486.937488312833,
-            "sd": 13.808779559415562
+            "mean": 531.8850075127557,
+            "sd": 27.015546544494548
           },
           "latency_us_p99": {
-            "mean": 646.3560346164738,
-            "sd": 48.38354300785076
+            "mean": 845.0148009578697,
+            "sd": 145.1632695678776
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -11522,12 +13654,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 351.30250616930425,
-            "sd": 8.98045976202458
+            "mean": 389.0574967954308,
+            "sd": 24.678583334067124
           },
           "latency_us_p99": {
-            "mean": 485.8098904369398,
-            "sd": 38.21377892208082
+            "mean": 710.9281925950197,
+            "sd": 282.7264414222825
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -11794,12 +13926,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 326.25749008730054,
-            "sd": 9.0200858704992
+            "mean": 434.16749977041036,
+            "sd": 358.76635907446547
           },
           "latency_us_p99": {
-            "mean": 506.0697373119182,
-            "sd": 44.56597019799336
+            "mean": 773.9430899382568,
+            "sd": 985.2079302298291
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -11992,12 +14124,12 @@
             "sd": 0.06267255232874508
           },
           "latency_us_p50": {
-            "mean": 498.8050146494061,
-            "sd": 13.162315079901143
+            "mean": 535.6624926207587,
+            "sd": 14.831824413799879
           },
           "latency_us_p99": {
-            "mean": 661.226804135367,
-            "sd": 54.126409786559385
+            "mean": 941.0859936615452,
+            "sd": 610.1991946771731
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -12190,12 +14322,12 @@
             "sd": 0.055956454709563515
           },
           "latency_us_p50": {
-            "mean": 480.6975106475875,
-            "sd": 17.136071117683237
+            "mean": 512.6775038661435,
+            "sd": 18.40253362523003
           },
           "latency_us_p99": {
-            "mean": 671.593302162364,
-            "sd": 57.90953058110663
+            "mean": 744.4889869657345,
+            "sd": 146.5127488102126
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -12382,12 +14514,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 350.44248797930777,
-            "sd": 8.938652006260632
+            "mean": 374.89000242203474,
+            "sd": 13.438775588433003
           },
           "latency_us_p99": {
-            "mean": 497.8710334980859,
-            "sd": 52.40756751551008
+            "mean": 593.6313459533264,
+            "sd": 142.42062529668792
           },
           "rmse_by_window": {
             "pre_leak": {
@@ -12656,12 +14788,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 399.0875033196062,
-            "sd": 325.1837355503629
+            "mean": 425.6349988281727,
+            "sd": 329.01048100365506
           },
           "latency_us_p99": {
-            "mean": 571.9052107306195,
-            "sd": 465.0769646322961
+            "mean": 663.6349501204676,
+            "sd": 442.38863947290224
           },
           "rmse_by_window": {
             "steady": {
@@ -12808,12 +14940,12 @@
             "sd": 0.05321473238680636
           },
           "latency_us_p50": {
-            "mean": 492.9324990371242,
-            "sd": 13.859191549125493
+            "mean": 539.6675085648894,
+            "sd": 18.274719147201928
           },
           "latency_us_p99": {
-            "mean": 806.7303262068887,
-            "sd": 596.3378956064535
+            "mean": 988.4317601099608,
+            "sd": 708.858450713471
           },
           "rmse_by_window": {
             "steady": {
@@ -12960,12 +15092,12 @@
             "sd": 0.05321473238680636
           },
           "latency_us_p50": {
-            "mean": 494.870005059056,
-            "sd": 13.465104590508618
+            "mean": 648.0974960140884,
+            "sd": 498.7784510622012
           },
           "latency_us_p99": {
-            "mean": 662.8259548451749,
-            "sd": 44.945704406213295
+            "mean": 1006.0923993587494,
+            "sd": 832.7870113344842
           },
           "rmse_by_window": {
             "steady": {
@@ -13112,12 +15244,12 @@
             "sd": 0.050943675245228894
           },
           "latency_us_p50": {
-            "mean": 427.7549945982173,
-            "sd": 10.203923592559489
+            "mean": 456.0800036415458,
+            "sd": 16.993014150872007
           },
           "latency_us_p99": {
-            "mean": 608.5956938331944,
-            "sd": 75.17508824924555
+            "mean": 772.2101561375894,
+            "sd": 421.9969592643957
           },
           "rmse_by_window": {
             "steady": {
@@ -13237,6 +15369,310 @@
           },
           "solver_failures": 0,
           "n_seeds": 20
+        },
+        "kf+hard(b_var)": {
+          "rmse_all": {
+            "mean": 0.20275693548355803,
+            "sd": 0.036692565035731664
+          },
+          "coverage95": {
+            "mean": 0.9859583333333335,
+            "sd": 0.019890553974862047
+          },
+          "nz_rms_all": {
+            "mean": 0.7619521088936837,
+            "sd": 0.11532445796375834
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.3027022442450499,
+            "sd": 0.0752465044009939
+          },
+          "mean_abs_res_post": {
+            "mean": 0.012967117064195543,
+            "sd": 0.003250919182726985
+          },
+          "mean_correction_norm": {
+            "mean": 0.2049178113345081,
+            "sd": 0.050943675245229046
+          },
+          "latency_us_p50": {
+            "mean": 437.4800046207383,
+            "sd": 14.655192052163105
+          },
+          "latency_us_p99": {
+            "mean": 678.3853395027106,
+            "sd": 56.65006668783805
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.1687174797322949,
+              "sd": 0.041278548348814406
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9839166666666666,
+              "sd": 0.03528611127799161
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.7315107105165599,
+              "sd": 0.17895045646341054
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.04865504374625797,
+                "sd": 0.036977864445084094
+              },
+              "null": {
+                "mean": 0.23031281875847776,
+                "sd": 0.060335196014722
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": null,
+            "median_censored": null,
+            "censor_at": null,
+            "applicable": false
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf+hard(b_var)+guard": {
+          "rmse_all": {
+            "mean": 0.20275693548355803,
+            "sd": 0.036692565035731664
+          },
+          "coverage95": {
+            "mean": 0.9859583333333335,
+            "sd": 0.019890553974862047
+          },
+          "nz_rms_all": {
+            "mean": 0.7619521088936837,
+            "sd": 0.11532445796375834
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.3027022442450499,
+            "sd": 0.0752465044009939
+          },
+          "mean_abs_res_post": {
+            "mean": 0.012967117064195543,
+            "sd": 0.003250919182726985
+          },
+          "mean_correction_norm": {
+            "mean": 0.2049178113345081,
+            "sd": 0.050943675245229046
+          },
+          "latency_us_p50": {
+            "mean": 441.17250363342464,
+            "sd": 19.338288702485283
+          },
+          "latency_us_p99": {
+            "mean": 766.2309233564881,
+            "sd": 351.90633941032905
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.1687174797322949,
+              "sd": 0.041278548348814406
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9839166666666666,
+              "sd": 0.03528611127799161
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.7315107105165599,
+              "sd": 0.17895045646341054
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.04865504374625797,
+                "sd": 0.036977864445084094
+              },
+              "null": {
+                "mean": 0.23031281875847776,
+                "sd": 0.060335196014722
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": null,
+            "median_censored": null,
+            "censor_at": null,
+            "applicable": false
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
         }
       },
       "0.3": {
@@ -13260,12 +15696,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 325.0375157222152,
-            "sd": 8.213915823673219
+            "mean": 431.547497282736,
+            "sd": 329.00256568290655
           },
           "latency_us_p99": {
-            "mean": 465.9949960187076,
-            "sd": 37.4131223271763
+            "mean": 986.3767027854907,
+            "sd": 1459.716458183038
           },
           "rmse_by_window": {
             "steady": {
@@ -13412,12 +15848,12 @@
             "sd": 0.1111886328567825
           },
           "latency_us_p50": {
-            "mean": 490.4174944385886,
-            "sd": 10.074037558403912
+            "mean": 531.1024986440316,
+            "sd": 26.407016668731906
           },
           "latency_us_p99": {
-            "mean": 700.5387684330343,
-            "sd": 47.67906649862494
+            "mean": 790.1722406968472,
+            "sd": 114.66796223608027
           },
           "rmse_by_window": {
             "steady": {
@@ -13564,12 +16000,12 @@
             "sd": 0.1045159805565406
           },
           "latency_us_p50": {
-            "mean": 497.26498837117106,
-            "sd": 10.362275355249595
+            "mean": 537.1274921344593,
+            "sd": 25.24353939772518
           },
           "latency_us_p99": {
-            "mean": 712.936619762331,
-            "sd": 154.4343129043622
+            "mean": 798.2831992558201,
+            "sd": 154.38148508704472
           },
           "rmse_by_window": {
             "steady": {
@@ -13716,12 +16152,12 @@
             "sd": 0.07853305450736321
           },
           "latency_us_p50": {
-            "mean": 430.20751618314534,
-            "sd": 17.296321500965988
+            "mean": 453.65248224698007,
+            "sd": 22.04716358689569
           },
           "latency_us_p99": {
-            "mean": 765.0174030568448,
-            "sd": 748.5391076628933
+            "mean": 666.5619550039992,
+            "sd": 77.14361578499793
           },
           "rmse_by_window": {
             "steady": {
@@ -13841,6 +16277,310 @@
           },
           "solver_failures": 0,
           "n_seeds": 20
+        },
+        "kf+hard(b_var)": {
+          "rmse_all": {
+            "mean": 0.2241352733406609,
+            "sd": 0.041021429570308604
+          },
+          "coverage95": {
+            "mean": 0.9871666666666666,
+            "sd": 0.016785540979215176
+          },
+          "nz_rms_all": {
+            "mean": 0.7748886888138389,
+            "sd": 0.12827750200764565
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.3710045352466883,
+            "sd": 0.15722041932106431
+          },
+          "mean_abs_res_post": {
+            "mean": 0.10583973218407852,
+            "sd": 0.04636270839379035
+          },
+          "mean_correction_norm": {
+            "mean": 0.1875442922004621,
+            "sd": 0.07853305450736327
+          },
+          "latency_us_p50": {
+            "mean": 432.93251073919237,
+            "sd": 18.922639159777212
+          },
+          "latency_us_p99": {
+            "mean": 693.8052464975043,
+            "sd": 137.78280489956734
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.19020689029642765,
+              "sd": 0.04617892708698421
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9869166666666667,
+              "sd": 0.02820805637480975
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.7383176331525676,
+              "sd": 0.17943232769415562
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.12323455748444649,
+                "sd": 0.07060862320811531
+              },
+              "null": {
+                "mean": 0.23030953604550844,
+                "sd": 0.060205981307429345
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": null,
+            "median_censored": null,
+            "censor_at": null,
+            "applicable": false
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf+hard(b_var)+guard": {
+          "rmse_all": {
+            "mean": 0.2241352733406609,
+            "sd": 0.041021429570308604
+          },
+          "coverage95": {
+            "mean": 0.9871666666666666,
+            "sd": 0.016785540979215176
+          },
+          "nz_rms_all": {
+            "mean": 0.7748886888138389,
+            "sd": 0.12827750200764565
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.3710045352466883,
+            "sd": 0.15722041932106431
+          },
+          "mean_abs_res_post": {
+            "mean": 0.10583973218407852,
+            "sd": 0.04636270839379035
+          },
+          "mean_correction_norm": {
+            "mean": 0.1875442922004621,
+            "sd": 0.07853305450736327
+          },
+          "latency_us_p50": {
+            "mean": 436.0100021585822,
+            "sd": 23.872973840883503
+          },
+          "latency_us_p99": {
+            "mean": 770.5565869109704,
+            "sd": 446.2100153101227
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.19020689029642765,
+              "sd": 0.04617892708698421
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9869166666666667,
+              "sd": 0.02820805637480975
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.7383176331525676,
+              "sd": 0.17943232769415562
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.12323455748444649,
+                "sd": 0.07060862320811531
+              },
+              "null": {
+                "mean": 0.23030953604550844,
+                "sd": 0.060205981307429345
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": null,
+            "median_censored": null,
+            "censor_at": null,
+            "applicable": false
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
         }
       },
       "0.5": {
@@ -13864,12 +16604,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 397.2850041463971,
-            "sd": 320.9771246783033
+            "mean": 350.56751512456685,
+            "sd": 11.586580319422664
           },
           "latency_us_p99": {
-            "mean": 567.3733890871516,
-            "sd": 436.5168577004241
+            "mean": 521.6437898925506,
+            "sd": 58.60922216954345
           },
           "rmse_by_window": {
             "steady": {
@@ -14016,12 +16756,12 @@
             "sd": 0.1920145434982823
           },
           "latency_us_p50": {
-            "mean": 496.01249920669943,
-            "sd": 10.639303176714321
+            "mean": 533.305003773421,
+            "sd": 16.982052903605364
           },
           "latency_us_p99": {
-            "mean": 703.5815625567919,
-            "sd": 93.8969582580062
+            "mean": 793.2103470084256,
+            "sd": 116.40353168421038
           },
           "rmse_by_window": {
             "steady": {
@@ -14168,12 +16908,12 @@
             "sd": 0.16709385321363884
           },
           "latency_us_p50": {
-            "mean": 494.21249132137746,
-            "sd": 10.882911360877538
+            "mean": 540.2050068369135,
+            "sd": 20.16517286677436
           },
           "latency_us_p99": {
-            "mean": 673.2842917554078,
-            "sd": 53.204943297431846
+            "mean": 811.2774830078704,
+            "sd": 138.03785998535335
           },
           "rmse_by_window": {
             "steady": {
@@ -14320,12 +17060,12 @@
             "sd": 0.08958840464200654
           },
           "latency_us_p50": {
-            "mean": 424.25501451361924,
-            "sd": 11.444955910967066
+            "mean": 456.1825015116483,
+            "sd": 14.950284956812622
           },
           "latency_us_p99": {
-            "mean": 567.1803429140707,
-            "sd": 50.17381142920032
+            "mean": 666.8874741299077,
+            "sd": 97.52265377474012
           },
           "rmse_by_window": {
             "steady": {
@@ -14445,6 +17185,310 @@
           },
           "solver_failures": 0,
           "n_seeds": 20
+        },
+        "kf+hard(b_var)": {
+          "rmse_all": {
+            "mean": 0.24034874949449106,
+            "sd": 0.04375459013468465
+          },
+          "coverage95": {
+            "mean": 0.9868333333333335,
+            "sd": 0.015631446038775743
+          },
+          "nz_rms_all": {
+            "mean": 0.7718299565319853,
+            "sd": 0.129043751355539
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.47270298468274674,
+            "sd": 0.2715088926311156
+          },
+          "mean_abs_res_post": {
+            "mean": 0.2469667514694748,
+            "sd": 0.1450804539605692
+          },
+          "mean_correction_norm": {
+            "mean": 0.159662643579059,
+            "sd": 0.08958840464200656
+          },
+          "latency_us_p50": {
+            "mean": 521.2025076616555,
+            "sd": 406.3020413007449
+          },
+          "latency_us_p99": {
+            "mean": 788.7780095916241,
+            "sd": 621.3725371773585
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.2044892736125657,
+              "sd": 0.04794323177605768
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9894166666666667,
+              "sd": 0.023503608034582162
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.728699299634222,
+              "sd": 0.17104168048221186
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.16498334970615236,
+                "sd": 0.0674191439172557
+              },
+              "null": {
+                "mean": 0.23027649861171304,
+                "sd": 0.060123839153254435
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": null,
+            "median_censored": null,
+            "censor_at": null,
+            "applicable": false
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf+hard(b_var)+guard": {
+          "rmse_all": {
+            "mean": 0.24034874949449106,
+            "sd": 0.04375459013468465
+          },
+          "coverage95": {
+            "mean": 0.9868333333333335,
+            "sd": 0.015631446038775743
+          },
+          "nz_rms_all": {
+            "mean": 0.7718299565319853,
+            "sd": 0.129043751355539
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.47270298468274674,
+            "sd": 0.2715088926311156
+          },
+          "mean_abs_res_post": {
+            "mean": 0.2469667514694748,
+            "sd": 0.1450804539605692
+          },
+          "mean_correction_norm": {
+            "mean": 0.159662643579059,
+            "sd": 0.08958840464200656
+          },
+          "latency_us_p50": {
+            "mean": 430.9324867790565,
+            "sd": 12.92804482357809
+          },
+          "latency_us_p99": {
+            "mean": 725.9134963969698,
+            "sd": 445.0903809487423
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.2044892736125657,
+              "sd": 0.04794323177605768
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9894166666666667,
+              "sd": 0.023503608034582162
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.728699299634222,
+              "sd": 0.17104168048221186
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.16498334970615236,
+                "sd": 0.0674191439172557
+              },
+              "null": {
+                "mean": 0.23027649861171304,
+                "sd": 0.060123839153254435
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": null,
+            "median_censored": null,
+            "censor_at": null,
+            "applicable": false
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
         }
       },
       "1.0": {
@@ -14468,12 +17512,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 345.27998068369925,
-            "sd": 13.451951632554332
+            "mean": 345.8300023339689,
+            "sd": 12.75570120340228
           },
           "latency_us_p99": {
-            "mean": 581.7223427584393,
-            "sd": 403.0734097493288
+            "mean": 547.972004278563,
+            "sd": 68.29114411494497
           },
           "rmse_by_window": {
             "steady": {
@@ -14620,12 +17664,12 @@
             "sd": 0.408043133410429
           },
           "latency_us_p50": {
-            "mean": 622.3199976375327,
-            "sd": 484.0989911104824
+            "mean": 634.6799869788811,
+            "sd": 497.67368411158714
           },
           "latency_us_p99": {
-            "mean": 888.1609594682232,
-            "sd": 586.9215996244166
+            "mean": 932.9461398301646,
+            "sd": 725.9080931627337
           },
           "rmse_by_window": {
             "steady": {
@@ -14772,12 +17816,12 @@
             "sd": 0.3124164682794557
           },
           "latency_us_p50": {
-            "mean": 497.5224961526692,
-            "sd": 59.7644105118943
+            "mean": 499.2924950784072,
+            "sd": 55.03825842749322
           },
           "latency_us_p99": {
-            "mean": 704.117893008515,
-            "sd": 95.47369873387471
+            "mean": 767.2745089512318,
+            "sd": 93.7692117753539
           },
           "rmse_by_window": {
             "steady": {
@@ -14924,12 +17968,12 @@
             "sd": 0.07556801075525006
           },
           "latency_us_p50": {
-            "mean": 444.1025055712089,
-            "sd": 11.204956735554447
+            "mean": 453.36001203395426,
+            "sd": 16.93118857991115
           },
           "latency_us_p99": {
-            "mean": 624.1391954245044,
-            "sd": 66.14403329920604
+            "mean": 663.5309929843058,
+            "sd": 95.08764958908775
           },
           "rmse_by_window": {
             "steady": {
@@ -15049,6 +18093,310 @@
           },
           "solver_failures": 0,
           "n_seeds": 20
+        },
+        "kf+hard(b_var)": {
+          "rmse_all": {
+            "mean": 0.2572604956032338,
+            "sd": 0.04331839506908859
+          },
+          "coverage95": {
+            "mean": 0.9852083333333332,
+            "sd": 0.016485584257286537
+          },
+          "nz_rms_all": {
+            "mean": 0.76280075385874,
+            "sd": 0.1115661219693789
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.7832207532452393,
+            "sd": 0.5769754596303184
+          },
+          "mean_abs_res_post": {
+            "mean": 0.6334847827277443,
+            "sd": 0.4703407842181513
+          },
+          "mean_correction_norm": {
+            "mean": 0.10591871889773322,
+            "sd": 0.07556801075524998
+          },
+          "latency_us_p50": {
+            "mean": 425.2500046277419,
+            "sd": 13.511354844519175
+          },
+          "latency_us_p99": {
+            "mean": 613.6931978398934,
+            "sd": 69.07201957628708
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.21920054972248315,
+              "sd": 0.04456065646554205
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9895833333333336,
+              "sd": 0.023606638723309707
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.7192674141937758,
+              "sd": 0.14639586900601223
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.20264769706983313,
+                "sd": 0.0500352381233196
+              },
+              "null": {
+                "mean": 0.23021515201116446,
+                "sd": 0.06006178267775893
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": null,
+            "median_censored": null,
+            "censor_at": null,
+            "applicable": false
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf+hard(b_var)+guard": {
+          "rmse_all": {
+            "mean": 0.2572604956032338,
+            "sd": 0.04331839506908859
+          },
+          "coverage95": {
+            "mean": 0.9852083333333332,
+            "sd": 0.016485584257286537
+          },
+          "nz_rms_all": {
+            "mean": 0.76280075385874,
+            "sd": 0.1115661219693789
+          },
+          "mean_abs_res_pre": {
+            "mean": 0.7832207532452393,
+            "sd": 0.5769754596303184
+          },
+          "mean_abs_res_post": {
+            "mean": 0.6334847827277443,
+            "sd": 0.4703407842181513
+          },
+          "mean_correction_norm": {
+            "mean": 0.10591871889773322,
+            "sd": 0.07556801075524998
+          },
+          "latency_us_p50": {
+            "mean": 429.60750579368323,
+            "sd": 13.770182801881134
+          },
+          "latency_us_p99": {
+            "mean": 624.2793020210227,
+            "sd": 74.3018269423129
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.21920054972248315,
+              "sd": 0.04456065646554205
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9895833333333336,
+              "sd": 0.023606638723309707
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.7192674141937758,
+              "sd": 0.14639586900601223
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.20264769706983313,
+                "sd": 0.0500352381233196
+              },
+              "null": {
+                "mean": 0.23021515201116446,
+                "sd": 0.06006178267775893
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": null,
+            "median_censored": null,
+            "censor_at": null,
+            "applicable": false
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
         }
       },
       "2.0": {
@@ -15072,12 +18420,12 @@
           "mean_abs_res_post": null,
           "mean_correction_norm": null,
           "latency_us_p50": {
-            "mean": 347.4599972832948,
-            "sd": 8.508420811465466
+            "mean": 340.08001384790987,
+            "sd": 12.069222670230344
           },
           "latency_us_p99": {
-            "mean": 477.0439547719432,
-            "sd": 46.39081386243001
+            "mean": 523.493604036048,
+            "sd": 72.07448599353906
           },
           "rmse_by_window": {
             "steady": {
@@ -15224,12 +18572,12 @@
             "sd": 0.8284111321657709
           },
           "latency_us_p50": {
-            "mean": 630.314988666214,
-            "sd": 487.83397130731976
+            "mean": 510.4574986035004,
+            "sd": 9.843363784207376
           },
           "latency_us_p99": {
-            "mean": 865.951920626685,
-            "sd": 667.4702650619024
+            "mean": 752.9489218723029,
+            "sd": 91.18534338134937
           },
           "rmse_by_window": {
             "steady": {
@@ -15376,12 +18724,12 @@
             "sd": 1.4075114403682831
           },
           "latency_us_p50": {
-            "mean": 478.08499075472355,
-            "sd": 76.11907704749125
+            "mean": 469.31748802307993,
+            "sd": 76.07399371954399
           },
           "latency_us_p99": {
-            "mean": 634.1249400284139,
-            "sd": 78.02778939324465
+            "mean": 676.20620271191,
+            "sd": 94.16939740939607
           },
           "rmse_by_window": {
             "steady": {
@@ -15528,12 +18876,12 @@
             "sd": 0.04661764938460581
           },
           "latency_us_p50": {
-            "mean": 452.98251789063215,
-            "sd": 9.017249288994632
+            "mean": 442.2425088705495,
+            "sd": 14.618118109841765
           },
           "latency_us_p99": {
-            "mean": 627.4946036865001,
-            "sd": 62.934041018245374
+            "mean": 642.8747429745271,
+            "sd": 88.38123801162043
           },
           "rmse_by_window": {
             "steady": {
@@ -15643,6 +18991,310 @@
                 "median_censored": true,
                 "censor_at": 600,
                 "applicable": true
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf+hard(b_var)": {
+          "rmse_all": {
+            "mean": 0.2656394895713094,
+            "sd": 0.04461718114330182
+          },
+          "coverage95": {
+            "mean": 0.9858750000000001,
+            "sd": 0.015619458081515948
+          },
+          "nz_rms_all": {
+            "mean": 0.7580478562205089,
+            "sd": 0.1104940142425648
+          },
+          "mean_abs_res_pre": {
+            "mean": 1.4707973803907717,
+            "sd": 1.1713754610153686
+          },
+          "mean_abs_res_post": {
+            "mean": 1.3858044411102148,
+            "sd": 1.1055880448877382
+          },
+          "mean_correction_norm": {
+            "mean": 0.06013401458460307,
+            "sd": 0.04661764938460596
+          },
+          "latency_us_p50": {
+            "mean": 511.6349901072681,
+            "sd": 390.4246259165731
+          },
+          "latency_us_p99": {
+            "mean": 717.0505042304283,
+            "sd": 531.3978391963576
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.22673688623305477,
+              "sd": 0.04457138992276524
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9891666666666665,
+              "sd": 0.023267450848897215
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.7207147612052409,
+              "sd": 0.1418270304755307
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.21923584336127636,
+                "sd": 0.04727252670214873
+              },
+              "null": {
+                "mean": 0.23017426798132057,
+                "sd": 0.06005508024279462
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": null,
+            "median_censored": null,
+            "censor_at": null,
+            "applicable": false
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            }
+          },
+          "aug": null,
+          "held_steps": {
+            "mean": 0.0,
+            "sd": 0.0
+          },
+          "solver_failures": 0,
+          "n_seeds": 20
+        },
+        "kf+hard(b_var)+guard": {
+          "rmse_all": {
+            "mean": 0.2656394895713094,
+            "sd": 0.04461718114330182
+          },
+          "coverage95": {
+            "mean": 0.9858750000000001,
+            "sd": 0.015619458081515948
+          },
+          "nz_rms_all": {
+            "mean": 0.7580478562205089,
+            "sd": 0.1104940142425648
+          },
+          "mean_abs_res_pre": {
+            "mean": 1.4707973803907717,
+            "sd": 1.1713754610153686
+          },
+          "mean_abs_res_post": {
+            "mean": 1.3858044411102148,
+            "sd": 1.1055880448877382
+          },
+          "mean_correction_norm": {
+            "mean": 0.06013401458460307,
+            "sd": 0.04661764938460596
+          },
+          "latency_us_p50": {
+            "mean": 508.6974968435243,
+            "sd": 384.382070915104
+          },
+          "latency_us_p99": {
+            "mean": 730.945144256111,
+            "sd": 471.7839405248775
+          },
+          "rmse_by_window": {
+            "steady": {
+              "mean": 0.22673688623305477,
+              "sd": 0.04457138992276524
+            }
+          },
+          "coverage95_by_window": {
+            "steady": {
+              "mean": 0.9891666666666665,
+              "sd": 0.023267450848897215
+            }
+          },
+          "nz_rms_by_window": {
+            "steady": {
+              "mean": 0.7207147612052409,
+              "sd": 0.1418270304755307
+            }
+          },
+          "nz_rms_unproj_by_window": {
+            "steady": {
+              "mean": 0.730153832697737,
+              "sd": 0.15736000455328494
+            }
+          },
+          "innov_z_mean_by_window": {
+            "steady": [
+              {
+                "mean": 0.0011247859901639418,
+                "sd": 0.025005911811641822
+              },
+              {
+                "mean": 0.0062593219549251945,
+                "sd": 0.024674980308763816
+              }
+            ]
+          },
+          "rms_err_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.21923584336127636,
+                "sd": 0.04727252670214873
+              },
+              "null": {
+                "mean": 0.23017426798132057,
+                "sd": 0.06005508024279462
+              }
+            }
+          },
+          "rms_err_unproj_by_direction": {
+            "steady": {
+              "row": {
+                "mean": 0.22968470976266442,
+                "sd": 0.06299201727423172
+              },
+              "null": {
+                "mean": 0.230138056351675,
+                "sd": 0.0600801829396161
+              }
+            }
+          },
+          "false_alarms": {
+            "mean": 0.0,
+            "max": 0,
+            "rate": 0.0
+          },
+          "detection": {
+            "n": 20,
+            "detected_any": 0,
+            "within": 100,
+            "detected_within": 0,
+            "median_delay": null,
+            "median_censored": null,
+            "censor_at": null,
+            "applicable": false
+          },
+          "cusum": {
+            "s1": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
+              }
+            },
+            "s2": {
+              "false_alarms": {
+                "mean": 0.0,
+                "max": 0,
+                "rate": 0.0
+              },
+              "detection": {
+                "n": 20,
+                "detected_any": 0,
+                "within": 100,
+                "detected_within": 0,
+                "median_delay": null,
+                "median_censored": null,
+                "censor_at": null,
+                "applicable": false
               }
             }
           },
