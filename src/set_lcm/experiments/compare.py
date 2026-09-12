@@ -85,6 +85,7 @@ TOLERANCE: dict[str, float] = {
     "fluid_baseline.json": 1e-8,
     "real_fluid_baseline.json": 1e-8,
     "invariant_layer.json": 1e-8,
+    "camera_baseline.json": 1e-8,
 }
 
 EXCEPTIONS: dict[str, tuple[ToleranceException, ...]] = {

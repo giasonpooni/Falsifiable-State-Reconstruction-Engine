@@ -33,6 +33,7 @@ it does not, by itself, identify a broken sensor.**
 | Could this arrangement distinguish the suspected faults? | An analysis of visible, invisible and confusable fault directions under a declared model. |
 | Can several fault explanations fit the same record? | A fixed-record comparison that returns explicit ambiguous or insufficient-evidence outcomes. |
 | Can I estimate fluid states in consistent units and coordinates? | An additive invariant filter with full covariance propagation and tested coordinate transformations. |
+| Can a camera provide a second level measurement? | A synthetic camera-and-gauge baseline with frame admission, calibration, vertical-marker compensation and correlated uncertainty. |
 | How well does a method work? | Simulated fault experiments with known answers, and replay reports for real measurements. |
 
 ## Try it
@@ -75,6 +76,17 @@ It estimates two tank masses and verifies the same answer in transformed coordin
 For the supported affine models, it is equivalent to an ordinary Kalman filter.
 The [invariant layer guide](docs/INVARIANT_LAYER.md) explains its scope and inputs.
 
+To try the camera-and-gauge prototype:
+
+```bash
+uv run --frozen --python 3.13 python examples/camera_baseline.py --out-dir work/camera-demo
+```
+
+It creates and replays a labeled fixture of rendered grayscale frames and gauge readings.
+A fixed marker compensates vertical image motion; frame timing and shared calibration
+uncertainty remain explicit. The [camera guide](docs/CAMERA_BASELINE.md) explains the
+measurement pipeline and how to plan a controlled recording.
+
 ## What is ready today?
 
 **Available:** a tested linear reconciliation kernel, simulation and fault injection,
@@ -84,6 +96,9 @@ gain comparisons. The baseline has analytical and synthetic validation plus a re
 consistency replay. Original evidence is retained; derived outputs remain separate.
 An additive invariant filtering layer is also available, with correlated/missing readings
 and coordinate-consistency tests. General nonlinear Lie-group IEKF models remain planned.
+A camera-and-gauge prototype now exercises real pixel extraction from synthetic frames,
+vertical image registration, timing checks and fusion with full shared covariance.
+It has no field validation; general 3-D camera pose and odometry remain planned work.
 
 **Still being developed:** diagnosis of events with unknown onset, field-validated degradation
 magnitudes, and operational alert thresholds. Current fault fits assume specified profiles,
@@ -99,6 +114,7 @@ operational workflow.
 
 | Example | What it demonstrates | Report |
 |---|---|---|
+| Camera and gauge | Synthetic grayscale measurements, fixed-marker motion compensation, timing problems and disagreement under shared calibration uncertainty. | [Camera baseline results](results/camera_baseline.md) |
 | Invariant filtering | Ordinary KF equivalence under unit, coordinate and measurement-order changes, including missing and biased readings. | [Invariant layer results](results/invariant_layer.md) |
 | Fluid fault benchmark | Offset, drift and gain across 128 evaluation seeds per case, including confounded faults and physical changes. | [Baseline results](results/fluid_baseline.md) |
 | Ridgway measurement baseline | Matching daily intervals and full residual covariance, under declared timing/model and uncertainty assumptions. | [Measurement replay](results/real_fluid_baseline.md) |
@@ -119,6 +135,7 @@ the slower reproducibility checks. Reports are generated from code and include p
 
 - [Usage guide](docs/USAGE.md): installation, inputs, outputs and integration examples.
 - [Fluid baseline](docs/FLUID_BASELINE.md): interval handling, shared uncertainty and conditional fault explanations.
+- [Camera baseline](docs/CAMERA_BASELINE.md): frame admission, level calibration, vertical registration and camera/gauge comparison.
 - [Invariant filtering](docs/INVARIANT_LAYER.md): additive state/error geometry, estimation and coordinate consistency.
 - [Methods and interpretation](docs/METHODS.md): the mathematics, fault-identifiability limits
   and the meaning of a consistency score.

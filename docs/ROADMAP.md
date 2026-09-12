@@ -11,8 +11,10 @@ The sequence is ordered by the evidence each stage adds.
 
 ## Scope: fluid systems
 
-Keep development focused on fluids. No odometry development is planned. Telemetry is the
-transport and reporting of measurements and status; its timing and missingness already
+Keep development focused on fluids. The camera prototype supports fixed-marker vertical
+image registration for level measurements. General 3-D camera pose and odometry remain
+planned, contingent on a specific measurement experiment and a validated geometric model.
+Telemetry is the transport and reporting of measurements and status; its timing and missingness already
 have representations through `arrival_t`, `mask` and the bridge's `arrival_policy`.
 These fields do not imply support for every transport protocol or arrival pattern.
 
@@ -62,6 +64,31 @@ This does not add fault identifiability or a nonlinear IEKF advantage. Extend to
 nonlinear group only with an explicit fluid model, a derivation of its error dynamics
 and observation properties, and matched EKF comparisons. Field measurements remain the
 next source of evidence; this layer does not replace their validation.
+
+## Camera and gauge measurements — synthetic prototype implemented
+
+The [camera baseline](CAMERA_BASELINE.md) starts with rendered grayscale frames, extracts
+a declared horizontal water edge, and uses a fixed marker to compensate vertical image
+translation. It admits frames using capture IDs, timestamps, missingness and a declared
+duplicate-content policy. Calibration and camera/gauge fusion carry shared uncertainty
+across the record; raw measurements and disagreement remain available. A separate held-out
+reference and synthetic truth support evaluation. The [report](../results/camera_baseline.md)
+records the comparisons without claiming field performance.
+
+Spectral summaries use only complete, contiguous windows with a uniform capture clock.
+They are advisory features, not calibrated fault probabilities or a way to recover an
+incorrectly declared clock. Metadata timing checks do not establish operational event
+detection rates. Static scenes can repeat legitimately, so duplicate-content refusal
+must be an explicit policy.
+
+The next gate is a controlled tank recording with a fixed, front-facing camera, a fixed
+fiducial, documented capture timing, and independently calibrated gauge/reference readings.
+Synthetic calibration treats anchor pixels as exact; uncertain real anchors need an
+errors-in-variables treatment or a validated alternative. Current covariance propagation
+is first order, and repeated frames do not create independent calibration trials.
+Perspective, rotation and moving-camera 3-D pose need a separate experiment and observation
+model before extending the registration or claiming odometry support. No FluidNexus code
+or generated-view measurements are imported into this prototype.
 
 ## 3. A second independent balance — planned
 

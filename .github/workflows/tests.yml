@@ -39,6 +39,8 @@ jobs:
         run: uv run --frozen --python ${{ matrix.python }} python examples/fluid_baseline.py
       - name: Run invariant fluid example
         run: uv run --frozen --python ${{ matrix.python }} python examples/invariant_fluid.py
+      - name: Run camera and gauge example
+        run: uv run --frozen --python ${{ matrix.python }} python examples/camera_baseline.py --out-dir work/camera-demo
       - name: Build package
         run: uv build --python ${{ matrix.python }}
       - name: Run default suite

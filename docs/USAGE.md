@@ -68,6 +68,26 @@ basis and origin while transforming the model consistently. The [guide](INVARIAN
 describes masks, correlated uncertainty, numerical refusals and assumptions. This additive
 case equals the ordinary KF; general nonlinear IEKF support remains planned.
 
+## Compare camera and gauge levels
+
+```bash
+uv run --frozen --python 3.13 python examples/camera_baseline.py --out-dir work/camera-demo
+```
+
+This example creates and replays a labeled synthetic recording bundle. It extracts a water
+edge from grayscale frames, compensates vertical image motion using a fixed marker, checks
+frame IDs and capture times, and compares camera and gauge levels with full shared covariance.
+It preserves raw readings and their difference alongside combined estimates.
+
+The bundle separates inference inputs in `observations.npz` from the held-out reference and
+synthetic truth in `evaluation.npz`, with a checksum manifest. The [camera guide](CAMERA_BASELINE.md)
+describes the measurement contract and a [recording planning template](../examples/camera_recording_template.csv).
+The template is not a CSV importer, and this example does not decode compressed video.
+Its exact pixel calibration anchors and declared uncertainties belong to the synthetic
+experiment; real recordings need their own calibration evidence. Vertical marker registration
+does not estimate general 3-D camera pose or odometry. See the [generated report](../results/camera_baseline.md)
+for the synthetic comparisons and limitations.
+
 ## Reconcile your own estimate
 
 The [complete example](../examples/quickstart.py) calls three public functions:
@@ -133,6 +153,8 @@ Start from the relevant working integration:
   with hidden truth used only by evaluation and the explicitly labeled oracle.
 - [`real_fluid_baseline.py`](../src/set_lcm/experiments/real_fluid_baseline.py): direct
   interval-aware measurement balances, with shared-reference covariance and no sensor labels.
+- [`camera_baseline.py`](../src/set_lcm/experiments/camera_baseline.py): synthetic image
+  measurements, frame/timing admission and camera/gauge fusion, with evaluation evidence kept separate.
 
 The current runner gates use by arrival time and consumes the supplied sample order; a
 delayed sample can hold up later samples. General out-of-sequence measurement handling is
@@ -141,7 +163,8 @@ mean storage/flow alignment. Neither should be silently generalized to a new dep
 
 ## Reproduce the reports
 
-These commands read committed inputs and write the corresponding files under `results/`:
+These commands regenerate experiments from committed code and, where applicable,
+committed measurement inputs, writing the corresponding files under `results/`:
 
 ```bash
 uv run --frozen --python 3.13 python run_experiments.py
@@ -152,6 +175,7 @@ uv run --frozen --python 3.13 python -m set_lcm.experiments.real_water_balance
 uv run --frozen --python 3.13 python -m set_lcm.experiments.fluid_baseline --quiet
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_fluid_baseline --quiet
 uv run --frozen --python 3.13 python -m set_lcm.experiments.invariant_layer --quiet
+uv run --frozen --python 3.13 python -m set_lcm.experiments.camera_baseline --out-dir results
 ```
 
 The default test suite includes small experiments and regeneration of the real-data reports.
