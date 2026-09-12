@@ -150,6 +150,13 @@ arithmetic alignments; the full filter and guard still use their declared same-d
 approximation. Smaller scatter after averaging does not prove correct timing because
 averaging also changes measurement noise. This remains a method-development gap.
 
+The uncertainty of a cumulative residual needs its joint temporal covariance:
+`Var(sum(r)) = 1' Cov(r) 1`. The shortcut `sd(r) * sqrt(n)` assumes independent,
+equal-variance errors. Positive lag-1 correlation alone does not bound the contribution
+from all other lags. Residual scatter can also contain real dynamics and model error;
+it is not automatically calibrated measurement uncertainty. A cumulative total alone
+therefore does not establish a statistically significant physical imbalance.
+
 ## Planned three-gauge Muskingum design
 
 **This design is not an implemented reach model or a validated capability.** For a
