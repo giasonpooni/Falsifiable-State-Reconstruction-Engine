@@ -1,0 +1,85 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "time_series_id": "797314f325e34cf786b0fdf2f8ad5094",
+        "monitoring_location_id": "USGS-09147022",
+        "parameter_code": "00054",
+        "statistic_id": "00003",
+        "time": "2025-09-30",
+        "value": "59090",
+        "unit_of_measure": "Acre-ft",
+        "approval_status": "Approved",
+        "qualifier": null,
+        "last_modified": "2026-03-11T14:26:19.171539+00:00"
+      },
+      "id": "56c6eeb1-0e9f-4f82-88ea-970231c538d2",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -107.758114387659,
+          38.2372114621734
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "time_series_id": "797314f325e34cf786b0fdf2f8ad5094",
+        "monitoring_location_id": "USGS-09147022",
+        "parameter_code": "00054",
+        "statistic_id": "00003",
+        "time": "2025-09-29",
+        "value": "59040",
+        "unit_of_measure": "Acre-ft",
+        "approval_status": "Approved",
+        "qualifier": null,
+        "last_modified": "2026-03-11T14:26:19.171539+00:00"
+      },
+      "id": "bf05ffd5-8258-40be-b263-9f6676868196",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -107.758114387659,
+          38.2372114621734
+        ]
+      }
+    }
+  ],
+  "numberReturned": 2,
+  "links": [
+    {
+      "type": "application/geo+json",
+      "rel": "self",
+      "title": "This document as GeoJSON",
+      "href": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?f=json&monitoring_location_id=USGS-09147022&parameter_code=00054&statistic_id=00003&datetime=2025-09-29%2F2025-09-30&limit=10000"
+    },
+    {
+      "rel": "alternate",
+      "type": "application/ld+json",
+      "title": "This document as RDF (JSON-LD)",
+      "href": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?f=jsonld&monitoring_location_id=USGS-09147022&parameter_code=00054&statistic_id=00003&datetime=2025-09-29%2F2025-09-30&limit=10000"
+    },
+    {
+      "type": "text/html",
+      "rel": "alternate",
+      "title": "This document as HTML",
+      "href": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?f=html&monitoring_location_id=USGS-09147022&parameter_code=00054&statistic_id=00003&datetime=2025-09-29%2F2025-09-30&limit=10000"
+    },
+    {
+      "type": "text/csv; charset=utf-8",
+      "rel": "alternate",
+      "title": "This document as CSV",
+      "href": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?f=csv&monitoring_location_id=USGS-09147022&parameter_code=00054&statistic_id=00003&datetime=2025-09-29%2F2025-09-30&limit=10000"
+    },
+    {
+      "type": "application/json",
+      "title": "Daily values",
+      "rel": "collection",
+      "href": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily"
+    }
+  ],
+  "timeStamp": "2026-09-12T17:11:14.178766Z"
+}

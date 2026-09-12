@@ -1,10 +1,10 @@
 # P4: first real observations — NOAA 8454000 water levels through the same runner
 
-Generated with Python 3.13.5, numpy 2.5.3 on Windows-11-10.0.26200-SP0; source sha256 50c2c46529ce, git f158c5465b. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Windows-11-10.0.26200-SP0; source sha256 40f11398c225, git 355021125e. Latency columns are wall-clock on this machine and are not a claim.
 
 Truth-free: nobody knows the water level these readings measured, so no number below is an error. Every number is computed from the run's own record (`testbed.truth_free`), the bridged observations, or the committed evidence.
 
-Evidence: DAF `6b378590da30` (https://github.com/atomtrapping/Data-Acquisition-Channel), committed fixtures replayed by DAF's own NOAA binding into `data/daf/` — no network. Bridge: time_zone UTC, cadence_s 360, arrival_policy replay, latency_s 0.0, conflict_policy refuse.
+Evidence: DAF `ff92a737f702` (https://github.com/atomtrapping/Data-Acquisition-Channel), committed fixtures replayed by DAF's own NOAA binding into `data/daf/` — no network. That commit is NOT in DAF's published history: its published ancestor is `6b378590da30`, and the commits above it (carried here as the patch series in `patches/daf/`, never pushed to DAF) add a separate source and leave this binding untouched — the binding version and fixture blob recorded per file in `data/daf/manifest.json` are what fix these bytes, and both are unchanged. Bridge: time_zone UTC, cadence_s 360, arrival_policy replay, latency_s 0.0, conflict_policy refuse.
 
 | day | role | file | first – last grid point (UTC) | readings | stated σ min–max [m], zeros | evidence-id sha256 |
 |---|---|---|---|---|---|---|

@@ -14,6 +14,7 @@ import numpy as np
 import pytest
 
 from set_lcm.experiments import real_noaa
+from set_lcm.experiments.compare import reproduction_failure
 from set_lcm.experiments.provenance import REPO_ROOT
 from set_lcm.schema import Observation
 from set_lcm.testbed.estimators import ESTIMATORS, KFConfig
@@ -46,10 +47,14 @@ def fresh(tmp_path_factory):
             (out / "real_noaa.md").read_text(encoding="utf-8"))
 
 
-def test_real_noaa_report_reproduces_exactly(fresh):
+def test_real_noaa_report_reproduces(fresh):
     data, md = fresh
     assert set(data["provenance"]["generation"]) == set(COMMITTED["provenance"]["generation"])
-    assert _strip(data) == _strip(COMMITTED), "results/real_noaa.json does not match a fresh run of the source tree"
+    # the JSON: bitwise on the build that generated it, the declared cross-build tolerance
+    # elsewhere (set_lcm.experiments.compare says what was measured and why)
+    failure = reproduction_failure("real_noaa.json", data, COMMITTED)
+    assert failure is None, failure
+    # the report itself: every number it states, at the precision it states it, on every build
     assert _body(md) == _body(COMMITTED_MD), "results/real_noaa.md does not match a fresh run of the source tree"
     # what the provenance block must carry: DAF's commit, each day's bridge provenance, the source hash
     prov = COMMITTED["provenance"]
@@ -119,13 +124,17 @@ def test_datum_invariance_numbers_match_the_report():
         off = state(rs) - state(rm)
         rep = COMMITTED["datum_invariance"][kind]
         assert rep["burn_in_steps"] == 20
-        assert rep["max_abs_dz_after_burn_in"] == float(dz[20:].max())
+        # These small diagnostics are cancellation-sensitive across numerical builds.
+        # Observed absolute difference: 1.2e-13. Keep the winning step exact and use
+        # tight absolute/relative bounds for the arithmetic, including near-zero values.
+        close = lambda value: pytest.approx(value, rel=1e-8, abs=1e-11)
+        assert rep["max_abs_dz_after_burn_in"] == close(float(dz[20:].max()))
         assert rep["argmax_step_after_burn_in"] == 20 + int(np.argmax(dz[20:]))
-        assert rep["max_abs_dz_all_steps"] == float(dz.max())
-        assert rep["max_abs_dz_from_step_1"] == float(dz[1:].max())
-        assert rep["offset_final"] == float(off[-1])
+        assert rep["max_abs_dz_all_steps"] == close(float(dz.max()))
+        assert rep["max_abs_dz_from_step_1"] == close(float(dz[1:].max()))
+        assert rep["offset_final"] == close(float(off[-1]))
         assert (rep["offset_min_after_burn_in"], rep["offset_max_after_burn_in"]) == \
-            (float(off[20:].min()), float(off[20:].max()))
+            close((float(off[20:].min()), float(off[20:].max())))
         row = (f"| {kind} | {rep['state']} | {rep['max_abs_dz_after_burn_in']:.2e} "
                f"({rep['argmax_step_after_burn_in']}) | {rep['max_abs_dz_all_steps']:.4f} | {rep['offset_final']:.6f} |")
         assert row in COMMITTED_MD

@@ -124,6 +124,39 @@ def _daf_root() -> Path:
     return root
 
 
+def _published_base(root: Path, head: str) -> dict:
+    """Which part of the exporting checkout's history is PUBLISHED, and which is not.
+
+    DAF's default branch is the published history. A checkout carrying local commits -- the
+    USGS daily-values adapter lives on one, and by the user's standing instruction is never
+    pushed to DAF -- would otherwise stamp every output with a commit id no one else can
+    resolve. So the manifest records the published ancestor as well, and names the local
+    commits and the patch series that carries them into THIS repository.
+    """
+    refs = [r for r in _git(root, "for-each-ref", "--format=%(refname)", "refs/remotes/origin").splitlines()
+            if r and not r.endswith("/HEAD")]
+    published = None
+    for ref in refs:
+        try:
+            _git(root, "merge-base", "--is-ancestor", head, ref)
+            return {"published": True, "published_base": head, "published_ref": ref.split("/", 3)[-1],
+                    "local_commits": []}
+        except subprocess.CalledProcessError:
+            continue
+    for ref in refs:
+        try:
+            base = _git(root, "merge-base", head, ref)
+        except subprocess.CalledProcessError:
+            continue
+        local = _git(root, "log", "--format=%H %s", f"{base}..{head}").splitlines()
+        if published is None or len(local) < len(published["local_commits"]):
+            published = {"published": False, "published_base": base, "published_ref": ref.split("/", 3)[-1],
+                         "local_commits": [{"commit": ln.split(" ", 1)[0], "subject": ln.split(" ", 1)[1]}
+                                           for ln in local if ln]}
+    return published or {"published": False, "published_base": None, "published_ref": None,
+                         "local_commits": []}
+
+
 def _pins(root: Path) -> dict:
     """The commits that produced the outputs, refusing a checkout that would make that a lie."""
     daf_commit = _git(root, "rev-parse", "HEAD")
@@ -137,7 +170,8 @@ def _pins(root: Path) -> dict:
         raise SystemExit(f"vendored substrate is at {vendor_commit}; DAF {daf_commit} pins {pinned}")
     if _git(vendor, "status", "--porcelain", "--untracked-files=no"):
         raise SystemExit("vendored substrate has tracked changes; refusing to export")
-    return {"daf_commit": daf_commit, "vendor_commit": vendor_commit}
+    return {"daf_commit": daf_commit, "vendor_commit": vendor_commit,
+            **_published_base(root, daf_commit)}
 
 
 def _import_daf(root: Path):
@@ -156,6 +190,7 @@ def _import_daf(root: Path):
     from daf.orchestration.bindings import noaa_water_level_measurement_binding
     from daf.orchestration.result import AcquisitionOutcome
     from daf.orchestration.source_registry import SourceDefinition, SourceRegistry
+    from daf.orchestration.bindings import usgs_daily_values_binding
     from daf.scheduling.runner import execute_plan
     from daf.storage.durable_pool import DurablePool
     from daf.storage.filesystem_store import FilesystemEvidenceStore
@@ -165,6 +200,7 @@ def _import_daf(root: Path):
         "NoaaWaterLevelMeasurementExtractor": NoaaWaterLevelMeasurementExtractor,
         "AdapterRegistry": AdapterRegistry,
         "noaa_water_level_measurement_binding": noaa_water_level_measurement_binding,
+        "usgs_daily_values_binding": usgs_daily_values_binding,
         "AcquisitionOutcome": AcquisitionOutcome, "SourceDefinition": SourceDefinition,
         "SourceRegistry": SourceRegistry, "execute_plan": execute_plan, "DurablePool": DurablePool,
         "FilesystemEvidenceStore": FilesystemEvidenceStore, "observation_from_dict": observation_from_dict,
@@ -238,6 +274,7 @@ def _export_one(job: Job, root: Path, d: dict) -> tuple[list[dict], dict]:
         "source_fixture": job.fixture,
         "source_fixture_sha256": _sha256(raw),
         "source_fixture_git_blob": blob,
+        "daf_commit": _git(root, "rev-parse", "HEAD"),
         "n_readings": len(readings),
         "n_observations": len(dicts),
         "raw_flag_counts": raw_flags,
@@ -258,6 +295,159 @@ def _export_one(job: Job, root: Path, d: dict) -> tuple[list[dict], dict]:
     return dicts, meta
 
 
+# ---------------------------------------------------------------------------
+# recorded live sessions (data/daf/raw/<session>), replayed offline
+# ---------------------------------------------------------------------------
+
+BINDING_FACTORIES = {
+    "daf.orchestration.bindings.noaa_water_level_measurement_binding": "noaa_water_level_measurement_binding",
+    "daf.orchestration.bindings.usgs_daily_values_binding": "usgs_daily_values_binding",
+}
+
+
+def _session_replay(index: dict, session_dir: Path):
+    """Serve each recorded response for the URL it was recorded under, and refuse any other.
+
+    The sha256 in index.json is checked against the bytes on disk before they are served, so
+    a session whose recordings have been edited cannot be replayed into observations that
+    claim to come from what was fetched."""
+    by_url: dict[str, bytes] = {}
+    for entry in index["responses"]:
+        body = (session_dir / entry["file"]).read_bytes()
+        digest = _sha256(body)
+        if digest != entry["sha256"]:
+            raise SystemExit(f"{session_dir / entry['file']} hashes to {digest}, index.json says "
+                             f"{entry['sha256']}: refusing to replay an edited recording")
+        if len(body) != entry["n_bytes"]:
+            raise SystemExit(f"{session_dir / entry['file']} is {len(body)} bytes, index.json says "
+                             f"{entry['n_bytes']}")
+        by_url[entry["url"]] = body
+    served: list[str] = []
+
+    def replay(url: str) -> bytes:
+        if url not in by_url:
+            raise SystemExit(f"the adapter requested {url!r}, which this session never recorded; "
+                             "refusing to reach the network from the exporter")
+        served.append(url)
+        return by_url[url]
+
+    return replay, by_url, served
+
+
+def _export_session(session_dir: Path, root: Path, d: dict) -> tuple[list[dict], dict]:
+    """One recorded session -> the observations DAF admits from it, replayed offline.
+
+    The same binding, the same plan parameters and the same `requested_at` the live fetch
+    used, driven by the same `execute_plan` loop, against a temporary pool. Nothing is
+    fetched: every response comes from the recording, matched by URL.
+    """
+    index = json.loads((session_dir / "index.json").read_text(encoding="utf-8"))
+    # `index.json` names the binding factory at the top level; the NOAA month session was
+    # recorded by an earlier revision of the writer that nested it under "binding", and its
+    # per-response item count under "n_readings". Both spellings are read rather than the
+    # recording being edited: the responses are the evidence, and a provenance file is not
+    # something to rewrite by hand.
+    factory_path = index.get("binding_factory") or index["binding"]["factory"]
+    for entry in index["responses"]:
+        if "n_items" not in entry and "n_readings" in entry:
+            entry["n_items"] = entry["n_readings"]
+    try:
+        factory = d[BINDING_FACTORIES[factory_path]]
+    except KeyError:
+        raise SystemExit(f"{session_dir.name} names binding factory {factory_path!r}, which this exporter "
+                         "does not know how to rebuild") from None
+    replay, by_url, served = _session_replay(index, session_dir)
+
+    if factory_path.endswith("noaa_water_level_measurement_binding"):
+        binding = factory(datum=index["datum"], units=index["units"], fetch_bytes=replay)
+        source_name = "NOAA CO-OPS Tides & Currents"
+        required = ("station", "product", "start_date", "end_date")
+        plans = [("fsre-noaa-month", index["plan_parameters"])]
+    else:
+        binding = factory(fetch_bytes=replay)
+        source_name = "USGS Water Data OGC API -- daily values"
+        required = ("monitoring_location_id", "parameter_code", "statistic_id", "start_date", "end_date")
+        plans = [(f"fsre-usgs-{s['monitoring_location_id']}-{s['parameter_code']}-{s['statistic_id']}",
+                  s["plan_parameters"]) for s in index["series"]]
+    # The DAF commit a session was recorded at and the one it is exported at need not be the
+    # same -- a commit that adds an unrelated adapter changes neither. What must be the same is
+    # the BINDING VERSION, which is a hash of the adapter's and extractor's own source: that is
+    # what decides the bytes requested and the content extracted, hence every evidence id here.
+    if binding.version != index["binding"]["version"]:
+        raise SystemExit(f"{session_dir.name} was recorded with binding version "
+                         f"{index['binding']['version'][:16]} and this checkout builds "
+                         f"{binding.version[:16]}: the adapter or extractor code has changed, so the "
+                         "recording can no longer be replayed into the observations it produced")
+
+    source_id = index.get("source_id") or ("noaa-water-level-measurements"
+                                           if "noaa" in factory_path else "usgs-daily-values")
+    sources = d["SourceRegistry"]()
+    sources.register(d["SourceDefinition"](
+        source_id=source_id, name=source_name, domain="environmental-observations",
+        adapter_id=binding.adapter_id, required_parameters=required, capabilities=("incremental",)))
+    adapters = d["AdapterRegistry"]()
+    adapters.register(binding)
+
+    outcomes: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="daf-export-", ignore_cleanup_errors=True) as tmp:
+        pool = d["DurablePool"](d["FilesystemEvidenceStore"](Path(tmp) / "evidence"))
+        checkpoints = d["CheckpointStore"](Path(tmp) / "checkpoints")
+        for plan_id, params in plans:
+            plan = d["AcquisitionPlan"](plan_id=plan_id, source_id=source_id, parameters=dict(params),
+                                        mode="incremental")
+            for _ in range(len(by_url) + 4):
+                result = d["execute_plan"](plan, sources, adapters, pool, checkpoints,
+                                           requested_at=index["requested_at"])
+                outcomes.append(result.outcome.name)
+                if result.outcome is not d["AcquisitionOutcome"].ACQUIRED:
+                    break
+            else:
+                raise SystemExit(f"{session_dir.name}: plan {plan_id} did not settle")
+        observations = pool.all_observations()
+        del pool
+        gc.collect()
+
+    unserved = sorted(set(by_url) - set(served))
+    if unserved:
+        raise SystemExit(f"{session_dir.name}: {len(unserved)} recorded response(s) were never requested by "
+                         f"the replay, so the export is not the session that was fetched: {unserved[:3]}")
+    dicts = []
+    for o in observations:
+        dd = d["observation_to_dict"](o)
+        text = json.dumps(dd, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False)
+        back = d["observation_from_dict"](d["strict_json_loads"](text))   # DAF recomputes the id, or raises
+        assert back.id == o.id == dd["id"]
+        dicts.append(dd)
+    dicts.sort(key=lambda r: (r["content"]["measurement_time"], r["id"]))
+
+    n_recorded_items = sum(e.get("n_items", 0) for e in index["responses"])
+    meta = {
+        "output": f"{session_dir.name}.observations.json",
+        "synthetic": False,
+        "note": index.get("note", ""),
+        "source_session": f"data/daf/raw/{session_dir.name}",
+        "source_session_index_sha256": _sha256((session_dir / "index.json").read_bytes()),
+        "recorded_at_daf_commit": index["daf_commit"],
+        "exported_at_daf_commit": _git(root, "rev-parse", "HEAD"),
+        "fetched_live": True,
+        "n_recorded_responses": len(by_url),
+        "n_recorded_items": n_recorded_items,
+        "n_observations": len(dicts),
+        "n_distinct_measurement_times": len({r["content"]["measurement_time"] for r in dicts}),
+        "outcomes": outcomes,
+        "binding": {"factory": factory_path, "adapter_id": binding.adapter_id, "version": binding.version,
+                    **{k: v for k, v in index.items()
+                       if k in ("datum", "units", "time_zone", "window_days", "revision_lookback_days",
+                                "page_limit", "scope")}},
+        "plans": [{"plan_id": pid, "parameters": dict(par)} for pid, par in plans],
+        "extraction_methods": sorted({r["extraction_method"] for r in dicts}),
+        "requested_at": index["requested_at"],
+        "responses": [{k: e[k] for k in ("url", "file", "sha256", "n_bytes", "n_items") if k in e}
+                      for e in index["responses"]],
+    }
+    return dicts, meta
+
+
 def _write(path: Path, text: str) -> str:
     data = text.encode("utf-8")
     path.write_bytes(data)          # LF only, exactly these bytes
@@ -273,7 +463,13 @@ def _provenance_md(man: dict) -> str:
         "",
         "## Pins",
         "",
-        f"- DAF (Data Acquisition Fabric): {man['daf_repository']} at commit `{man['daf_commit']}`",
+        f"- DAF (Data Acquisition Fabric): {man['daf_repository']} at commit `{man['daf_commit']}`"
+        + ("" if man["daf_commit_published"] else
+           f" -- **not published**. Its published ancestor is `{man['daf_published_base']}` on "
+           f"`{man['daf_published_ref']}`; the "
+           + ", ".join(f"commit `{c['commit'][:12]}` ({c['subject']})" for c in man["daf_local_commits"])
+           + " above it is local only and travels as the patch series in `patches/daf/`, which is how "
+             "this repository carries it without pushing anything to DAF."),
         f"- Vendored substrate `{man['vendored_substrate']['path']}` ({man['vendored_substrate']['url']}) at commit "
         f"`{man['vendored_substrate']['commit']}` (`git -C {man['vendored_substrate']['path']} rev-parse HEAD`; "
         "equal to the commit DAF pins)",
@@ -298,17 +494,49 @@ def _provenance_md(man: dict) -> str:
         "",
         "## Files",
         "",
-        "| output | source fixture (in DAF) | fixture sha256 (committed bytes) | observations | binding: station / datum / units / time_zone | extracted_at |",
-        "|---|---|---|---|---|---|",
+        "| output | source | observations | acquired as | extracted_at |",
+        "|---|---|---|---|---|",
     ]
     for f in man["files"]:
         b = f["binding"]
-        L.append(f"| `{f['output']}`{' (SYNTHETIC)' if f['synthetic'] else ''} | `{f['source_fixture']}` | "
-                 f"`{f['source_fixture_sha256']}` | {f['n_observations']} | {b['station']} / {b['datum']} / "
-                 f"{b['units']} / {b['time_zone']} | {f['requested_at']} |")
+        if "source_fixture" in f:
+            source = f"`{f['source_fixture']}` (a DAF fixture, replayed)"
+            how = f"{b['station']} / {b['datum']} / {b['units']} / {b['time_zone']}"
+        else:
+            source = f"`{f['source_session']}` ({f['n_recorded_responses']} recorded live response(s))"
+            how = f"{b['adapter_id']}, {f['n_distinct_measurement_times']} distinct measurement times"
+        L.append(f"| `{f['output']}`{' (SYNTHETIC)' if f['synthetic'] else ''} | {source} | "
+                 f"{f['n_observations']} | {how} | {f['requested_at']} |")
     L += ["", "Per file:", ""]
     for f in man["files"]:
         b = f["binding"]
+        if "source_session" in f:
+            L += [
+                f"### `{f['output']}` -- replayed from a recorded live session",
+                "",
+                f"- {f['note']}",
+                f"- Recorded by `tools/fetch_noaa_month.py` / `tools/fetch_usgs_reservoir.py` into "
+                f"`{f['source_session']}`: {f['n_recorded_responses']} HTTPS response(s) kept byte for byte "
+                f"under the sha256 of their own bytes, carrying {f['n_recorded_items']} item(s) in total. "
+                f"`index.json` sha256 `{f['source_session_index_sha256']}`; each response's own sha256 is "
+                "checked against it before the replay serves it, and a URL the session never recorded is "
+                "refused rather than fetched.",
+                f"- Replayed through `{b['factory']}` (adapter id `{b['adapter_id']}`, DAF code version "
+                f"`{b['version']}`) and `execute_plan`, plan(s) "
+                + ", ".join(f"`{p['plan_id']}`" for p in f["plans"]) + f", outcomes {f['outcomes']}.",
+                f"- Recorded against DAF `{f['recorded_at_daf_commit']}`, exported at "
+                f"`{f['exported_at_daf_commit']}`. These need not be equal: what must match, and is checked, "
+                "is the binding version -- a hash of the adapter's and extractor's own source, which is what "
+                "decides the bytes requested and the content extracted.",
+                f"- {f['n_observations']} observation(s) over {f['n_distinct_measurement_times']} distinct "
+                "measurement times. The two differ because DAF re-requests a trailing safety window, so a "
+                "reading acquired through two overlapping windows is two observations under two records; "
+                "collapsing them on content is the consumer's job (`set_lcm.bridge.daf`).",
+                f"- Extraction method(s) {', '.join(f'`{m}`' for m in f['extraction_methods'])}.",
+                f"- Output sha256 `{f['output_sha256']}`.",
+                "",
+            ]
+            continue
         L += [
             f"### `{f['output']}`{' -- SYNTHETIC' if f['synthetic'] else ''}",
             "",
@@ -347,6 +575,10 @@ def _provenance_md(man: dict) -> str:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    ap.add_argument("--raw", type=Path, default=DEFAULT_OUT / "raw",
+                    help="directory of recorded live sessions to replay (data/daf/raw)")
+    ap.add_argument("--only", choices=("fixtures", "sessions"), default=None,
+                    help="export only DAF's committed fixtures, or only the recorded sessions")
     args = ap.parse_args(argv)
     root = _daf_root()
     pins = _pins(root)
@@ -357,16 +589,40 @@ def main(argv: list[str] | None = None) -> int:
     vendor_url = next((ln.split("=", 1)[1].strip() for ln in gitmodules.splitlines() if ln.strip().startswith("url")),
                       None)
     files = []
-    for job in JOBS:
+    jobs = () if args.only == "sessions" else JOBS
+    for job in jobs:
         dicts, meta = _export_one(job, root, d)
         body = "[\n" + ",\n".join(json.dumps(r, sort_keys=True, separators=(",", ":"), ensure_ascii=True,
                                              allow_nan=False) for r in dicts) + "\n]\n"
         meta["output_sha256"] = _write(out / job.out, body)
         files.append(meta)
         print(f"{job.out}: {len(dicts)} observations{' (SYNTHETIC)' if job.synthetic else ''}")
+    sessions = []
+    if args.only != "fixtures" and args.raw.is_dir():
+        sessions = sorted(p for p in args.raw.iterdir() if (p / "index.json").is_file())
+    for session_dir in sessions:
+        dicts, meta = _export_session(session_dir, root, d)
+        body = "[\n" + ",\n".join(json.dumps(r, sort_keys=True, separators=(",", ":"), ensure_ascii=True,
+                                             allow_nan=False) for r in dicts) + "\n]\n"
+        meta["output_sha256"] = _write(out / meta["output"], body)
+        files.append(meta)
+        print(f"{meta['output']}: {len(dicts)} observations from {meta['n_recorded_responses']} recorded "
+              f"response(s), {meta['n_distinct_measurement_times']} distinct measurement times")
     man = {
         "daf_repository": DAF_URL,
         "daf_commit": pins["daf_commit"],
+        "daf_commit_published": pins["published"],
+        "daf_published_base": pins["published_base"],
+        "daf_published_ref": pins["published_ref"],
+        "daf_local_commits": pins["local_commits"],
+        "daf_local_commits_note":
+            "Commits in the exporting checkout that are NOT in DAF's published history. Nothing is ever "
+            "pushed to the DAF repository, so these travel as the git format-patch series under "
+            "patches/daf/, applied to daf_published_base. A file whose bytes are determined only by "
+            "DAF's own committed fixtures and an unchanged binding is unaffected by them -- the fixture "
+            "blob sha and the binding version recorded per file are what fix those bytes."
+            if pins["local_commits"] else
+            "The exporting checkout is entirely within DAF's published history.",
         "vendored_substrate": {"path": VENDOR_REL, "url": vendor_url, "commit": pins["vendor_commit"]},
         "exporter": "tools/export_daf_fixtures.py",
         "command": "DAF_ROOT=/path/to/daf-checkout uv run --python 3.13 python tools/export_daf_fixtures.py",

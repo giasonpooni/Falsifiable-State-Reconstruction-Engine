@@ -329,6 +329,8 @@ def compute() -> dict:
     out = {
         "provenance": {
             "daf_commit": man["daf_commit"],
+            "daf_commit_published": man["daf_commit_published"],
+            "daf_published_base": man["daf_published_base"],
             "daf_repository": man["daf_repository"],
             "vendored_substrate": man["vendored_substrate"],
             "bridge": {d.key: bs[d.key].provenance for d in DAYS},
@@ -457,7 +459,14 @@ def render(r: dict) -> str:
         "Every number is computed from the run's own record (`testbed.truth_free`), the bridged observations, "
         "or the committed evidence.", "",
         f"Evidence: DAF `{r['provenance']['daf_commit'][:12]}` ({r['provenance']['daf_repository']}), committed "
-        "fixtures replayed by DAF's own NOAA binding into `data/daf/` — no network. Bridge: "
+        "fixtures replayed by DAF's own NOAA binding into `data/daf/` — no network."
+        + ("" if r["provenance"]["daf_commit_published"] else
+           f" That commit is NOT in DAF's published history: its published ancestor is "
+           f"`{r['provenance']['daf_published_base'][:12]}`, and the commits above it (carried here as the "
+           "patch series in `patches/daf/`, never pushed to DAF) add a separate source and leave this "
+           "binding untouched — the binding version and fixture blob recorded per file in "
+           "`data/daf/manifest.json` are what fix these bytes, and both are unchanged.")
+        + " Bridge: "
         + ", ".join(f"{k} {v}" for k, v in r["declared"]["bridge"].items()) + ".", "",
         "| day | role | file | first – last grid point (UTC) | readings | stated σ min–max [m], zeros | evidence-id sha256 |",
         "|---|---|---|---|---|---|---|",

@@ -248,13 +248,29 @@ def test_runner_sizes_from_the_record_and_the_estimator(monkeypatch):
 
 WATER_LEVEL_KINDS = {"level_trend", "tide_kf"}   # estimators_water: one series, the level
 
+# Every estimator's reconciled width, declared here as a table rather than a rule, because the
+# families genuinely differ and a new one must be added deliberately. The reconciliation stage
+# sees exactly these first components, and a declared constraint's columns must match.
+REPORTED_DIMENSION = {
+    "kf": 2, "hold_last": 2, "kf_aug": 2, "kf_closedq": 2, "oracle": 2,   # the two masses
+    "level_trend": 1, "tide_kf": 1, "tide_month": 1,                      # the water level
+    "wb_closed": 1,        # storage; closure is in the dynamics, so no constraint columns
+    "wb_open": 2,          # storage and cumulative gauged inflow: A = [1, -1]
+    "wb_aug": 3,           # ... and the cumulative ungauged term: A = [1, -1, -1]
+}
+
 
 def test_every_estimator_in_the_tree_declares_its_reported_dimension():
     """The two-reservoir estimators report the two masses; the water-level filters (P4) report
-    one component, the level."""
+    one component, the level; the balance filters (P4b) report the states their constraint is
+    written over. The table above must cover the registry exactly, so a new estimator cannot
+    arrive without someone stating its reconciled width."""
     assert WATER_LEVEL_KINDS <= set(ESTIMATORS)
+    assert set(REPORTED_DIMENSION) == set(ESTIMATORS), \
+        f"undeclared: {sorted(set(ESTIMATORS) - set(REPORTED_DIMENSION))}, " \
+        f"stale: {sorted(set(REPORTED_DIMENSION) - set(ESTIMATORS))}"
     for kind, cls in ESTIMATORS.items():
-        assert cls.n_report == (1 if kind in WATER_LEVEL_KINDS else 2), kind
+        assert cls.n_report == REPORTED_DIMENSION[kind], kind
         assert len(cls.aug_nominal) == len(cls.aug_names), kind
 
 

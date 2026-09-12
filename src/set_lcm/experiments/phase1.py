@@ -46,6 +46,7 @@ def constraint_for(truth) -> ConstraintSet:
         A=np.array([[1.0, 1.0]]),
         b=np.array([truth.total0]),
         description=f"m1 + m2 = {truth.total0:g} kg (boundary assumed closed)",
+        row_units=("kg",),
     )
 
 
@@ -81,6 +82,7 @@ class UncertainTotal:
             description=f"m1 + m2 = {total:.4g} kg, declared b_var = {self.std ** 2:g} kg^2 "
                         f"(boundary assumed closed)",
             b_var=np.array([self.std ** 2]),
+            row_units=("kg",),
         )
 
     def describe(self) -> dict:

@@ -1,16 +1,18 @@
 {
   "provenance": {
     "generation": {
-      "python": "3.13.5",
+      "python": "3.13.12",
       "numpy": "2.5.3",
       "platform": "Windows-11-10.0.26200-SP0",
       "machine": "AMD64",
-      "source_sha256": "50c2c46529ce19dfedb4f6bfb409ecfb15607f3b10d34723031c569829a61b3f",
-      "git_head": "f158c5465baaee3820f876d56fc284d26ff0a794",
+      "source_sha256": "40f11398c225c06fa5891867a091bb3928221afffb2880d0f8d561424f3e85cf",
+      "git_head": "355021125eebf0d1cb43e18eb971d782879df524",
       "source_dirty": false,
       "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
     },
-    "daf_commit": "6b378590da3076d88a0f4bd8bad79e1ce0b48ae2",
+    "daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
+    "daf_commit_published": false,
+    "daf_published_base": "6b378590da3076d88a0f4bd8bad79e1ce0b48ae2",
     "daf_repository": "https://github.com/atomtrapping/Data-Acquisition-Channel",
     "vendored_substrate": {
       "commit": "5e146d5924675cd7b6e1d1ed44fb39f5da012610",
@@ -20,11 +22,24 @@
     "bridge": {
       "fit": {
         "bridge": "set_lcm.bridge.daf",
-        "bridge_version": "daf-noaa-measurement-bridge-v1",
-        "daf_commit": "6b378590da3076d88a0f4bd8bad79e1ce0b48ae2",
+        "bridge_version": "daf-measurement-bridge-v2",
+        "daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
         "extraction_method": "json:noaa_water_level_measurement_v1",
         "series": [
           "noaa:8454000:MLLW:m"
+        ],
+        "selectors": [
+          {
+            "source_id": "noaa:8454000:MLLW:m",
+            "extraction_method": "json:noaa_water_level_measurement_v1",
+            "property": "water_level",
+            "match": {
+              "datum": "MLLW",
+              "station_id": "8454000",
+              "unit": "m"
+            },
+            "unit_field": "unit"
+          }
         ],
         "n_records_in": 240,
         "n_used": 240,
@@ -42,6 +57,12 @@
         },
         "time_zone": "UTC",
         "time_zone_declared": "UTC",
+        "time": {
+          "time_semantics": "instant",
+          "time_zone": "UTC",
+          "time_zone_declared": "UTC",
+          "rule": "measurement_time is 'YYYY-MM-DD HH:MM[:SS]', read in the declared zone"
+        },
         "epoch_iso": "2024-01-15T00:00:00Z",
         "cadence_s": 360.0,
         "n_grid": 240,
@@ -69,11 +90,24 @@
       },
       "held_out": {
         "bridge": "set_lcm.bridge.daf",
-        "bridge_version": "daf-noaa-measurement-bridge-v1",
-        "daf_commit": "6b378590da3076d88a0f4bd8bad79e1ce0b48ae2",
+        "bridge_version": "daf-measurement-bridge-v2",
+        "daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
         "extraction_method": "json:noaa_water_level_measurement_v1",
         "series": [
           "noaa:8454000:MLLW:m"
+        ],
+        "selectors": [
+          {
+            "source_id": "noaa:8454000:MLLW:m",
+            "extraction_method": "json:noaa_water_level_measurement_v1",
+            "property": "water_level",
+            "match": {
+              "datum": "MLLW",
+              "station_id": "8454000",
+              "unit": "m"
+            },
+            "unit_field": "unit"
+          }
         ],
         "n_records_in": 240,
         "n_used": 240,
@@ -91,6 +125,12 @@
         },
         "time_zone": "UTC",
         "time_zone_declared": "UTC",
+        "time": {
+          "time_semantics": "instant",
+          "time_zone": "UTC",
+          "time_zone_declared": "UTC",
+          "rule": "measurement_time is 'YYYY-MM-DD HH:MM[:SS]', read in the declared zone"
+        },
         "epoch_iso": "2026-08-23T00:00:00Z",
         "cadence_s": 360.0,
         "n_grid": 240,
@@ -118,11 +158,24 @@
       },
       "stnd": {
         "bridge": "set_lcm.bridge.daf",
-        "bridge_version": "daf-noaa-measurement-bridge-v1",
-        "daf_commit": "6b378590da3076d88a0f4bd8bad79e1ce0b48ae2",
+        "bridge_version": "daf-measurement-bridge-v2",
+        "daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
         "extraction_method": "json:noaa_water_level_measurement_v1",
         "series": [
           "noaa:8454000:STND:m"
+        ],
+        "selectors": [
+          {
+            "source_id": "noaa:8454000:STND:m",
+            "extraction_method": "json:noaa_water_level_measurement_v1",
+            "property": "water_level",
+            "match": {
+              "datum": "STND",
+              "station_id": "8454000",
+              "unit": "m"
+            },
+            "unit_field": "unit"
+          }
         ],
         "n_records_in": 240,
         "n_used": 240,
@@ -140,6 +193,12 @@
         },
         "time_zone": "UTC",
         "time_zone_declared": "UTC",
+        "time": {
+          "time_semantics": "instant",
+          "time_zone": "UTC",
+          "time_zone_declared": "UTC",
+          "rule": "measurement_time is 'YYYY-MM-DD HH:MM[:SS]', read in the declared zone"
+        },
         "epoch_iso": "2024-01-15T00:00:00Z",
         "cadence_s": 360.0,
         "n_grid": 240,
@@ -529,8 +588,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 88.09997234493494,
-          "latency_us_p99": 200.95901680178937
+          "latency_us_p50": 370.6000279635191,
+          "latency_us_p99": 927.3499937262361
         },
         "R x10": {
           "q_scale": 1e-06,
@@ -551,8 +610,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 82.84999057650566,
-          "latency_us_p99": 176.7319941427557
+          "latency_us_p50": 348.100031260401,
+          "latency_us_p99": 542.8149562794698
         },
         "R x100": {
           "q_scale": 1e-06,
@@ -573,8 +632,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 80.80003317445517,
-          "latency_us_p99": 139.71594511531285
+          "latency_us_p50": 362.900085747242,
+          "latency_us_p99": 785.9580416697995
         }
       },
       "held_out": {
@@ -597,8 +656,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 83.09993427246809,
-          "latency_us_p99": 190.40893646888424
+          "latency_us_p50": 400.0000189989805,
+          "latency_us_p99": 519.1999953240155
         },
         "R x10": {
           "q_scale": 1e-06,
@@ -619,8 +678,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 136.64999278262258,
-          "latency_us_p99": 720.27900139801
+          "latency_us_p50": 374.4999994523823,
+          "latency_us_p99": 542.8230331744994
         },
         "R x100": {
           "q_scale": 1e-06,
@@ -641,8 +700,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 144.5500529371202,
-          "latency_us_p99": 1359.756006859241
+          "latency_us_p50": 292.7999594248831,
+          "latency_us_p99": 563.4029826615006
         }
       }
     },
@@ -667,8 +726,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 205.04998974502087,
-          "latency_us_p99": 330.2589734084898
+          "latency_us_p50": 398.9000106230378,
+          "latency_us_p99": 486.9129823055118
         },
         "R x10": {
           "q_scale": 0.00031622776601683794,
@@ -689,8 +748,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 123.30000754445791,
-          "latency_us_p99": 214.19800119474527
+          "latency_us_p50": 271.7000315897167,
+          "latency_us_p99": 531.8869696930043
         },
         "R x100": {
           "q_scale": 0.00031622776601683794,
@@ -711,8 +770,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 124.70001820474863,
-          "latency_us_p99": 289.3470367416739
+          "latency_us_p50": 269.849959295243,
+          "latency_us_p99": 551.1719803325826
         }
       },
       "held_out": {
@@ -735,8 +794,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 123.60000982880592,
-          "latency_us_p99": 266.7620265856382
+          "latency_us_p50": 251.60005316138268,
+          "latency_us_p99": 550.9439785964784
         },
         "R x10": {
           "q_scale": 0.00031622776601683794,
@@ -757,8 +816,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 126.10002886503935,
-          "latency_us_p99": 258.07103142142296
+          "latency_us_p50": 403.09998439624906,
+          "latency_us_p99": 510.1419717539102
         },
         "R x100": {
           "q_scale": 0.00031622776601683794,
@@ -779,8 +838,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 121.59999459981918,
-          "latency_us_p99": 254.63200523518026
+          "latency_us_p50": 408.00002170726657,
+          "latency_us_p99": 681.8839930929228
         }
       }
     }

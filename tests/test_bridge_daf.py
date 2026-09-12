@@ -24,7 +24,8 @@ import pytest
 
 import set_lcm.bridge.daf as bridge_mod
 from set_lcm.bridge.daf import (
-    BridgeRefusal, bridge, load_records, series_source_id, strict_json_loads, verify_ids,
+    BridgeRefusal, DeclaredSigma, SeriesSelector, bridge, load_records, noaa_water_level_series,
+    series_source_id, strict_json_loads, verify_ids,
 )
 from set_lcm.testbed.estimators import ESTIMATORS, KFConfig
 from set_lcm.testbed.runner import EstimatorSpec, run
@@ -67,16 +68,41 @@ def _refusal(reason: str, records, **kw) -> BridgeRefusal:
 # the committed evidence
 # ---------------------------------------------------------------------------
 
+def _fixture_entries():
+    """Entries exported by replaying one of DAF's OWN committed fixtures."""
+    return [f for f in MANIFEST["files"] if "source_fixture" in f]
+
+
+def _session_entries():
+    """Entries exported by replaying a recorded live session under data/daf/raw/."""
+    return [f for f in MANIFEST["files"] if "source_session" in f]
+
+
 def test_committed_daf_files_match_their_manifest():
     names = sorted(p.name for p in DATA.glob("*.observations.json"))
     assert names == sorted(f["output"] for f in MANIFEST["files"])
+    assert len(_fixture_entries()) + len(_session_entries()) == len(MANIFEST["files"])
     for f in MANIFEST["files"]:
         raw = (DATA / f["output"]).read_bytes()
         assert hashlib.sha256(raw).hexdigest() == f["output_sha256"], f["output"]
         assert b"\r" not in raw
-        assert len(load_records(DATA / f["output"])) == f["n_observations"] == f["n_readings"]
+        assert len(load_records(DATA / f["output"])) == f["n_observations"]
+    for f in _fixture_entries():
+        # one observation per reading of the fixture, and the NOAA request is pinned
+        assert f["n_observations"] == f["n_readings"]
         assert f["output"].startswith("SYNTHETIC_") == f["synthetic"] == ("synthetic" in f["source_fixture"])
         assert f["binding"]["time_zone"] == "gmt" and "time_zone=gmt" in f["request_url"]
+    for f in _session_entries():
+        # a session's readings are acquired through overlapping windows, so there are MORE
+        # observations than distinct measurement times: DAF does not collapse a reading seen
+        # under two records, and the bridge is what does, on content
+        assert not f["synthetic"] and f["fetched_live"]
+        assert f["n_observations"] >= f["n_distinct_measurement_times"]
+        assert f["n_recorded_responses"] == len(f["responses"])
+        for r in f["responses"]:
+            body = (DATA / "raw" / Path(f["source_session"]).name / r["file"]).read_bytes()
+            assert hashlib.sha256(body).hexdigest() == r["sha256"] == r["file"].removesuffix(".json")
+            assert len(body) == r["n_bytes"]
     # the replayed MLLW bytes are the bytes DAF fetched live: its document id is the version id
     # DAF's docs/PHASE_17_LIVE_SCIENTIFIC_OBSERVATION.md transcript records (3bc9041f042eb48f...)
     mllw = next(f for f in MANIFEST["files"] if f["output"] == F_MLLW)
@@ -84,8 +110,10 @@ def test_committed_daf_files_match_their_manifest():
     prov = (DATA / "PROVENANCE.md").read_text(encoding="utf-8")
     assert DAF_COMMIT in prov and MANIFEST["vendored_substrate"]["commit"] in prov
     assert "public domain" in prov
-    for f in MANIFEST["files"]:
+    for f in _fixture_entries():
         assert f["source_fixture_sha256"] in prov
+    for f in _session_entries():
+        assert f["source_session_index_sha256"] in prov and f["source_session"] in prov
 
 
 def test_strict_loader_refuses_what_is_not_json():
@@ -156,7 +184,10 @@ def test_stnd_is_its_own_series_and_never_pooled_with_mllw():
     # listing only one datum takes that one and counts the other as ignored, not pooled
     only_m = _bridge(mllw + stnd, series=[MLLW])
     assert only_m.provenance["n_ignored"] == 240 and only_m.provenance["n_used"] == 240
-    assert only_m.provenance["ignored"] == [{"series_key": list(STND), "n": 240}]
+    assert only_m.provenance["ignored"] == [
+        {"series_key": ["STND", "8454000", "m"],
+         "matched_on": {"property": "water_level", "datum": "STND", "station_id": "8454000", "unit": "m"},
+         "n": 240}]
     assert set(only_m.evidence_ids_used) == m_ids
     only_s = _bridge(mllw + stnd, series=[STND])
     assert set(only_s.evidence_ids_used) == s_ids
@@ -202,19 +233,23 @@ def test_refuses_readings_without_stated_uncertainty_unless_declared_for_the_who
     e = _refusal("missing_uncertainty", stripped)
     assert set(e.evidence_ids) == {r["id"] for r in stripped[:3]}
     # a declared sigma is never mixed with source-stated ones in one series
-    e = _refusal("mixed_uncertainty", stripped, declared_sigma={MLLW: 0.01})
+    sig = DeclaredSigma(sigma=0.01, citation="test: an arbitrary sigma, cited so the bridge will take it")
+    e = _refusal("mixed_uncertainty", stripped, declared_sigma={MLLW: sig})
     assert len(e.evidence_ids) == 237
-    _refusal("mixed_uncertainty", recs, declared_sigma={MLLW: 0.01})
+    _refusal("mixed_uncertainty", recs, declared_sigma={MLLW: sig})
     # a series that states none at all may be given one, recorded as consumer-declared
     bare = copy.deepcopy(recs)
     for r in bare:
         del r["content"]["uncertainty"], r["content"]["uncertainty_kind"]
     _refusal("missing_uncertainty", bare)
-    bs = _bridge(bare, declared_sigma={MLLW: 0.01})
+    bs = _bridge(bare, declared_sigma={MLLW: sig})
     assert all(o.R[0, 0] == pytest.approx(1e-4, rel=0, abs=1e-18) for o in bs.observations)
-    assert bs.provenance["R_source"]["noaa:8454000:MLLW:m"]["kind"] == "consumer-declared"
+    r_src = bs.provenance["R_source"]["noaa:8454000:MLLW:m"]
+    assert r_src["kind"] == "consumer-declared" and r_src["citation"] == sig.citation
     with pytest.raises(ValueError):
-        _bridge(bare, declared_sigma={STND: 0.01})           # not a listed series
+        _bridge(bare, declared_sigma={STND: sig})            # not a listed series
+    with pytest.raises(ValueError, match="citation"):        # a bare number carries no source
+        _bridge(bare, declared_sigma={MLLW: 0.01})
 
 
 def test_refuses_mixed_units_and_never_pools_a_unit_it_was_not_asked_for():
@@ -228,7 +263,10 @@ def test_refuses_mixed_units_and_never_pools_a_unit_it_was_not_asked_for():
         r["id"] = "ft-" + r["id"]
     bs = _bridge(recs + feet)
     assert bs.provenance["n_ignored"] == 240
-    assert bs.provenance["ignored"] == [{"series_key": ["8454000", "MLLW", "ft"], "n": 240}]
+    assert bs.provenance["ignored"] == [
+        {"series_key": ["MLLW", "8454000", "ft"],
+         "matched_on": {"property": "water_level", "datum": "MLLW", "station_id": "8454000", "unit": "ft"},
+         "n": 240}]
     assert not any(e.startswith("ft-") for e in bs.evidence_ids_used)
     _refusal("empty_series", feet)                           # a listed series that matched nothing
 
@@ -485,7 +523,8 @@ def test_daf_recomputes_every_committed_id():
     root = Path(os.environ["DAF_ROOT"])
     before = _daf_state(root)
     records = [r for f in MANIFEST["files"] for r in _load(f["output"])]
-    assert verify_ids(records, root) == len(records) == 728
+    expected = sum(f['n_observations'] for f in MANIFEST['files'])
+    assert verify_ids(records, root) == len(records) == expected
     tampered = copy.deepcopy(records[0])
     tampered["content"]["value"] += 0.001
     with pytest.raises(Exception) as exc:
@@ -511,3 +550,186 @@ def test_export_tool_reproduces_the_committed_files(tmp_path):
     assert (tmp_path / "PROVENANCE.md").read_text(encoding="utf-8").replace(fresh["python"], py) == \
         (DATA / "PROVENANCE.md").read_text(encoding="utf-8")
     assert _daf_state(root) == before
+
+
+# ---------------------------------------------------------------------------
+# beyond NOAA: selectors, calendar-day series, consumer-declared uncertainty
+#
+# DAF has no daily-values extractor at the commit data/daf/ was exported from, so the
+# records below are hand-written in DAF's serialised shape (the shape observation_to_dict
+# writes) rather than exported from DAF. Their ids are made-up labels, not content
+# addresses: that is exactly what verify_ids would catch, and what the bridge -- which
+# never re-derives an id, only compares it -- does not check. They test the bridge's own
+# contract, never DAF's.
+# ---------------------------------------------------------------------------
+
+DV_METHOD = "json:daily_value_v1"
+
+
+def _dv(site, param, unit, day, value, *, eid=None, prop="discharge", **content):
+    return {
+        "id": eid or f"dv-{site}-{param}-{day}",
+        "record_ids": [f"rec-{site}-{param}-{day}"],
+        "extraction_method": DV_METHOD,
+        "extracted_at": "2026-09-12T00:00:00Z",
+        "confidence": 1.0,
+        "content": {"property": prop, "monitoring_location_id": site, "parameter_code": param,
+                    "unit": unit, "measurement_time": day, "value": value, **content},
+    }
+
+
+def _dv_sel(site, param, unit, *, prop="discharge", source_id=None):
+    return SeriesSelector(
+        source_id=source_id or f"usgs:{site}:{param}:{unit}",
+        extraction_method=DV_METHOD, property=prop,
+        match={"monitoring_location_id": site, "parameter_code": param, "unit": unit})
+
+
+DAYS_3 = ("2023-01-01", "2023-01-02", "2023-01-03")
+CITE = ("USGS OGC API defines the daily `time` only as the date an observation represents and states no "
+        "zone; read here as a UTC day, an assumption of this consumer.")
+SIG = DeclaredSigma(relative=0.10, sigma_floor=0.5,
+                    citation="test: a stand-in for a rating-curve statement, cited so the bridge will take it")
+
+
+def _dv_bridge(records, **kw):
+    args = dict(series=[_dv_sel("USGS-09147000", "00060", "ft^3/s")], time_zone="UTC", cadence_s=86400,
+                time_semantics="calendar_day", day_anchor="midpoint", day_zone_citation=CITE,
+                arrival_policy="replay", latency_s=0.0, conflict_policy="refuse", daf_commit=DAF_COMMIT,
+                declared_sigma={"usgs:USGS-09147000:00060:ft^3/s": SIG})
+    args.update(kw)
+    return bridge(records, **args)
+
+
+def _dv_refusal(reason, records, **kw):
+    with pytest.raises(BridgeRefusal) as exc:
+        _dv_bridge(records, **kw)
+    assert exc.value.reason == reason, str(exc.value)
+    return exc.value
+
+
+def test_calendar_day_series_lands_on_a_daily_grid_at_the_declared_anchor():
+    recs = [_dv("USGS-09147000", "00060", "ft^3/s", d, v) for d, v in zip(DAYS_3, (120.0, 131.0, 118.0))]
+    bs = _dv_bridge(recs)
+    assert [o.t for o in bs.observations] == [0.0, 86400.0, 172800.0]
+    assert bs.provenance["n_grid"] == 3 and bs.provenance["n_used"] == 3
+    # the anchor moves the epoch within the day, not the spacing
+    assert bs.provenance["epoch_iso"] == "2023-01-01T12:00:00Z"
+    assert _dv_bridge(recs, day_anchor="start").provenance["epoch_iso"] == "2023-01-01T00:00:00Z"
+    assert _dv_bridge(recs, day_anchor="end").provenance["epoch_iso"] == "2023-01-02T00:00:00Z"
+    t = bs.provenance["time"]
+    assert (t["time_semantics"], t["day_anchor"], t["day_anchor_offset_s"]) == ("calendar_day", "midpoint", 43200.0)
+    assert t["day_zone_citation"] == CITE and t["time_zone"] == "UTC"
+
+
+def test_a_calendar_day_needs_its_anchor_and_its_zone_cited():
+    recs = [_dv("USGS-09147000", "00060", "ft^3/s", d, 120.0) for d in DAYS_3]
+    _dv_refusal("day_anchor", recs, day_anchor=None)
+    _dv_refusal("day_anchor", recs, day_anchor="noon")
+    e = _dv_refusal("day_zone_citation", recs, day_zone_citation=None)
+    assert "carries no zone" in str(e)
+    _dv_refusal("day_zone_citation", recs, day_zone_citation="   ")
+    with pytest.raises(ValueError, match="calendar_day"):     # not a day: no anchor to declare
+        _bridge(_load(F_MLLW), day_anchor="start")
+
+
+def test_the_two_time_shapes_are_never_interchanged():
+    """A bare date under 'instant' and a timestamp under 'calendar_day' are both refused:
+    the default can mis-read nothing, it can only refuse."""
+    days = [_dv("USGS-09147000", "00060", "ft^3/s", d, 120.0) for d in DAYS_3]
+    e = _dv_refusal("measurement_time", days, time_semantics="instant", day_anchor=None, day_zone_citation=None)
+    assert "2023-01-01" in str(e)
+    stamped = copy.deepcopy(days)
+    for r in stamped:
+        r["content"]["measurement_time"] += " 12:00"
+    e = _dv_refusal("measurement_time", stamped)
+    assert "bare 'YYYY-MM-DD'" in str(e)
+
+
+def test_selectors_carry_several_sources_and_refuse_a_file_of_the_wrong_kind():
+    q = [_dv("USGS-09147000", "00060", "ft^3/s", d, v) for d, v in zip(DAYS_3, (120.0, 131.0, 118.0))]
+    s = [_dv("USGS-09147022", "00054", "acre-ft", d, v, prop="storage") for d, v in zip(DAYS_3, (6.7e4, 6.8e4, 6.8e4))]
+    other = [_dv("USGS-09146200", "00060", "ft^3/s", d, 9.0) for d in DAYS_3]      # a real series, not declared
+    sels = [_dv_sel("USGS-09147000", "00060", "ft^3/s"), _dv_sel("USGS-09147022", "00054", "acre-ft", prop="storage")]
+    sigs = {sels[0].source_id: SIG, sels[1].source_id: DeclaredSigma(sigma=50.0, citation=SIG.citation)}
+    bs = _dv_bridge(q + s + other, series=sels, declared_sigma=sigs)
+    assert bs.source_ids == ("usgs:USGS-09147000:00060:ft^3/s", "usgs:USGS-09147022:00054:acre-ft")
+    assert bs.observations[0].y.tolist() == [120.0, 6.7e4]
+    assert bs.provenance["n_used"] == 6 and bs.provenance["n_ignored"] == 3
+    assert bs.provenance["ignored"][0]["n"] == 3
+    assert [s["source_id"] for s in bs.provenance["selectors"]] == list(bs.source_ids)
+    # a record of an extraction_method no selector declares is refused, never counted as ignored
+    e = _dv_refusal("not_declared", q + _load(F_MLLW)[:1], series=sels, declared_sigma=sigs)
+    assert "json:noaa_water_level_measurement_v1" in str(e)
+
+
+def test_a_relative_declared_sigma_is_per_reading_and_floored():
+    recs = [_dv("USGS-09147000", "00060", "ft^3/s", d, v) for d, v in zip(DAYS_3, (120.0, 0.0, 2.0))]
+    bs = _dv_bridge(recs)
+    assert [o.R[0, 0] for o in bs.observations] == [12.0 ** 2, 0.5 ** 2, 0.5 ** 2]   # floored where 10% < 0.5
+    r = bs.provenance["R_source"]["usgs:USGS-09147000:00060:ft^3/s"]
+    assert (r["kind"], r["relative"], r["sigma_floor"], r["citation"]) == ("consumer-declared", 0.10, 0.5, SIG.citation)
+    assert (r["sigma_min"], r["sigma_max"]) == (0.5, 12.0)
+    with pytest.raises(ValueError, match="sigma_floor"):          # a percentage says nothing at zero
+        DeclaredSigma(relative=0.1, citation="x")
+    with pytest.raises(ValueError, match="exactly one"):
+        DeclaredSigma(sigma=1.0, relative=0.1, sigma_floor=0.5, citation="x")
+    with pytest.raises(ValueError, match="citation"):
+        DeclaredSigma(sigma=1.0, citation="  ")
+
+
+def test_selectors_refuse_two_units_of_one_quantity_and_two_names_for_one_series():
+    sels = [_dv_sel("USGS-09147000", "00060", "ft^3/s"), _dv_sel("USGS-09147000", "00060", "m^3/s")]
+    with pytest.raises(BridgeRefusal, match="converts no units"):
+        _dv_bridge([], series=sels)
+    same = [_dv_sel("USGS-09147000", "00060", "ft^3/s"),
+            _dv_sel("USGS-09147000", "00060", "ft^3/s", source_id="another-name")]
+    with pytest.raises(ValueError, match="two sensors"):
+        _dv_bridge([], series=same)
+    with pytest.raises(ValueError, match="at least one"):
+        SeriesSelector(source_id="x", extraction_method=DV_METHOD, property="discharge", match={})
+
+
+@pytest.mark.parametrize("unit_field, match", [
+    ("unit", {"monitoring_location_id": "USGS-09147000"}),
+    ("unit", {"monitoring_location_id": "USGS-09147000", "unit": "  "}),
+    ("units", {"monitoring_location_id": "USGS-09147000", "unit": "ft^3/s"}),
+])
+def test_a_selector_cannot_admit_mixed_units_by_omitting_its_unit_pin(unit_field, match):
+    with pytest.raises(ValueError, match="must pin a non-empty unit"):
+        SeriesSelector(source_id="flow", extraction_method=DV_METHOD, property="discharge",
+                       match=match, unit_field=unit_field)
+
+
+def test_a_pinned_selector_keeps_other_units_out_on_later_timestamps():
+    recs = [_dv("USGS-09147000", "00060", "ft^3/s", DAYS_3[0], 120.0),
+            _dv("USGS-09147000", "00060", "m^3/s", DAYS_3[1], 3.4),
+            _dv("USGS-09147000", "00060", "ft^3/s", DAYS_3[2], 118.0)]
+    bs = _dv_bridge(recs)
+    assert bs.provenance["n_ignored"] == 1
+    assert [o.mask.tolist() for o in bs.observations] == [[True], [False], [True]]
+    assert np.isnan(bs.observations[1].y[0])
+    assert bs.provenance["selectors"][0]["match"]["unit"] == "ft^3/s"
+
+
+def test_a_selector_can_pin_a_custom_unit_field():
+    recs = [_dv("USGS-09147000", "00060", "ft^3/s", DAYS_3[0], 120.0)]
+    recs[0]["content"]["units"] = recs[0]["content"].pop("unit")
+    sel = SeriesSelector(source_id="flow", extraction_method=DV_METHOD, property="discharge",
+                         match={"monitoring_location_id": "USGS-09147000", "units": "ft^3/s"},
+                         unit_field="units")
+    bs = _dv_bridge(recs, series=[sel], declared_sigma={"flow": SIG})
+    assert bs.observations[0].y.tolist() == [120.0]
+    assert bs.provenance["selectors"][0]["match"]["units"] == "ft^3/s"
+
+
+def test_the_noaa_shorthand_is_exactly_the_noaa_selector():
+    assert noaa_water_level_series(*MLLW) == SeriesSelector(
+        source_id=series_source_id(MLLW), extraction_method=bridge_mod.DAF_NOAA_MEASUREMENT_METHOD,
+        property="water_level", match={"station_id": "8454000", "datum": "MLLW", "unit": "m"})
+    recs = _load(F_MLLW)
+    by_tuple = _bridge(recs)
+    by_selector = _bridge(recs, series=[noaa_water_level_series(*MLLW)])
+    assert by_tuple.provenance == by_selector.provenance
+    assert all(np.array_equal(a.y, b.y) and np.array_equal(a.R, b.R)
+               for a, b in zip(by_tuple.observations, by_selector.observations))
