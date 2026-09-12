@@ -77,6 +77,7 @@ TOLERANCE: dict[str, float] = {
     "sweep.json": 1e-11,         # measured 1.191e-13
     "calibration.json": 1e-12,   # measured 4.828e-16
     "real_noaa.json": 1e-8,      # measured 2.3e-10 outside the exception below
+    "real_water_balance.json": 1e-8,
 }
 
 EXCEPTIONS: dict[str, tuple[ToleranceException, ...]] = {

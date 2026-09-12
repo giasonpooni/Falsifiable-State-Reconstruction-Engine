@@ -65,6 +65,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from ..schema import Observation
+from .estimators_balance import WaterBalanceAugmented, WaterBalanceClosed, WaterBalanceOpen
 from .estimators_water import LevelTrendKF, TideKF
 from .simulator import MODEL_VERSION
 
@@ -431,4 +432,8 @@ ESTIMATORS = {
     # one tide-gauge series, n_report = 1 (the water level); see estimators_water
     "level_trend": LevelTrendKF,
     "tide_kf": TideKF,
+    # one reservoir, four gauges; see estimators_balance
+    "wb_open": WaterBalanceOpen,
+    "wb_aug": WaterBalanceAugmented,
+    "wb_closed": WaterBalanceClosed,
 }

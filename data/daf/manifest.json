@@ -1,6 +1,6 @@
 {
   "command": "DAF_ROOT=/path/to/daf-checkout uv run --python 3.13 python tools/export_daf_fixtures.py",
-  "daf_commit": "6b378590da3076d88a0f4bd8bad79e1ce0b48ae2",
+  "daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
   "daf_repository": "https://github.com/atomtrapping/Data-Acquisition-Channel",
   "exporter": "tools/export_daf_fixtures.py",
   "files": [
@@ -200,9 +200,250 @@
       "source_fixture_git_blob": "085368544c62ca72739042343353bd11b277bbaa",
       "source_fixture_sha256": "39548e6e1c55a0e5061982d084ed24ce9f00c46e40900dda6cca81d1d4b31d21",
       "synthetic": true
+    },
+    {
+      "binding": {
+        "adapter_id": "usgs-daily-values",
+        "factory": "daf.orchestration.bindings.usgs_daily_values_binding",
+        "page_limit": 10000,
+        "revision_lookback_days": 2,
+        "scope": {
+          "begin": "2022-10-01",
+          "end": "2025-09-30"
+        },
+        "version": "ffa4ad8e403eb33487eb68adab4818d0753e4de043607be5d5cb09737f863060",
+        "window_days": 366
+      },
+      "exported_at_daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
+      "extraction_methods": [
+        "json:usgs_daily_value_v1"
+      ],
+      "fetched_live": true,
+      "n_distinct_measurement_times": 1096,
+      "n_observations": 4416,
+      "n_recorded_items": 4416,
+      "n_recorded_responses": 20,
+      "note": "One DAF plan per series: storage, outflow and inflows are acquired as independent series and never joined here. Deciding that a storage value and a flow value describe the same day is a consumer's declaration -- the storage series is a daily MEAN, so it is half a day out of step with an end-of-day reading, and which alignment is right is an argument rather than a fact. Each response is the raw HTTPS body, byte for byte.",
+      "outcomes": [
+        "ACQUIRED",
+        "ACQUIRED",
+        "ACQUIRED",
+        "ACQUIRED",
+        "ACQUIRED",
+        "DUPLICATE",
+        "ACQUIRED",
+        "ACQUIRED",
+        "ACQUIRED",
+        "ACQUIRED",
+        "ACQUIRED",
+        "DUPLICATE",
+        "ACQUIRED",
+        "ACQUIRED",
+        "ACQUIRED",
+        "ACQUIRED",
+        "ACQUIRED",
+        "DUPLICATE",
+        "ACQUIRED",
+        "ACQUIRED",
+        "ACQUIRED",
+        "ACQUIRED",
+        "ACQUIRED",
+        "DUPLICATE"
+      ],
+      "output": "usgs_ridgway_wy2023_2025.observations.json",
+      "output_sha256": "52bda68f83ad203c849f3d65fccd9e65e91749ce3c9e374e53d1cf2c423fc3b1",
+      "plans": [
+        {
+          "parameters": {
+            "end_date": "2025-09-30",
+            "monitoring_location_id": "USGS-09147022",
+            "parameter_code": "00054",
+            "start_date": "2022-10-01",
+            "statistic_id": "00003"
+          },
+          "plan_id": "fsre-usgs-USGS-09147022-00054-00003"
+        },
+        {
+          "parameters": {
+            "end_date": "2025-09-30",
+            "monitoring_location_id": "USGS-09147025",
+            "parameter_code": "00060",
+            "start_date": "2022-10-01",
+            "statistic_id": "00003"
+          },
+          "plan_id": "fsre-usgs-USGS-09147025-00060-00003"
+        },
+        {
+          "parameters": {
+            "end_date": "2025-09-30",
+            "monitoring_location_id": "USGS-09146200",
+            "parameter_code": "00060",
+            "start_date": "2022-10-01",
+            "statistic_id": "00003"
+          },
+          "plan_id": "fsre-usgs-USGS-09146200-00060-00003"
+        },
+        {
+          "parameters": {
+            "end_date": "2025-09-30",
+            "monitoring_location_id": "USGS-09147000",
+            "parameter_code": "00060",
+            "start_date": "2022-10-01",
+            "statistic_id": "00003"
+          },
+          "plan_id": "fsre-usgs-USGS-09147000-00060-00003"
+        }
+      ],
+      "recorded_at_daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
+      "requested_at": "2026-09-12T00:00:00Z",
+      "responses": [
+        {
+          "file": "af6f945c93a65b5f9ca0f2994da2e5d972b4d12e7fdcc336b950266f46ad938a.json",
+          "n_bytes": 245383,
+          "n_items": 366,
+          "sha256": "af6f945c93a65b5f9ca0f2994da2e5d972b4d12e7fdcc336b950266f46ad938a",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09147022&parameter_code=00054&statistic_id=00003&datetime=2022-10-01%2F2023-10-01&limit=10000&f=json"
+        },
+        {
+          "file": "1d390caa8c75e884f24f7faa5dd5b87661cc8f3bd0ca4049bc0bd32bdbd0e8a5.json",
+          "n_bytes": 245383,
+          "n_items": 366,
+          "sha256": "1d390caa8c75e884f24f7faa5dd5b87661cc8f3bd0ca4049bc0bd32bdbd0e8a5",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09147022&parameter_code=00054&statistic_id=00003&datetime=2023-09-30%2F2024-09-29&limit=10000&f=json"
+        },
+        {
+          "file": "cb6bef6224fe2fe9723d27e0512b0ce568743c10000ef04438017e2251ca01cf.json",
+          "n_bytes": 245441,
+          "n_items": 366,
+          "sha256": "cb6bef6224fe2fe9723d27e0512b0ce568743c10000ef04438017e2251ca01cf",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09147022&parameter_code=00054&statistic_id=00003&datetime=2024-09-28%2F2025-09-28&limit=10000&f=json"
+        },
+        {
+          "file": "bb0b55c39c0eaf829f3f8d4c3d011629d98f0fee93e64ba1f24cdd62eec9a32c.json",
+          "n_bytes": 4289,
+          "n_items": 4,
+          "sha256": "bb0b55c39c0eaf829f3f8d4c3d011629d98f0fee93e64ba1f24cdd62eec9a32c",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09147022&parameter_code=00054&statistic_id=00003&datetime=2025-09-27%2F2025-09-30&limit=10000&f=json"
+        },
+        {
+          "file": "d6c683d9a42b628ea3e42a0ef969487fd188865f8bf0b3faa8be83cf06377d09.json",
+          "n_bytes": 2957,
+          "n_items": 2,
+          "sha256": "d6c683d9a42b628ea3e42a0ef969487fd188865f8bf0b3faa8be83cf06377d09",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09147022&parameter_code=00054&statistic_id=00003&datetime=2025-09-29%2F2025-09-30&limit=10000&f=json"
+        },
+        {
+          "file": "8074e6fb8fc735538c887676559d858ac6c17d2b2aadc8bd9f5411b4a3a96e76.json",
+          "n_bytes": 244463,
+          "n_items": 366,
+          "sha256": "8074e6fb8fc735538c887676559d858ac6c17d2b2aadc8bd9f5411b4a3a96e76",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09147025&parameter_code=00060&statistic_id=00003&datetime=2022-10-01%2F2023-10-01&limit=10000&f=json"
+        },
+        {
+          "file": "19dcf0caa24856e256b433ae012930dbe521e63f04bae1da05e74b6bd7597b42.json",
+          "n_bytes": 244494,
+          "n_items": 366,
+          "sha256": "19dcf0caa24856e256b433ae012930dbe521e63f04bae1da05e74b6bd7597b42",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09147025&parameter_code=00060&statistic_id=00003&datetime=2023-09-30%2F2024-09-29&limit=10000&f=json"
+        },
+        {
+          "file": "8530d1586a1067753a1a53638b5d1e07f04b5b9d02ed2922b9ca0fc669bd5367.json",
+          "n_bytes": 244523,
+          "n_items": 366,
+          "sha256": "8530d1586a1067753a1a53638b5d1e07f04b5b9d02ed2922b9ca0fc669bd5367",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09147025&parameter_code=00060&statistic_id=00003&datetime=2024-09-28%2F2025-09-28&limit=10000&f=json"
+        },
+        {
+          "file": "448bef5fcbee62c981a1c84dcc48b485d776a5d77b3119d589676370ff043f0b.json",
+          "n_bytes": 4281,
+          "n_items": 4,
+          "sha256": "448bef5fcbee62c981a1c84dcc48b485d776a5d77b3119d589676370ff043f0b",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09147025&parameter_code=00060&statistic_id=00003&datetime=2025-09-27%2F2025-09-30&limit=10000&f=json"
+        },
+        {
+          "file": "d474ce444931faa3822c5e1368bac940e4b99c643e64ea1725717743c850a80d.json",
+          "n_bytes": 2953,
+          "n_items": 2,
+          "sha256": "d474ce444931faa3822c5e1368bac940e4b99c643e64ea1725717743c850a80d",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09147025&parameter_code=00060&statistic_id=00003&datetime=2025-09-29%2F2025-09-30&limit=10000&f=json"
+        },
+        {
+          "file": "a448d350f951b9136808e46c6bb6a8c1c63fa96956a9608c727dd9f946bfbae9.json",
+          "n_bytes": 245381,
+          "n_items": 366,
+          "sha256": "a448d350f951b9136808e46c6bb6a8c1c63fa96956a9608c727dd9f946bfbae9",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09146200&parameter_code=00060&statistic_id=00003&datetime=2022-10-01%2F2023-10-01&limit=10000&f=json"
+        },
+        {
+          "file": "a9703a716533ed532c9d173248ee88b1b0838304f8415782588da7669431ca93.json",
+          "n_bytes": 245165,
+          "n_items": 366,
+          "sha256": "a9703a716533ed532c9d173248ee88b1b0838304f8415782588da7669431ca93",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09146200&parameter_code=00060&statistic_id=00003&datetime=2023-09-30%2F2024-09-29&limit=10000&f=json"
+        },
+        {
+          "file": "65ccedd3687bef1c3e2688d2e95612ce88fe94310cbe75dcdd0a8c4161030e8d.json",
+          "n_bytes": 245408,
+          "n_items": 366,
+          "sha256": "65ccedd3687bef1c3e2688d2e95612ce88fe94310cbe75dcdd0a8c4161030e8d",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09146200&parameter_code=00060&statistic_id=00003&datetime=2024-09-28%2F2025-09-28&limit=10000&f=json"
+        },
+        {
+          "file": "3686733dcab3fe2762b731a6d0731d4f5a8da3d9c74965a54e797f174c7d55c1.json",
+          "n_bytes": 4281,
+          "n_items": 4,
+          "sha256": "3686733dcab3fe2762b731a6d0731d4f5a8da3d9c74965a54e797f174c7d55c1",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09146200&parameter_code=00060&statistic_id=00003&datetime=2025-09-27%2F2025-09-30&limit=10000&f=json"
+        },
+        {
+          "file": "acb1cdfcafb9767761379fb49c7e820c006f1eab739ee79e856bd448fa1f4549.json",
+          "n_bytes": 2953,
+          "n_items": 2,
+          "sha256": "acb1cdfcafb9767761379fb49c7e820c006f1eab739ee79e856bd448fa1f4549",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09146200&parameter_code=00060&statistic_id=00003&datetime=2025-09-29%2F2025-09-30&limit=10000&f=json"
+        },
+        {
+          "file": "c581760089c038fe15e765456006adf174797486062806c9ef478bd3d0ac817b.json",
+          "n_bytes": 247599,
+          "n_items": 366,
+          "sha256": "c581760089c038fe15e765456006adf174797486062806c9ef478bd3d0ac817b",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09147000&parameter_code=00060&statistic_id=00003&datetime=2022-10-01%2F2023-10-01&limit=10000&f=json"
+        },
+        {
+          "file": "524cc78122128ffff90b630e2bfa4633b4accc58de0d4168f7c80755b64723c9.json",
+          "n_bytes": 246900,
+          "n_items": 366,
+          "sha256": "524cc78122128ffff90b630e2bfa4633b4accc58de0d4168f7c80755b64723c9",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09147000&parameter_code=00060&statistic_id=00003&datetime=2023-09-30%2F2024-09-29&limit=10000&f=json"
+        },
+        {
+          "file": "4878efab74ae037c959346397c50cc52b8772c1adb8cb869c8412ddb7c84b645.json",
+          "n_bytes": 247812,
+          "n_items": 366,
+          "sha256": "4878efab74ae037c959346397c50cc52b8772c1adb8cb869c8412ddb7c84b645",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09147000&parameter_code=00060&statistic_id=00003&datetime=2024-09-28%2F2025-09-28&limit=10000&f=json"
+        },
+        {
+          "file": "738266ec00a1ada67775e9be17bc6d2eca72d75f1e3b7af101b05a0bdcc110c1.json",
+          "n_bytes": 4281,
+          "n_items": 4,
+          "sha256": "738266ec00a1ada67775e9be17bc6d2eca72d75f1e3b7af101b05a0bdcc110c1",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09147000&parameter_code=00060&statistic_id=00003&datetime=2025-09-27%2F2025-09-30&limit=10000&f=json"
+        },
+        {
+          "file": "ed9435a0a6cde698f148c7c4be6be15e1b3b643e40367eafb9fa2144dbf25c37.json",
+          "n_bytes": 2953,
+          "n_items": 2,
+          "sha256": "ed9435a0a6cde698f148c7c4be6be15e1b3b643e40367eafb9fa2144dbf25c37",
+          "url": "https://api.waterdata.usgs.gov/ogcapi/v1/collections/daily/items?monitoring_location_id=USGS-09147000&parameter_code=00060&statistic_id=00003&datetime=2025-09-29%2F2025-09-30&limit=10000&f=json"
+        }
+      ],
+      "source_session": "data/daf/raw/usgs_ridgway_wy2023_2025",
+      "source_session_index_sha256": "6eed9ca3e278931daa7ae9f87b44d2fc156a49e99693e694349cc102d03a64e4",
+      "synthetic": false
     }
   ],
-  "python": "3.13.5",
+  "python": "3.13.12",
   "vendored_substrate": {
     "commit": "5e146d5924675cd7b6e1d1ed44fb39f5da012610",
     "path": "vendor/scout-retrieval-agent",
