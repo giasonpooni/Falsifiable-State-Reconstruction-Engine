@@ -24,11 +24,12 @@ Hold-last has no prediction and records NaN.
 
 Every estimator declares `n_report`, the number of leading components of its
 reported state that the reconciliation stage acts on (2 for every estimator
-here: the reservoir masses m1, m2). An estimator that carries more state
-declares the extra components, which follow those n_report, in `aug_names`,
-with the no-fault value of each in `aug_nominal`; the runner stores them in
-RunResult.extra and flags each one when it departs from its nominal value by
-more than its own reported uncertainty explains. A nominal of None declares
+in this module: the reservoir masses m1, m2; the water-level filters that
+estimators_water adds to ESTIMATORS report 1, the level). An estimator that
+carries more state declares the extra components, which follow those
+n_report, in `aug_names`, with the no-fault value of each in `aug_nominal`;
+the runner stores them in RunResult.extra and flags each one when it departs
+from its nominal value by more than its own reported uncertainty explains. A nominal of None declares
 "no flag for this component": its estimate and sd are recorded, nothing tests
 them. The number of sensors is the observation's (obs.y.size); every
 innovation-record row has one entry per sensor.
@@ -64,6 +65,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from ..schema import Observation
+from .estimators_water import LevelTrendKF, TideKF
 from .simulator import MODEL_VERSION
 
 B = np.array([-1.0, 1.0])   # commanded transfer moves mass from reservoir 1 to reservoir 2
@@ -426,4 +428,7 @@ ESTIMATORS = {
     "kf_aug": AugmentedKalmanFilter,
     "kf_closedq": ClosedQKalmanFilter,
     "oracle": OracleKalmanFilter,          # BOUND, not a candidate; see runner.run()
+    # one tide-gauge series, n_report = 1 (the water level); see estimators_water
+    "level_trend": LevelTrendKF,
+    "tide_kf": TideKF,
 }

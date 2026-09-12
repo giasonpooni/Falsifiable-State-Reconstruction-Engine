@@ -27,7 +27,7 @@ import set_lcm
 from set_lcm.experiments.phase1 import SCENARIOS, SPECS, constraint_for, declared_prior, run_spec
 from set_lcm.lcm import chi2_quantile
 from set_lcm.schema import ConstraintSet, Observation, Status
-from set_lcm.testbed import cusum, estimators, inputs, runner, truth_free
+from set_lcm.testbed import cusum, estimators, estimators_water, inputs, runner, truth_free
 from set_lcm.testbed.degrade import observe
 from set_lcm.testbed.estimators import ESTIMATORS, KFConfig
 from set_lcm.testbed.inputs import PublicInputs
@@ -75,11 +75,11 @@ def test_public_inputs_copy_only_the_public_fields():
 
 
 def test_runner_and_estimators_never_name_truth():
-    """runner.py and estimators.py (and the other estimator-side modules: the CUSUM, the
-    public inputs, the truth-free evaluator) contain no reference to Truth or
+    """runner.py and estimators.py (and the other estimator-side modules: the water-level
+    filters, the CUSUM, the public inputs, the truth-free evaluator) contain no reference to Truth or
     simulator.Truth -- not in code, not in prose -- and import nothing named Truth; run()
     has no truth parameter and takes PublicInputs first."""
-    for mod in (runner, estimators, cusum, inputs, truth_free):
+    for mod in (runner, estimators, estimators_water, cusum, inputs, truth_free):
         src = Path(mod.__file__).read_text(encoding="utf-8")
         assert re.search(r"\bTruth\b", src) is None, mod.__name__
         assert "simulator.Truth" not in src, mod.__name__
@@ -246,9 +246,15 @@ def test_runner_sizes_from_the_record_and_the_estimator(monkeypatch):
         run(pi, bad, cs, EstimatorSpec("toy+hard", "toy_walk", "hard"), (12.0, 18.0, 68.0), 3.0)
 
 
-def test_every_estimator_in_the_tree_reports_two_components():
+WATER_LEVEL_KINDS = {"level_trend", "tide_kf"}   # estimators_water: one series, the level
+
+
+def test_every_estimator_in_the_tree_declares_its_reported_dimension():
+    """The two-reservoir estimators report the two masses; the water-level filters (P4) report
+    one component, the level."""
+    assert WATER_LEVEL_KINDS <= set(ESTIMATORS)
     for kind, cls in ESTIMATORS.items():
-        assert cls.n_report == 2, kind
+        assert cls.n_report == (1 if kind in WATER_LEVEL_KINDS else 2), kind
         assert len(cls.aug_nominal) == len(cls.aug_names), kind
 
 

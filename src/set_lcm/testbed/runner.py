@@ -25,8 +25,10 @@ problem: the number of sensors is obs[0].y.size (every observation must carry
 that many), the reported-state dimension is the estimator's n_report, and the
 reconciliation stage acts on the first n_report components of what the
 estimator reports; components after those are the estimator's aug_names. For
-every estimator in the tree n_report = 2 (the masses m1, m2) and there are two
-sensors.
+the two-reservoir estimators n_report = 2 (the masses m1, m2) with two sensors;
+the water-level filters (estimators_water) report one component, the level, from
+one sensor, take their configuration through `est_cfg` and receive the record's
+clock (`needs_clock`).
 
 Provenance: RunResult.ingested_evidence[k] is the concatenation, in sampling
 order, of Observation.evidence_ids over every observation ingested at report
@@ -68,8 +70,8 @@ PARAM_FLAG_DEBOUNCE consecutive reports (no flag for a component whose nominal
 the estimator declares None). The last are estimator outputs, not
 reconciliation statuses; Status is unchanged. The reconciliation stage acts on
 the first n_report components (x[:n_report], P[:n_report, :n_report]; the mass
-marginal for every estimator here) and reads none of the channels except the
-first, through the guard.
+marginal for the two-reservoir estimators, the level for the water-level ones) and
+reads none of the channels except the first, through the guard.
 
 Declared constraint uncertainty (ConstraintSet.b_var) is never read here; the
 kernel reads it in consistency_stat, reconcile and the projections, so every
@@ -121,8 +123,8 @@ class EstimatorSpec:
 @dataclass
 class RunResult:
     """Everything one run produced. N report steps, n = the estimator's n_report,
-    s = the number of sensors (obs[0].y.size); for every estimator in the tree n = 2
-    (the mass marginal) and s = 2."""
+    s = the number of sensors (obs[0].y.size); n = 2 (the mass marginal) and s = 2 for the
+    two-reservoir estimators, n = 1 (the level) and s = 1 for the water-level ones."""
     spec: EstimatorSpec
     x: np.ndarray            # (N, n) reported
     P: np.ndarray            # (N, n, n)
@@ -174,10 +176,17 @@ def run(
     oracle_cfg: OracleConfig = OracleConfig(),
     *,
     oracle_inputs: tuple[np.ndarray, np.ndarray] | None = None,
+    est_cfg=None,
 ) -> RunResult:
     """Run `spec` over the observation record `obs` (one Observation per step of
     inputs.t, indexed by sampling step). `oracle_inputs` is the hidden (u_actual, leak)
-    pair: required for spec.kind == "oracle", refused for every other kind."""
+    pair: required for spec.kind == "oracle", refused for every other kind.
+
+    `est_cfg` is the configuration of an estimator whose config class has no keyword of
+    its own above (the water-level filters' LevelTrendConfig / TideConfig, whose q_scale
+    has no default): required for such a kind, refused for the kinds that have one. An
+    estimator that declares `needs_clock` also receives the record's clock
+    (clock=inputs.t); nothing else about the run changes."""
     if not isinstance(inputs, PublicInputs):
         raise TypeError(f"run() takes PublicInputs, not {type(inputs).__name__}")
     if spec.kind == "oracle" and oracle_inputs is None:
@@ -196,8 +205,19 @@ def run(
         raise ValueError(f"every observation must carry {n_sensors} sensor value(s), as obs[0] does")
     dt = float(inputs.t[1] - inputs.t[0])
     est_cls = ESTIMATORS[spec.kind]
-    cfg = {KFConfig: kf_cfg, AugConfig: aug_cfg, ClosedQConfig: closedq_cfg, OracleConfig: oracle_cfg}[est_cls.config_cls]
+    keyword_cfgs = {KFConfig: kf_cfg, AugConfig: aug_cfg, ClosedQConfig: closedq_cfg, OracleConfig: oracle_cfg}
+    if est_cls.config_cls in keyword_cfgs:
+        if est_cfg is not None:
+            raise ValueError(f"{est_cls.__name__} takes its {est_cls.config_cls.__name__} through its own keyword, "
+                             "not est_cfg")
+        cfg = keyword_cfgs[est_cls.config_cls]
+    else:
+        if not isinstance(est_cfg, est_cls.config_cls):
+            raise ValueError(f"{est_cls.__name__} needs est_cfg, a {est_cls.config_cls.__name__}; got {est_cfg!r}")
+        cfg = est_cfg
     est_kwargs: dict = {}
+    if getattr(est_cls, "needs_clock", False):
+        est_kwargs["clock"] = inputs.t
     if spec.kind == "oracle":
         # THE ONE PLACE the hidden arrays cross to the estimator side, and only because the
         # caller passed them explicitly: the oracle (bound) gets the actual pump parameter

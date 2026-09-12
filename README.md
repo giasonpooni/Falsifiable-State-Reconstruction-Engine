@@ -12,9 +12,11 @@ Phase 1 review left open: a detector that does not read the constraint, an
 estimator that carries the faults the constraint cannot see, and the baselines
 that would show the constraint row adds nothing — plus the first P2b item,
 uncertainty declared on the constraint itself (`b_var`), a runner that cannot receive
-hidden truth and an evaluator that needs none, and the first real-data bridge: NOAA
+hidden truth and an evaluator that needs none, the first real-data bridge: NOAA
 water levels admitted by DAF (the Data Acquisition Fabric) brought in as `Observation`s,
-with refusals and provenance but no model of them. Nothing more.
+with refusals and provenance — and P4, the first real observations through the same
+runner: two water-level filters, one parameter each fitted on one day and evaluated on
+another, and a truth-free report that says what it cannot validate. Nothing more.
 
 As built, it is an *evidence-preserving reconciliation stage over a
 state-estimation testbed*. Its lineage is data validation and reconciliation
@@ -33,6 +35,7 @@ Truth (hidden) ──h(·)+degradation──▶ Observation ──▶ Estimator 
 
 DAF observation dicts ──bridge.daf──▶ Observation + PublicInputs(t grid, u = 0) + provenance ──▶ run() ──▶ truth-free evaluator
 (data/daf; no truth)       (refuses what it cannot represent; resamples, converts and averages nothing)
+                                                             level_trend, tide_kf (no constraint) ─┘         └─ results/real_noaa.{md,json}
 ```
 
 The estimator side sees the observations, the public inputs, a declared prior and a declared
@@ -59,6 +62,10 @@ uv run --python 3.13 python -m set_lcm.experiments.sweep
 ```
 
 ```bash
+uv run --python 3.13 python -m set_lcm.experiments.real_noaa
+```
+
+```bash
 DAF_ROOT=/path/to/daf-checkout uv run --python 3.13 python tools/export_daf_fixtures.py
 DAF_ROOT=/path/to/daf-checkout uv run --python 3.13 --dev pytest -q tests/test_bridge_daf.py
 ```
@@ -68,10 +75,13 @@ network); the second adds the two bridge tests that skip without `DAF_ROOT`: one
 own code to recompute every committed evidence id, the other re-runs the export and compares
 it with `data/daf/` byte for byte. See "DAF bridge".
 
-The grid writes `results/summary.{md,json}`; the other two write
+The grid writes `results/summary.{md,json}`; calibration and sweep write
 `results/calibration.{md,json}` and `results/sweep.{md,json}` (about a quarter of an
-hour together). Full-size runs are also wrapped in tests marked `slow`, which the default
-`pytest` skips; `uv run --python 3.13 --dev pytest -m slow` runs them.
+hour together); `real_noaa` writes `results/real_noaa.{md,json}` from the committed DAF
+evidence in a few seconds (P4). Full-size runs are also wrapped in tests marked `slow`, which
+the default `pytest` skips; `uv run --python 3.13 --dev pytest -m slow` runs them. The
+real-data report is small enough that the fast suite regenerates it and compares it with the
+committed files (`tests/test_real_noaa.py`).
 
 `results/` is a verified artifact, not a hand-committed file: the slow test
 `tests/test_results_reproduce.py` regenerates the whole grid and asserts equality with
@@ -95,14 +105,16 @@ within 8 % of `kf` during the blackout (0.386 vs 0.419 kg, the per-seed entries 
 | `src/set_lcm/testbed/simulator.py` | Two-reservoir material transfer. Hidden `m`, hidden leak, hidden actual pump *parameter* rate (`u_actual`: the per-step pump fluctuation is process noise, not part of it); public commanded pump rate and declared initial total. |
 | `src/set_lcm/testbed/degrade.py` | Noise, random dropout, sensor blackout, undeclared bias, quantization (declared into `R`), arrival delay written into `arrival_t`. Seed-controlled. |
 | `src/set_lcm/testbed/inputs.py` | `PublicInputs(t, u_commanded)`: the step clock and the commanded input, the only inputs the runner takes besides the observations, the declared prior and the declared constraint. `PublicInputs.from_truth` copies exactly those two fields of a simulated truth, read-only. |
-| `src/set_lcm/testbed/estimators.py` | Five estimator kinds behind one `ingest` / `report` interface, each declaring `n_report` (2 for all five: the masses) and, for extra state, `aug_names` with a nominal per component (`None` = recorded, never flagged), each initialised from a *declared* prior and reporting by predicting forward from the last *arrived* observation. `hold_last`. `kf`: linear KF on x = [m1, m2] with a *diagonal* Q, σ_w = 0.05 kg per step (`KFConfig`; closure is the constraint's declared claim, not the filter's). `kf_aug`: x = [m1, m2, α, L] — pump scale and boundary flux as states with their own uncertainty, a time-varying *linear* KF (`AugConfig`: α ~ N(1, 0.1²), L ~ N(0, 0.02²), random walks of 1e-3 (α, dimensionless) and 2e-3 kg/s (L) per step, same σ_w). Two baselines built to remove the case for a constraint row: `kf_closedq`, the KF with closure written into its process noise, Q = σ_q² dt² B Bᵀ + ε I with σ_q = 0.01 kg/s (the simulator's declared pump fluctuation) and ε = 1e-8 (`ClosedQConfig`), and `oracle`, a KF given the *hidden* actual pump parameter rate and leak as known inputs with Q = ε I only (`OracleConfig`) — a bound, never a candidate. Every filter records, per ingested step and sensor, the innovation, its variance and the normalised innovation; hold-last records NaN. `kf` and `kf_closedq` implement `set_state(x, P)` for fed-back projection; `kf_aug` (the mass marginal cannot be replaced without its cross-covariances) and hold-last raise `NotImplementedError`. |
+| `src/set_lcm/testbed/estimators.py` | Five estimator kinds behind one `ingest` / `report` interface, each declaring `n_report` (2 for all five: the masses) and, for extra state, `aug_names` with a nominal per component (`None` = recorded, never flagged), each initialised from a *declared* prior and reporting by predicting forward from the last *arrived* observation. `hold_last`. `kf`: linear KF on x = [m1, m2] with a *diagonal* Q, σ_w = 0.05 kg per step (`KFConfig`; closure is the constraint's declared claim, not the filter's). `kf_aug`: x = [m1, m2, α, L] — pump scale and boundary flux as states with their own uncertainty, a time-varying *linear* KF (`AugConfig`: α ~ N(1, 0.1²), L ~ N(0, 0.02²), random walks of 1e-3 (α, dimensionless) and 2e-3 kg/s (L) per step, same σ_w). Two baselines built to remove the case for a constraint row: `kf_closedq`, the KF with closure written into its process noise, Q = σ_q² dt² B Bᵀ + ε I with σ_q = 0.01 kg/s (the simulator's declared pump fluctuation) and ε = 1e-8 (`ClosedQConfig`), and `oracle`, a KF given the *hidden* actual pump parameter rate and leak as known inputs with Q = ε I only (`OracleConfig`) — a bound, never a candidate. Every filter records, per ingested step and sensor, the innovation, its variance and the normalised innovation; hold-last records NaN. `kf` and `kf_closedq` implement `set_state(x, P)` for fed-back projection; `kf_aug` (the mass marginal cannot be replaced without its cross-covariances) and hold-last raise `NotImplementedError`. `ESTIMATORS` also registers the two water-level filters of the next row. |
+| `src/set_lcm/testbed/estimators_water.py` | P4: the first estimators of something real, one tide-gauge series each, `n_report = 1` (the water level), refusing more than one sensor, a non-zero commanded input or a non-uniform clock (dt comes from the grid, which `run()` hands them as `clock`). `level_trend`: x = [level, rate], F = [[1, dt], [0, 1]], continuous white-noise acceleration Q = q² [[dt³/3, dt²/2], [dt²/2, dt]] (`LevelTrendConfig`). `tide_kf`: x = [mean level, (a, b) for M2, K1, O1, M4] at Schureman's (1958) speeds, H_k = [1, cos ω t_k, sin ω t_k, …], a random walk Q = q² dt I on every state (`TideConfig`); it reports the level H_k x_k and then its nine states. Extra states carry nominal `None` (recorded, never flagged); declared priors: rate N(0, (1e-3 m/s)²), each coefficient N(0, (2 m)²). `q_scale` has no default. Neither accepts feedback. |
 | `src/set_lcm/testbed/cusum.py` | Per-sensor two-sided CUSUM on the normalised innovation (`CusumConfig(k=0.5, h=8.0)`): the evidence side's own detector, reading no constraint. |
-| `src/set_lcm/testbed/runner.py` | `run(inputs: PublicInputs, obs, cs, spec, ...)` runs one estimator spec over an observation record step by step, ingesting observations only once `arrival_t ≤ t_k`; it names no `Truth` and takes no truth argument. The number of sensors comes from the observations (`obs[0].y.size`), the reported-state dimension from the estimator's `n_report`, and every `RunResult` array is sized from those. Three detection channels that never talk to each other: the debounced consistency flag (with the optional guard that *holds* projection and reports `MODEL_INCONSISTENT`), the CUSUM on the ingest clock with alarms stamped at the report step of ingestion, and one debounced flag per extra state with a nominal (\|α̂ − 1\|/σ_α > 3.29, \|L̂\|/σ_L > 3.29, three consecutive reports). Reconciliation acts on the first `n_report` components (the mass marginal x[:2], P[:2, :2] for every estimator here); an augmented estimator's extra states go to `RunResult.extra`. `EstimatorSpec.feedback` pushes each applied projection (x*, P*) back into the filter at its own last ingested step, at most once per ingested step. `RunResult.observed` records which samples the estimator was given and `RunResult.ingested_evidence[k]` the evidence ids of everything ingested at report step k (`()` throughout a simulated run). The oracle bound's hidden actual pump rate and leak arrive only through the keyword-only `oracle_inputs`, which `run()` refuses for any other kind and requires for `"oracle"`. |
+| `src/set_lcm/testbed/runner.py` | `run(inputs: PublicInputs, obs, cs, spec, ...)` runs one estimator spec over an observation record step by step, ingesting observations only once `arrival_t ≤ t_k`; it names no `Truth` and takes no truth argument. The number of sensors comes from the observations (`obs[0].y.size`), the reported-state dimension from the estimator's `n_report`, and every `RunResult` array is sized from those. Three detection channels that never talk to each other: the debounced consistency flag (with the optional guard that *holds* projection and reports `MODEL_INCONSISTENT`), the CUSUM on the ingest clock with alarms stamped at the report step of ingestion, and one debounced flag per extra state with a nominal (\|α̂ − 1\|/σ_α > 3.29, \|L̂\|/σ_L > 3.29, three consecutive reports). Reconciliation acts on the first `n_report` components (the mass marginal x[:2], P[:2, :2] for the two-reservoir estimators, the level for the water-level ones); an augmented estimator's extra states go to `RunResult.extra`. `EstimatorSpec.feedback` pushes each applied projection (x*, P*) back into the filter at its own last ingested step, at most once per ingested step. `RunResult.observed` records which samples the estimator was given and `RunResult.ingested_evidence[k]` the evidence ids of everything ingested at report step k (`()` throughout a simulated run). The oracle bound's hidden actual pump rate and leak arrive only through the keyword-only `oracle_inputs`, which `run()` refuses for any other kind and requires for `"oracle"`. The keyword-only `est_cfg` carries the configuration of an estimator whose config has no keyword of its own (the water-level filters'), required for those kinds and refused for the others; an estimator that declares `needs_clock` also receives `clock=inputs.t`. |
 | `src/set_lcm/testbed/evaluate.py` | RMSE (overall and windowed), 95 % interval coverage, normalised error, error along row(A) and null(A), residuals, correction magnitude, false alarms and censored detection delay for the constraint flag, per sensor for the CUSUM and per parameter for the α / L flags, α error against the hidden pump-rate ratio over pump-on steps, L error against the hidden leak, mean normalised innovation per window, solver failures, latency. The scoring evaluator: it reads the hidden truth after the run; nothing on the estimator side does. |
 | `src/set_lcm/testbed/truth_free.py` | `evaluate_truth_free(run, windows)`: reads nothing but the `RunResult`. Per sensor and window: observed samples, fraction missing, mean / RMS / lag-1 autocorrelation of the normalised innovation z and the fraction with \|z\| > 1.96 (sampling clock), CUSUM alarms and the first alarm step (report clock); where a constraint was declared, flag and status counts, the mean consistency statistic and its per-step exceedance; extra-state flag counts; evidence ids ingested; latency. |
 | `src/set_lcm/bridge/daf.py` | `bridge(records, *, series, time_zone, cadence_s, arrival_policy, conflict_policy, daf_commit, latency_s, declared_sigma)`: serialized DAF per-measurement NOAA observations → `BridgedSeries` (`PublicInputs` on a uniform grid, one `Observation` per grid point with DAF evidence ids, provenance), refusing what it cannot represent (see "DAF bridge"); `load_records` with a strict JSON reader; `verify_ids(records, daf_root)`, the one function that imports DAF, optional. Imports nothing from DAF at runtime. |
 | `tools/export_daf_fixtures.py`, `data/daf/` | Runs DAF's own per-measurement NOAA binding on DAF's committed fixtures (replayed, no network) and writes what DAF admitted with DAF's `observation_to_dict`; `data/daf/PROVENANCE.md` and `manifest.json` record the pins, fixture hashes, binding parameters and command. |
 | `src/set_lcm/experiments/phase1.py` | Where hidden truth is read and routed: `run_spec` hands the runner `PublicInputs.from_truth(truth)` and, through `oracle_inputs_for`, the hidden (u_actual, leak) to the oracle kind and to nothing else; the grid, the sweep and the calibration all run through it. The scenario grid with its per-scenario constraint builder (`ExactTotal` for the first six scenarios, `UncertainTotal` for `closed_uncertain_total`), the eleven estimator specs, multi-seed aggregation and report writer; `run_experiments.py` is a thin CLI over it. |
+| `src/set_lcm/experiments/real_noaa.py` | P4: the three committed NOAA days through the bridge (each file checked against `data/daf/manifest.json`; UTC, 360 s, replay with latency 0, refuse conflicts), both water-level filters through `run()`, `q_scale` fitted by innovation log-likelihood on a declared 13-point grid on 2024-01-15 MLLW only, evaluated on the held-out 2026-08-23 preliminary day and in-sample, R × 10 and × 100 sensitivity, the MLLW / STND datum check, a model-free second-difference check, and `results/real_noaa.{md,json}` with a provenance block (DAF commit, each day's bridge provenance, source hash). Every qualitative sentence of the report is a computed condition (`claims`); if one stops holding the report is not written. |
 | `src/set_lcm/experiments/provenance.py` | The provenance block every results file carries: interpreter and numpy versions, platform, source-tree SHA-256, git HEAD and a dirty flag. |
 | `src/set_lcm/experiments/calibration.py` | In-loop null of the consistency statistic (mean, tail quantiles, empirical vs nominal exceedance, autocorrelation time), a threshold × debounce sweep of the guard, and the null of the CUSUM channel over the same windows for h ∈ {4, 6, 8, 10}. |
 | `src/set_lcm/experiments/sweep.py` | Fault-magnitude sweep on four axes (declared-total error, sensor bias, leak rate, uncertain declared total with soft λ = 1/σ_b²); `kf_aug` runs on the first and third, `kf_closedq` and `kf+hard+fb+guard` on the first. Two axes also hand the same `b` to specs whose `ConstraintSet` declares `b_var`: `kf+hard(b_var)` and its guard on the uncertain total (b_var = σ_b²), `kf+hard(b_var=0.25)` and its guard on the declared-total error. |
@@ -673,11 +685,12 @@ equal `results/calibration.json` and `results/sweep.json` the same way.
 What this does **not** show:
 
 - **Anything on a real record.** No NOAA observation had been run at this stage. The next
-  section brings DAF's NOAA evidence in; it still imports no DAF type or adapter at runtime,
-  and nothing in the tree models a water level.
+  section brings DAF's NOAA evidence in, importing no DAF type or adapter at runtime, and P4
+  runs the first water-level filters on it.
 - **A truth-free number in `results/` beyond those two.** The grid does not run
   `evaluate_truth_free`; what it measures on simulated runs (RMS z, lag-1 autocorrelation,
-  tail fractions) is stated in `tests/test_truth_free.py`, not in `results/`.
+  tail fractions) is stated in `tests/test_truth_free.py`, not in `results/`. The first
+  results file built on it is P4's `results/real_noaa.md`, on real data.
 - **That innovations which look calibrated mean a calibrated filter.** The Q over-statement
   that reads nz = 0.73 against truth in `closed_noise` (steady window) is diluted in each
   sensor's innovation by R = 4 kg², which dominates S: in steady state with the pump off the
@@ -694,8 +707,9 @@ What this does **not** show:
   `verify_ids` can have DAF recompute the ids; nothing here decides when a revised artifact
   should change the state.
 - **General estimators.** The runner no longer assumes two sensors or two reported
-  components, and a test-only three-sensor estimator exercises that path; every estimator in
-  the tree still is the two-reservoir model with `n_report = 2`.
+  components, and a test-only three-sensor estimator exercises that path; at this stage every
+  estimator in the tree was the two-reservoir model with `n_report = 2` (P4's water-level
+  filters are the first with `n_report = 1`).
 
 ## DAF bridge
 
@@ -796,9 +810,9 @@ What the bridge does **not** do:
 - **Network.** Nothing is fetched; every byte is a fixture committed to DAF.
 - **DAF-side changes.** None; the export tool refuses a DAF checkout with tracked changes or a
   substrate off its pin, and writes no bytecode into it.
-- **Model water level.** No estimator in the tree models a tide, and no number in `results/`
-  comes from NOAA data. The one run in the tests is a test-only random walk that shows the
-  plumbing, not an estimate.
+- **Model water level.** The bridge models nothing; its test runs a test-only random walk that
+  shows the plumbing, not an estimate. The water-level filters that run on its output are P4's
+  (next section).
 - **Decide what a revision means.** A disagreeing revision is a conflict for the caller, not an
   update, and nothing chooses between preliminary and verified.
 - **Claim NOAA's `s` is the error of the six-minute value.** It is the dispersion of the
@@ -812,6 +826,89 @@ What the bridge does **not** do:
   content shape, one grid, one zone family.
 - **Verify more than the observation id.** `verify_ids` recomputes each Observation's id from its
   own fields with DAF's code; it does not re-walk the record, document or raw bytes behind it.
+
+## P4: first real observations
+
+The same `run()` and the same truth-free evaluator that score the simulated grid, now on the
+three committed NOAA days of `data/daf/` (station 8454000, Providence, RI) — no network, no
+truth. `experiments/real_noaa.py` checks each file against DAF's manifest, bridges it with every
+choice declared (UTC, 360 s, replay with latency 0, refuse conflicts), and runs two filters from
+`testbed/estimators_water.py`, one sensor each, `n_report = 1` (the water level), no constraint:
+`level_trend` (level and rate, continuous white-noise acceleration) and `tide_kf` (mean level plus
+cos/sin coefficients of M2, K1, O1 and M4, every state a random walk). Priors are declared and
+wide (level 0 ± 10 m, rate 0 ± 1e-3 m/s, each coefficient 0 ± 2 m); R is NOAA's stated σ² per
+reading; the one free parameter, `q_scale`, is the value on a declared 13-point, half-decade grid
+that maximises the innovation log-likelihood on **2024-01-15 MLLW only**, then held fixed on the
+2026-08-23 preliminary day (held out: a different day, no evidence id in common — tested) and on
+2024-01-15 again (in-sample, labelled so). Nothing about the simulated results changed: `run()`
+gained a keyword-only `est_cfg` and passes the clock to an estimator that asks for it, and a fresh
+grid equals `results/summary.json` value for value (the slow reproduction test), as fresh
+calibration and sweep runs equal `results/calibration.json` and `results/sweep.json`. Numbers below
+are from `results/real_noaa.md`, which the fast suite regenerates and compares value for value
+(latency and the generation stamp excluded).
+
+What the numbers show:
+
+- **Both fits are interior.** The log-likelihood on 2024-01-15 peaks at q = 1.00e-06 m s^-3/2
+  for `level_trend` (690.7, against 495.3 and 628.8 half a decade either side) and at
+  q = 3.16e-04 m s^-1/2 for `tide_kf` (631.2, against 365.8 and 485.0). A half-decade grid
+  resolves q to that factor. `tide_kf`'s value lets each of its nine states walk 6.0 mm per
+  six-minute step: its harmonic basis is re-fitted through the day, not held.
+- **Per day, from the record alone** (log-lik / z mean / z RMS / lag-1 / |z| > 1.96 / CUSUM
+  alarms): held out, `level_trend` 709.5 / +0.017 / 0.993 / +0.560 / 0.054 / 0 and `tide_kf`
+  673.3 / +0.020 / 0.703 / +0.706 / 0.013 / 0; in-sample, `level_trend` 690.7 / +0.020 / 0.793 /
+  +0.703 / 0.021 / 1 (step 10) and `tide_kf` 631.2 / −0.095 / 0.759 / +0.855 / 0.017 / 1 (step
+  109). No reading is missing on either evaluated day (missing fraction 0.000), every run
+  ingests the day's 240 evidence ids, and every step's reconciliation status is `skipped`.
+- **The two-state filter predicts both days better** than the nine-state harmonic one by the
+  one-step log-likelihood: 709.5 against 673.3 held out, 690.7 against 631.2 in-sample, each
+  with one fitted parameter.
+- **The datum does not change what the filters say, once the prior is gone — computed, not
+  assumed.** 2024-01-15 on MLLW and on STND differ by 1.064000 m at every step. With the same q
+  and prior, `level_trend`'s innovations agree to 2.8e-05 from the second reading on and to
+  2.04e-09 after the first 20 steps, and its level states differ by 1.064000 m; `tide_kf`'s agree
+  to 6.52e-03 in z after step 20 (worst at step 28) and its mean-level states differ by
+  0.9826–1.0640 m after step 20 and by 1.063968 m at the last step. The first reading splits the
+  offset between the mean level and the coefficients in proportion to their priors, and one day
+  is not quite long enough for `tide_kf` to hand all of it back.
+- **A white error of NOAA's σ is incompatible with these days.** Model-free: if the error of each
+  six-minute value were white and independent of the water, the second differences would bound
+  its σ by rms(Δ²y)/√6 = 0.0029 m (2024-01-15) and 0.0033 m (2026-08-23); the stated σ has an rms
+  of 0.0105 and 0.0068 m, a mean σ² 12.9 and 4.4 times the bound.
+- **R × 10 and R × 100 predict worse at the fitted q** on both days for both filters (held out,
+  `level_trend` 709.5 → 584.1 → 400.8, `tide_kf` 673.3 → 575.1 → 398.4), with z RMS falling
+  (0.993 → 0.690 → 0.369 for `level_trend` held out) and lag-1 rising (+0.560 → +0.637 → +0.713).
+
+What they do **not** show:
+
+- **That NOAA's σ is the error of the six-minute value.** It is the dispersion of the one-second
+  samples behind it, waves included. The series check rules out a white error that large; a
+  time-correlated one could be, and nothing on one gauge can tell.
+- **That R = σ² is a calibrated measurement variance for these filters.** R is only 0.12–0.28 of
+  the stated innovation variance on average (mean R/S), so z is mostly the filters' own
+  prediction uncertainty, and z is not white — lag-1 +0.56 to +0.86 where 240 white samples give
+  0 ± 0.065 — so neither model is right about the dynamics. `level_trend`'s held-out z RMS of
+  0.993 sits next to a lag-1 of +0.560: that is not calibration.
+- **R apart from Q.** Only q is fitted; R is held at σ², and the fitted q absorbs whatever σ² does
+  not explain. That R × 10 and × 100 predict worse at this q does not make σ² right: a joint fit
+  would split the variance through the model's own assumptions, and telling sensor error from
+  unmodelled water motion needs an independent measurement of the same water surface.
+- **What the CUSUM alarms were.** One each, on the fit day (`level_trend` at step 10, 01:00 UTC;
+  `tide_kf` at step 109, 10:54 UTC), none held out. With no onset to score against they cannot be
+  called true or false without independent evidence, and h = 8's null was measured on simulated
+  records (`results/calibration.md`), not on innovations this autocorrelated: the false-alarm rate
+  here is unknown.
+- **Anything about the constraint.** A single series has no conservation relation, so no
+  constraint is declared; the consistency statistic, the guard and the projection — the
+  reconciliation this repository is about — have not run on a real record yet.
+- **A tidal analysis.** One day of data cannot separate S2 or N2 from M2 (Rayleigh periods 14.8 and
+  27.6 days) nor K1 from O1 (13.7 days), and M2 sits at the limit against K1 (25.8 h) and O1
+  (23.9 h); `tide_kf`'s coefficients are nuisance states for the next six-minute prediction.
+- **Generality.** One held-out day, preliminary (q=p), at one station; a day of another range,
+  season or weather could order the filters differently. A NOAA revision would arrive as a new DAF
+  observation, which the bridge reports or refuses as a conflict; nothing follows it.
+- **An error against the water level.** Nobody knows it. Every number above is a property of the
+  record and the filter together.
 
 ## Deliberately out of scope
 
@@ -837,3 +934,9 @@ What the bridge does **not** do:
 - out-of-sequence measurement handling beyond uniform delay
 - the spectral processor, the Rust ingestion boundary, any manifold machinery
 - claims about cross-platform bitwise determinism; determinism here means same seed → identical arrays on one build
+- **A 31-day live fetch.** The next step for real data is a month of six-minute readings fetched
+  live through DAF's own NOAA adapter — enough to separate S2 and N2 from M2 and K1 from O1 — and
+  it needs the user's go-ahead: nothing in this repository or its tests makes a network request.
+- **A real constraint.** A conservation relation needs a second, independent evidence source
+  (another gauge on the same water body, or a flux measurement); one tide-gauge series has
+  nothing to reconcile against, so the consistency channel waits for it.
