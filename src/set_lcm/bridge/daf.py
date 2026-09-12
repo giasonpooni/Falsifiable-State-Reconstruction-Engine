@@ -27,9 +27,9 @@ What the caller must declare (keyword-only):
                      whose extraction_method some selector declares but which matches no
                      selector is ignored and counted; a record whose extraction_method NO
                      selector declares is refused, so a file of the wrong kind cannot be
-                     silently dropped as "ignored". Two units of one quantity are never
-                     pooled: two selectors alike but for the unit field are refused -- the
-                     same readings would enter twice, and the bridge converts no units.
+                     silently dropped as "ignored". Each selector must pin its unit field.
+                     Two selectors alike but for that unit are refused -- the same quantity
+                     would enter twice, and the bridge converts no units.
     time_zone        the zone measurement_time is written in. DAF's content carries none
                      (the NOAA binding requests time_zone=gmt in its URL, recorded in
                      data/daf/PROVENANCE.md); "UTC"/"GMT" are supported, anything else
@@ -207,8 +207,9 @@ class SeriesSelector:
     file of the wrong kind can never be silently dropped.
 
     `source_id` names the column in Observation.source_ids and in provenance. `unit_field`
-    names the content field carrying the unit (NOAA and USGS both have one); it is not
-    converted, only recorded and used to refuse pooling one quantity in two units.
+    names the content field carrying the unit (NOAA and USGS both have one); `match` must
+    pin its non-empty value. Units are not converted, only recorded and checked, so records
+    in different units cannot silently join one column.
     """
     source_id: str
     extraction_method: str
@@ -235,6 +236,9 @@ class SeriesSelector:
                              "content field (e.g. the station or monitoring-location id)")
         if len({k for k, _ in m}) != len(m):
             raise ValueError(f"SeriesSelector {self.source_id!r} names a match field twice: {m}")
+        if not dict(m).get(self.unit_field, "").strip():
+            raise ValueError(f"SeriesSelector {self.source_id!r} must pin a non-empty unit in "
+                             f"match[{self.unit_field!r}]; the bridge converts no units")
         object.__setattr__(self, "match", m)
 
     @property
@@ -242,9 +246,9 @@ class SeriesSelector:
         return dict(self.match)
 
     @property
-    def unit(self) -> str | None:
-        """The unit this selector pins, when it matches on `unit_field`."""
-        return self.match_map.get(self.unit_field)
+    def unit(self) -> str:
+        """The required unit this selector pins through `unit_field`."""
+        return self.match_map[self.unit_field]
 
     def describe(self) -> dict:
         return {"source_id": self.source_id, "extraction_method": self.extraction_method,
@@ -379,8 +383,6 @@ def _check_series(series) -> list[SeriesSelector]:
     # one quantity in two units is never pooled: the same selector but for its unit field
     quantities: dict[tuple, set[str]] = defaultdict(set)
     for sel in sels:
-        if sel.unit is None:
-            continue
         rest = tuple(sorted((k, v) for k, v in sel.match if k != sel.unit_field))
         quantities[(sel.extraction_method, sel.property, rest)].add(sel.unit)
     for (method, prop, rest), us in quantities.items():

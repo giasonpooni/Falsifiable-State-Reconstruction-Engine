@@ -141,9 +141,11 @@ def _cs(total: float, b_std: float | None = None, b_var: float | None = None) ->
     uncertain_total axis's exact variants); b_var is declared on the set itself."""
     desc = f"m1 + m2 = {total:.4g} kg" + (f" (declared std {b_std:g} kg)" if b_std else "")
     if b_var is None:
-        return ConstraintSet("closed-boundary-sweep", np.array([[1.0, 1.0]]), np.array([total]), desc)
+        return ConstraintSet("closed-boundary-sweep", np.array([[1.0, 1.0]]), np.array([total]), desc,
+                             row_units=("kg",))
     return ConstraintSet("closed-boundary-sweep-bvar", np.array([[1.0, 1.0]]), np.array([total]),
-                         desc + f", declared b_var = {b_var:g} kg^2", b_var=np.array([float(b_var)]))
+                         desc + f", declared b_var = {b_var:g} kg^2", b_var=np.array([float(b_var)]),
+                         row_units=("kg",))
 
 
 def run_point(axis: str, value: float, n_seeds: int = N_SEEDS) -> dict:

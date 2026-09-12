@@ -10,7 +10,7 @@ import pytest
 
 from set_lcm.lcm import (
     check_spd, chi2_quantile, consistency_stat, constraint_bases, detectability, is_feasible,
-    project_hard, project_soft, reconcile, reduced,
+    project_hard, project_soft, reconcile, reduced, residual,
 )
 from set_lcm.schema import ConstraintSet, Status
 
@@ -357,3 +357,121 @@ def test_b_var_is_validated_copied_and_read_only():
     two = ConstraintSet("v", np.eye(2), np.zeros(2), "two", b_var=np.array([[2.0, 0.5], [0.5, 1.0]]))
     np.testing.assert_array_equal(two.b_cov, [[2.0, 0.5], [0.5, 1.0]])
     assert ConstraintSet("v", np.eye(2), np.zeros(2), "two", b_var=np.zeros((2, 2))).b_cov.shape == (2, 2)
+
+
+# Audit regressions: malformed inputs must never become successful estimates.
+
+@pytest.mark.parametrize("lam", [-2.0, -0.5, 0.0, -np.inf, np.nan, True, [1.0]])
+@pytest.mark.parametrize("b_var", [None, np.array([1.0])])
+def test_soft_rejects_invalid_weight_for_exact_and_uncertain_constraints(lam, b_var):
+    cs = ConstraintSet("one", np.array([[1.0]]), np.array([1.0]), "x=1", b_var=b_var)
+    # lam=-2 formerly returned x=0, P=-1 and Status.OK; NaN returned all NaNs.
+    with pytest.raises(ValueError, match="lam"):
+        project_soft(np.array([2.0]), np.eye(1), cs, lam)
+    with pytest.raises(ValueError, match="lam"):
+        reconcile(np.array([2.0]), np.eye(1), cs, mode="soft", lam=lam, stat=0.0)
+
+
+@pytest.mark.parametrize("b_var", [None, np.array([0.0]), np.array([1.0])])
+def test_positive_infinite_soft_weight_is_exactly_hard(b_var):
+    cs = ConstraintSet("one", np.array([[1.0]]), np.array([1.0]), "x=1", b_var=b_var)
+    hard = project_hard(np.array([2.0]), np.eye(1), cs)
+    soft = project_soft(np.array([2.0]), np.eye(1), cs, np.inf)
+    for a, b in zip(hard, soft):
+        np.testing.assert_array_equal(a, b)
+    out = reconcile(np.array([2.0]), np.eye(1), cs, mode="soft", lam=np.inf)
+    assert out.status is Status.OK
+    np.testing.assert_array_equal(out.x, hard[0])
+
+
+@pytest.mark.parametrize("bad", [
+    np.array([np.nan, 40.0]), np.array([np.inf, 40.0]),
+    np.array([[60.0], [40.0]]), np.array([60.0]), np.empty(0),
+])
+def test_state_and_direction_must_be_finite_matching_vectors(bad):
+    calls = [
+        lambda: consistency_stat(bad, np.eye(2), SUM100),
+        lambda: detectability(bad, np.eye(2), SUM100),
+        lambda: project_hard(bad, np.eye(2), SUM100),
+        lambda: project_soft(bad, np.eye(2), SUM100, 1.0),
+        lambda: residual(bad, SUM100),
+        lambda: reconcile(bad, np.eye(2), SUM100, mode="hard", stat=0.0),
+        lambda: reconcile(bad, np.eye(2), None, mode=None),
+    ]
+    for call in calls:
+        with pytest.raises(ValueError):
+            call()
+
+
+@pytest.mark.parametrize("bad", [
+    np.diag([np.inf, 1.0]), np.diag([np.nan, 1.0]),
+    np.array([[1.0, 2.0], [2.0, 1.0]]), np.array([[1.0, 1.0], [0.0, 1.0]]),
+    np.eye(3), np.empty((0, 0)), np.ones(2),
+])
+def test_covariance_validation_cannot_be_bypassed_by_supplied_stat_or_skipping(bad):
+    for cs, mode, hold in [(SUM100, "hard", False), (SUM100, None, False),
+                           (SUM100, "hard", True), (None, None, False)]:
+        with pytest.raises(ValueError):
+            reconcile(np.array([60.0, 40.0]), bad, cs, mode=mode, hold=hold, stat=0.0)
+    if bad.shape != (3, 3):  # identity(3) is SPD, but mismatches the two-component state
+        with pytest.raises(ValueError):
+            check_spd(bad)
+
+
+def test_no_constraint_passthrough_accepts_psd_and_preserves_copies():
+    x, P = project_hard(np.array([62.0, 41.0]), np.eye(2), SUM100)
+    out = reconcile(x, P, None, mode=None)
+    assert out.status is Status.SKIPPED
+    np.testing.assert_array_equal(out.x, x)
+    np.testing.assert_array_equal(out.P, P)
+    assert not np.shares_memory(out.x, x) and not np.shares_memory(out.P, P)
+    with pytest.raises(ValueError):
+        reconcile(x, P, SUM100, mode="hard", stat=0.0)
+    zero = reconcile(np.zeros(2), np.zeros((2, 2)), None, mode=None)
+    assert zero.status is Status.SKIPPED
+
+
+@pytest.mark.parametrize("name", ["stat", "threshold"])
+@pytest.mark.parametrize("bad", [np.nan, np.inf, -np.inf, -1.0, [1.0]])
+def test_supplied_diagnostics_are_finite_nonnegative_scalars(name, bad):
+    for cs in (None, SUM100):
+        with pytest.raises(ValueError, match=name):
+            reconcile(np.array([60.0, 40.0]), np.eye(2), cs, mode=None, **{name: bad})
+
+
+@pytest.mark.parametrize("A,b", [
+    (np.array([[np.nan, 1.0]]), np.array([100.0])),
+    (np.array([[1.0, 1.0]]), np.array([np.inf])),
+    (np.array([[1.0, 1.0]]), np.array([100.0, 100.0])),
+    (np.eye(3), np.zeros(3)),
+    (np.empty((0, 2)), np.empty(0)),
+])
+def test_constraint_validation_prevents_broadcasting_and_nonfinite_estimates(A, b):
+    cs = ConstraintSet("invalid", A, b, "invalid")
+    with pytest.raises(ValueError):
+        reconcile(np.array([60.0, 40.0]), np.eye(2), cs, mode="hard", stat=0.0)
+
+
+@pytest.mark.parametrize("kwargs", [{"mode": "typo"}, {"mode": "soft", "lam": -1.0},
+                                    {"mode": None, "t": np.nan}])
+def test_configuration_is_checked_even_without_a_constraint(kwargs):
+    with pytest.raises(ValueError):
+        reconcile(np.zeros(2), np.eye(2), None, **kwargs)
+
+
+def test_overflow_does_not_produce_a_successful_estimate():
+    cs = ConstraintSet("huge", np.array([[2.0]]), np.array([0.0]), "2x=0")
+    with np.errstate(over="ignore", invalid="ignore"):
+        with pytest.raises(ValueError, match="finite"):
+            reconcile(np.array([1e308]), np.eye(1), cs, mode="hard", stat=0.0)
+
+
+def test_full_rank_exact_projection_accepts_covariance_roundoff():
+    P = np.array([[2.0, 0.7], [0.7, 1.0]])
+    cs = ConstraintSet("two", np.array([[1.0, 1.0], [1.0, -1.0]]), np.array([3.0, 1.0]), "two")
+    xs, Ps = project_hard(np.array([8.0, 4.0]), P, cs)
+    np.testing.assert_allclose(xs, [2.0, 1.0], atol=1e-12)
+    np.testing.assert_allclose(Ps, np.zeros((2, 2)), atol=1e-12)
+    out = reconcile(xs, Ps, None, mode=None)
+    assert out.status is Status.SKIPPED
+    np.testing.assert_array_equal(out.P, Ps)

@@ -1,9 +1,4 @@
-"""What the consistency statistic can tell apart, and the rank-1 result that bounds it.
-
-The load-bearing test here is test_rank_one_makes_every_visible_pair_confusable: every
-constraint in this repository today has rank 1, and that alone forbids isolation. It is
-checked against the real topologies, not only a toy.
-"""
+"""Static single-fault residual-vector geometry, distinct from scalar detection power."""
 import numpy as np
 import pytest
 
@@ -50,7 +45,7 @@ def test_the_null_direction_is_invisible_and_confusable_with_nothing():
 
 def test_rank_one_makes_every_visible_pair_confusable():
     """THE bound. rank(A) = 1 gives a scalar residual, so every visible signature lies on one
-    axis. No covariance, no record length and no b_var changes it."""
+    axis for the static map with unrestricted signed unknown fault amplitude."""
     dirs = {"m1_bias": [1.0, 0.0], "m2_bias": [0.0, 1.0], "both": [1.0, 1.0], "transfer": [1.0, -1.0]}
     # a wildly anisotropic P and a strongly correlated one: the result is about rank(A),
     # not about the covariance, so neither changes it
@@ -58,7 +53,7 @@ def test_rank_one_makes_every_visible_pair_confusable():
         r = isolability(dirs, P, SUM2)
         assert r.residual_rank == 1
         assert r.isolable == []
-        assert "no fault is isolatable from any other" in r.note.lower()
+        assert "no visible candidate is isolatable from another" in r.note.lower()
         for p in r.pairs:
             if p.a in r.visible and p.b in r.visible:
                 assert abs(p.cos) >= COLLINEAR_COS, (p.a, p.b, p.cos)
@@ -121,7 +116,131 @@ def test_the_ridgway_balance_cannot_isolate_a_gauge():
     assert r.residual_rank == 1
     assert set(r.visible) >= {"storage_reading_high", "gauged_inflow_over_reported"}
     assert r.isolable == []
-    assert "testbed.cusum" in r.note          # the note names where localisation must come from
+    assert "testbed.cusum" in r.note          # a separate channel, not a guaranteed localiser
+
+
+def test_structural_visibility_does_not_depend_on_covariance_or_fault_magnitude():
+    directions = {"first": [1.0, 0.0], "tiny": [1e-20, 0.0], "underflow": [1e-200, 0.0],
+                  "null": [1.0, -1.0], "tiny_null": [1e-20, -1e-20], "zero": [0.0, 0.0]}
+    baseline = isolability(directions, np.eye(2), SUM2)
+    uncertain = isolability(directions, 1e12 * np.eye(2), SUM2)
+    assert baseline.visible == uncertain.visible == ["first", "tiny", "underflow"]
+    assert baseline.invisible == uncertain.invisible == ["null", "tiny_null", "zero"]
+    assert uncertain.d["first"] == pytest.approx(baseline.d["first"] / 1e12)
+    assert baseline.d["tiny"] == pytest.approx(baseline.d["first"] * 1e-40, rel=1e-12, abs=0)
+    assert uncertain.d["first"] < VISIBLE_D       # weak power, still structurally visible
+    assert baseline.d["underflow"] == 0.0         # d can underflow without erasing geometry
+    for result in (baseline, uncertain):
+        for pair in result.pairs:
+            if pair.a in result.visible and pair.b in result.visible:
+                assert np.isfinite(pair.cos) and not pair.distinguishable
+
+
+def test_declared_constraint_uncertainty_cannot_create_structural_blindness():
+    cs = ConstraintSet(version="large-bvar", A=SUM2.A, b=SUM2.b, description="uncertain total",
+                       b_var=np.array([1e15]))
+    r = isolability({"loss": [1.0, 0.0], "transfer": [1.0, -1.0]}, np.eye(2), cs)
+    assert r.visible == ["loss"] and r.invisible == ["transfer"]
+    assert 0 < r.d["loss"] < VISIBLE_D
+
+
+def test_covariance_can_reduce_angular_separation_without_changing_structural_collinearity():
+    cs = ConstraintSet(version="identity", A=np.eye(2), b=np.zeros(2), description="two rows")
+    directions = {"f": [1.0, 1.0], "g": [1.0, -1.0]}
+    ordinary = isolability(directions, np.eye(2), cs)
+    stretched = isolability(directions, np.diag([1.0, 1e10]), cs)
+    assert ordinary.isolable == stretched.isolable == ["f", "g"]
+    assert ordinary.pairs[0].distinguishable and stretched.pairs[0].distinguishable
+    # Reported cos is whitened geometry: practical separation can become very poor.
+    assert abs(stretched.pairs[0].cos) > COLLINEAR_COS
+
+
+def test_vector_isolation_does_not_imply_scalar_statistic_isolation():
+    cs = ConstraintSet(version="identity", A=np.eye(2), b=np.zeros(2), description="two rows")
+    r = isolability({"x": [1.0, 0.0], "y": [0.0, 1.0]}, np.eye(2), cs)
+    assert r.pairs[0].distinguishable
+    # Orthogonal residual vectors give exactly the same global statistic T.
+    assert r.d["x"] == r.d["y"] == 1.0
+    assert "scalar global statistic T discards residual direction" in r.note
+    assert "one active candidate fault" in r.note
+    assert "unrestricted signed unknown amplitude" in r.note
+
+
+def test_opposite_signatures_are_confusable_when_amplitude_can_have_either_sign():
+    r = isolability({"positive": [1.0, 0.0], "negative": [-1.0, 0.0]}, P2, SUM2)
+    assert r.pairs[0].cos == pytest.approx(-1.0)
+    assert not r.pairs[0].distinguishable
+
+
+def test_static_rank_one_result_does_not_rule_out_known_temporal_signatures():
+    r = isolability({"step": [1.0, 0.0], "ramp": [0.0, 1.0]}, P2, SUM2)
+    assert not r.pairs[0].distinguishable
+    # Additional assumed profiles across time add independent information. A scalar
+    # residual at each instant can separate these two fixed-amplitude histories.
+    histories = np.column_stack([np.ones(4), np.arange(1.0, 5.0)])
+    assert np.linalg.matrix_rank(histories) == 2
+    assert "Known temporal fault profiles" in r.note and "not analyzed here" in r.note
+
+
+def test_one_visible_candidate_does_not_get_a_contradictory_rank_one_note():
+    r = isolability({"only": [1.0, 0.0]}, P2, SUM2)
+    assert r.isolable == ["only"]
+    assert "1 of 1 visible" in r.note
+
+
+@pytest.mark.parametrize("direction", [[1.0], [1.0, float("nan")], [float("inf"), 0.0]])
+def test_isolability_refuses_invalid_fault_directions(direction):
+    with pytest.raises(ValueError, match="2 finite values"):
+        isolability({"invalid": direction}, P2, SUM2)
+
+
+@pytest.mark.parametrize("direction", [
+    [1.0], [1.0, np.nan], [np.inf, 0.0], [[1.0], [0.0]], [],
+])
+def test_exported_whitening_refuses_nonfinite_or_mismatched_directions(direction):
+    with pytest.raises(ValueError):
+        whitened_signature(direction, P2, SUM2)
+
+
+@pytest.mark.parametrize("P", [
+    np.eye(3), np.diag([np.inf, 1.0]), np.diag([np.nan, 1.0]),
+    np.array([[1.0, 1.0], [0.0, 1.0]]), np.diag([1.0, -1.0]), np.zeros((2, 2)),
+])
+def test_exported_whitening_and_covariance_share_kernel_covariance_guards(P):
+    for call in (lambda: residual_covariance(P, SUM2),
+                 lambda: whitened_signature([1.0, 0.0], P, SUM2)):
+        with pytest.raises(ValueError):
+            call()
+
+
+def test_whitening_refuses_the_same_ill_conditioned_residual_as_the_kernel():
+    A = np.array([[1.0, 0.0], [1.0, 1e-7]])
+    exact = ConstraintSet("near", A, np.zeros(2), "near-dependent rows")
+    for call in (lambda: detectability([1.0, 0.0], np.eye(2), exact),
+                 lambda: whitened_signature([1.0, 0.0], np.eye(2), exact),
+                 lambda: residual_covariance(np.eye(2), exact)):
+        with pytest.raises(ValueError, match="numerically singular"):
+            call()
+    # A declared uncertainty can make the same residual covariance well-conditioned.
+    uncertain = ConstraintSet("near-uncertain", A, np.zeros(2), "near", b_var=np.ones(2))
+    signature = whitened_signature([1.0, 0.0], np.eye(2), uncertain)
+    assert float(signature @ signature) == pytest.approx(
+        detectability([1.0, 0.0], np.eye(2), uncertain), rel=1e-12)
+
+
+def test_whitening_does_not_return_a_nonfinite_signature_after_overflow():
+    cs = ConstraintSet("large", np.array([[2.0]]), np.zeros(1), "large")
+    with np.errstate(over="ignore", invalid="ignore"):
+        with pytest.raises(ValueError, match="finite"):
+            whitened_signature([1e308], np.eye(1), cs)
+
+
+def test_symmetrizing_a_large_finite_covariance_does_not_overflow():
+    cs = ConstraintSet("large-P", np.ones((1, 1)), np.zeros(1), "one row")
+    _, S = residual_covariance(np.array([[1e308]]), cs)
+    assert S[0, 0] == 1e308
+    signature = whitened_signature([1.0], np.array([[1e308]]), cs)
+    assert signature[0] == pytest.approx(1e-154, rel=1e-12, abs=0.0)
 
 
 def test_isolability_refuses_an_empty_declaration():

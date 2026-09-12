@@ -1,218 +1,101 @@
 # Falsifiable State Reconstruction Engine
 
-**Tells you when a network of fluid sensors stops adding up — and tells you what it cannot
-see.**
+**Check whether measurements in a fluid system agree with its physical relationships.**
 
-Python 3.12+, numpy only. No network at runtime. No GPU. `results/` is a verified artifact.
+FSRE is a Python research toolkit for engineers and researchers working with water levels,
+flow gauges and storage measurements. It estimates the state of a system, checks the estimate
+against a declared balance, and keeps a record of the disagreement and any correction.
 
----
+The aim is to help investigate degrading measurements: **when did the readings stop agreeing,
+what could explain the difference, and what can this sensor arrangement actually detect?**
 
-## The problem
+## A practical example
 
-A reservoir has a storage gauge, an outflow gauge and two inflow gauges. Conservation says
-the four must agree: whatever came in, minus whatever went out, is the change in storage.
-They never quite do, and the interesting question is whether the gap is the water or the
-instruments.
+A reservoir has measurements of stored water, incoming flow and outgoing flow. Over the same
+time interval, conservation relates them:
 
-Conventional monitoring answers "that reading looks odd". This answers:
+```text
+change in stored water = water in − water out
+```
 
-> The balance is inconsistent by **+1,526 acre-ft over three years (+0.41% of inflow)**. The
-> statistic that tests it is **9.69** against a χ²(1) threshold of **10.83**, exceeded on
-> **38.6%** of days. Here is the residual before and after correction, here is what the
-> correction was, and here are the faults this configuration is **structurally blind to**.
+If the measurements do not support that balance, FSRE can flag the disagreement and show its
+size under your stated uncertainties. The cause could be a drifting instrument, an outdated
+rating curve, an unmeasured inflow, or an unsuitable model. **An alarm starts an investigation;
+it does not, by itself, identify a broken sensor.**
 
-Those are real numbers, from `results/real_water_balance.md`, on 1,096 days of USGS gauge
-records for Ridgway Reservoir, Colorado.
+## What you get
 
-## What it computes
+| Question | FSRE provides |
+|---|---|
+| Do the estimates agree with the declared balance? | A consistency score and the residual before correction. |
+| What changed during reconciliation? | The original estimate, corrected estimate, correction and resulting uncertainty. |
+| Which measurement channels need investigation? | Per-channel checks for persistent disagreement with their predictions. |
+| Could this arrangement distinguish the suspected faults? | An analysis of visible, invisible and confusable fault directions under a declared model. |
+| How well does a method work? | Simulated fault experiments with known answers, and replay reports for real measurements. |
 
-Four questions, four distinct mechanisms — and the fourth is the unusual one.
+## Try it
 
-| question | mechanism | measured today |
-|---|---|---|
-| **Is something wrong?** | consistency statistic `rᵀ S⁻¹ r ~ χ²(rank A)` on the constraint residual `r = A x − b`, with `S = A P Aᵀ + Σ_b` | rejects the Ridgway closure on 38.6% of days |
-| **Which instrument?** | per-sensor CUSUM on normalised innovations — **reads no constraint** | found an injected sensor bias in 9 steps where the constraint test took 38 |
-| **How much?** | an augmented state carrying the unexplained term (pump scale α, boundary flux L, ungauged volume U) as a first-class output with its own σ | ungauged net inflow +2,068 acre-ft (+0.56%), against +1,526 from model-free arithmetic |
-| **What can't I see?** | `detectability(f) = fᵀAᵀS⁻¹A f`, and `fdi.isolability()` on whether two faults are *distinguishable* | `d(f) = 0` exactly along null(A); **no fault in the tree is isolatable** — see below |
-
-## Quickstart
+You need [uv](https://docs.astral.sh/uv/getting-started/installation/) and a checkout of this
+repository. The project supports Python 3.12 and 3.13; its runtime dependency is NumPy.
 
 ```bash
-uv run --python 3.13 --dev pytest -q                # fast suite
-uv run --python 3.13 python run_experiments.py      # regenerates results/summary.*
+git clone https://github.com/giasonpooni/Falsifiable-State-Reconstruction-Engine.git
+cd Falsifiable-State-Reconstruction-Engine
+uv run --frozen --python 3.13 python examples/quickstart.py
 ```
 
-Two tanks, one conservation law, an estimate that does not satisfy it:
+The example uses two tanks and a declared total of 100 kg. It shows two cases:
 
-```python
-import numpy as np
-from set_lcm.schema import ConstraintSet
-from set_lcm.lcm import reconcile, chi2_quantile
-from set_lcm.fdi import isolability
+- A small disagreement: reconcile the estimate while retaining the original values.
+- A large disagreement: flag it and hold the correction so the balance cannot hide the problem.
 
-# The total is 100 kg -- but that is itself a measurement, known to +/- 0.5 kg, so the
-# constraint declares its own uncertainty rather than claiming to be exact.
-cs = ConstraintSet(version="total-v1",
-                   A=np.array([[1.0, 1.0]]), b=np.array([100.0]),
-                   b_var=np.array([0.5 ** 2]),
-                   description="m1 + m2 = 100 kg")
+The example uses synthetic values and makes no network requests. The first `uv` run may
+download Python and dependencies. See the [usage guide](docs/USAGE.md) for the code, expected
+output, and how to use your own estimates or measurement records.
 
-x, P = np.array([52.0, 46.0]), np.diag([1.0, 1.0])   # 2 kg unaccounted for
-est = reconcile(x, P, cs, mode="hard", threshold=chi2_quantile(cs.rank, 0.999))
+## What is ready today?
 
-est.status             # Status.OK
-est.consistency_stat   # 1.78   -- against a threshold of 10.83, so not rejected
-est.residual_pre       # [-2.0]      the disagreement
-est.residual_post      # [-0.222]    NOT zero: b carried uncertainty, so it is not forced
-est.correction         # [0.889, 0.889]
-est.x_unprojected      # [52.0, 46.0]  -- always kept, never overwritten
+**Available:** a tested linear reconciliation kernel, simulation and fault injection,
+per-channel innovation monitoring, static fault-signature analysis, and replay examples using
+NOAA water levels and USGS reservoir measurements. Original evidence is retained; derived
+estimates and corrections are separate outputs.
+
+**Still being developed:** dependable sensor diagnosis, degradation magnitude estimates, and
+operational alert thresholds validated on independent field events. Real-data reports measure
+consistency under declared assumptions; they do not establish the true state or which sensor
+is faulty. Some different faults are indistinguishable with the available measurements.
+
+Use FSRE now to evaluate a measurement model, compare methods, replay evidence and investigate
+possible faults. Treat it as research software when deciding whether it is suitable for an
+operational workflow.
+
+## Explore the examples
+
+| Example | What it demonstrates | Report |
+|---|---|---|
+| Two-reservoir simulation | Noise, missing readings, biased sensors and stale balances, scored against hidden simulated truth. | [Simulation results](results/summary.md) |
+| NOAA tide gauge | Measurement replay, water-level filters and checks that do not require known truth. | [Water-level results](results/real_noaa.md) |
+| Ridgway Reservoir | A balance built from storage and flow measurements, with explicit uncertainty assumptions. | [Water-balance results](results/real_water_balance.md) |
+
+To run the default test suite:
+
+```bash
+uv run --frozen --python 3.13 --dev pytest -q
 ```
 
-Now ask what this configuration could ever have distinguished:
+The [usage guide](docs/USAGE.md#reproduce-the-reports) lists report-generation commands and
+the slower reproducibility checks. Reports are generated from code and include provenance.
 
-```python
-isolability({"leak_from_tank_1": [1.0,  0.0],
-             "leak_from_tank_2": [0.0,  1.0],
-             "transfer_1_to_2":  [1.0, -1.0]}, P, cs)
-```
+## Read further
 
-```
-d         {'leak_from_tank_1': 0.444, 'leak_from_tank_2': 0.444, 'transfer_1_to_2': 0.0}
-invisible ['transfer_1_to_2']
-isolable  []
-  leak_from_tank_1 vs leak_from_tank_2   cos=1.0   distinguishable=False
-```
+- [Usage guide](docs/USAGE.md): installation, inputs, outputs and integration examples.
+- [Methods and interpretation](docs/METHODS.md): the mathematics, fault-identifiability limits
+  and the meaning of a consistency score.
+- [Development roadmap](docs/ROADMAP.md): the steps toward validated measurement diagnostics.
+- [Detailed research history](docs/RESULTS.md): experiments and their limitations.
+- [Contributor brief](docs/COLLABORATOR_BRIEF.md): architecture and working conventions.
+- [Data provenance](data/daf/PROVENANCE.md): where the committed measurements came from.
 
-A transfer between the tanks is **exactly invisible**: it does not change the total, so no
-covariance and no amount of data will ever reveal it. And the two leaks, though both visible,
-produce *identical* residual signatures — the statistic cannot tell them apart.
-
-## Know this before you use it: detection is not isolation
-
-Everything the constraint test knows about a fault arrives through the residual `r`. Whiten
-it, and a unit fault along `f` has signature `S^(−1/2) A f`, whose squared norm **is** `d(f)`
-and whose *direction* is everything else. Two faults with collinear signatures move the
-residual identically — observing it is equally consistent with either, and only their ratio
-is ever recoverable.
-
-Every constraint here has **rank(A) = 1**, which makes the residual a *scalar*. Every
-signature then lies on one axis, so:
-
-> With rank(A) = 1, no fault is isolatable from any other. Not with a better covariance, not
-> with more data, not with a longer record.
-
-This is the classical result that a *global* test on constraint residuals detects a gross
-error without locating it (Crowe, 1985) — computed here for the topologies actually declared
-rather than quoted. `fdi.isolability()` refuses to report an isolation the rank forbids, and
-the converse is tested: rank 2 with non-collinear signatures *does* isolate.
-
-**It follows that the per-sensor channel is not a second opinion — it is the only localiser.**
-The constraint says *the system is inconsistent*; CUSUM on each sensor's own innovations says
-*which instrument's predictions went wrong*. Neither substitutes for the other.
-
-## Use case: a fluid sensor degradation estimator
-
-Gauge networks drift, foul, take rating shifts after floods, and get re-datumed at
-maintenance. The product this is built toward answers, for a real network: *is an instrument
-degrading, which one, by how much, and how long until you would have known* — and states what
-it could never have caught.
-
-Two things make that credible here rather than asserted:
-
-- **Injected-fault validation.** `testbed/degrade.py` puts *known* faults into a simulator
-  with hidden truth, so detection delay and false-alarm rate can be measured against the
-  answer. The same code then runs truth-free on real gauges where nobody knows the answer.
-- **A stated blind spot.** `d(f)` and `isolability()` say up front what a sensor topology
-  cannot reveal — including, at Ridgway, that an equal bias on an inflow gauge and the
-  outflow gauge cancels inside `(q_in1 + q_in2 − q_out)` *before it reaches any state*, so it
-  is invisible to the balance and outside what `d(f)` can even score.
-
-**Where it is not ready**, stated plainly: the real-data false-alarm rate is **unknown** — the
-in-loop null is not χ²(1) (mean 0.57–0.64, lag-1 autocorrelation 0.76–0.93) and the CUSUM
-threshold was calibrated on simulated records. Fixing that, and reaching rank(A) ≥ 2 so
-isolation becomes possible, are the next two pieces of work
-([`docs/COLLABORATOR_BRIEF.md`](docs/COLLABORATOR_BRIEF.md) §5).
-
-## The mandate
-
-Five rules, each enforced by code and pinned by a test:
-
-1. **Every estimate ships with the statistic that can reject it** — and with `d(f)`, which
-   says what that statistic is blind to.
-2. **Nothing overwrites an observation or the unprojected estimate.** Contradictory readings
-   are refused or reported, never averaged; a revision is not a state transition.
-3. **An assumption without a source is refused, not defaulted.** An uncertainty the source did
-   not state, or a time zone for a bare date, must be declared *with a citation*.
-4. **The estimator side never reads hidden truth.** Pinned by an AST test; the one labelled
-   exception is an oracle bound, passed explicitly.
-5. **Every reported number traces to `results/`, and every result says what it does not
-   show.** Real-data reports are truth-free: nobody knows the true water level, so no number
-   in them is an error.
-
-Where a result depends on a value no source states, it is **swept** and reported at every
-point — as the Ridgway storage σ is, moving the rejection rate 52.0% → 38.6% → 13.3%.
-
-## Map
-
-```
-src/set_lcm/
-  schema/        Observation, ConstraintSet (with b_var), StateEstimate, Status
-  lcm/           the kernel: consistency statistic, hard/soft projection, detectability
-  fdi.py         isolability: whether two faults are distinguishable at all
-  testbed/       simulator, degradation injection, estimators, runner, CUSUM,
-                 truth-scoring and truth-free evaluators
-  bridge/daf.py  consumes evidence admitted by DAF; refuses rather than defaults
-  experiments/   the simulated grid, calibration, sweeps, and the real-data reports
-data/daf/        committed evidence, and the raw recorded responses it replays from
-results/         verified artifacts: every number in every report
-docs/            the long form
-tools/           evidence acquisition and export (the only code that touches a network)
-```
-
-## Deeper reading
-
-- [`docs/RESULTS.md`](docs/RESULTS.md) — every result in the order it was built, with what
-  each does and does not show. This is where the working is.
-- [`docs/COLLABORATOR_BRIEF.md`](docs/COLLABORATOR_BRIEF.md) — the fastest complete
-  orientation, including the open questions and where the author is least confident.
-- [`HANDOFF.md`](HANDOFF.md) — session-to-session state.
-- `data/daf/PROVENANCE.md` — where every committed reading came from, under which upstream
-  commit, and which of those commits are published.
-
-Scope note: "state reconstruction" here means estimating a dynamical system's state from
-measurements — not quantum-state tomography, and not the axiomatic reconstruction of a
-physical theory. The name is a **program goal**, not a delivered property; the results say
-exactly where the tests are blind.
-
-## Deliberately out of scope
-
-- **IMM (deferred, not rejected).** An interacting-multiple-model filter over {closed,
-  leaking, mis-scaled pump} hypotheses would be a second, discrete answer to the question
-  `kf_aug` already answers continuously with α and L and their own σ, at the price of
-  declared mode-transition priors. `b_var` now puts uncertainty on the constraint side, so
-  the two could be scored on the same statistic; that comparison is not built.
-- **P2b: inequality constraints and `NOT_CONVERGED` producers.** `Status.NOT_CONVERGED`
-  is reserved and nothing emits it because the closed-form kernel has no iteration to
-  fail; an inequality row (m2 ≥ 0, a bounded flux) needs an active-set or QP solve, which
-  is the first producer of that status and the first place "no solver failures" becomes a
-  measurement.
-- **P2b: feeding α̂ and L̂ back into the constraint as a prior.** The augmented filter
-  estimates the flux the constraint author did not know about; a constraint set could
-  carry it (b − ∫L̂ dt with its variance, now expressible as `b_var`) instead of going
-  stale. Not built, deliberately: a constraint that follows the estimate re-opens the
-  fed-back-projection question — the test stops disagreeing with what it tests — and it
-  still needs a negative control of its own. `closed_uncertain_total`'s fed-back row is the
-  warning: an uncertain b told to the filter at every step is absorbed as if it were fresh
-  evidence (0.45 / 0.63 / 1.73, constraint flag silent).
-- nonlinear constraints, multi-variable factors beyond one linear row
-- out-of-sequence measurement handling beyond uniform delay
-- the spectral processor, the Rust ingestion boundary, any manifold machinery
-- claims about cross-platform bitwise determinism; determinism here means same seed → identical arrays on one build
-- **A 31-day live fetch.** The next step for real data is a month of six-minute readings fetched
-  live through DAF's own NOAA adapter — enough to separate S2 and N2 from M2 and K1 from O1 — and
-  it needs the user's go-ahead: nothing in this repository or its tests makes a network request.
-- **Localising the imbalance.** P4b's constraint is real and it is rejected, but a global χ²
-  test on constraint residuals cannot say which of the ungauged catchment, evaporation, the
-  stage–capacity table or a gauge rating is responsible. That is the documented limit of the
-  method (Crowe, 1985), and separating them needs a second, independent measurement of one of
-  the same quantities — another gauge on the same reach, or a lake-evaporation record.
+“State reconstruction” means estimating a physical system from measurements. The project name
+expresses the goal that estimates carry evidence capable of challenging them; it is not a
+guarantee that every possible fault can be detected.

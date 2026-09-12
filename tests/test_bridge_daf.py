@@ -690,6 +690,39 @@ def test_selectors_refuse_two_units_of_one_quantity_and_two_names_for_one_series
         SeriesSelector(source_id="x", extraction_method=DV_METHOD, property="discharge", match={})
 
 
+@pytest.mark.parametrize("unit_field, match", [
+    ("unit", {"monitoring_location_id": "USGS-09147000"}),
+    ("unit", {"monitoring_location_id": "USGS-09147000", "unit": "  "}),
+    ("units", {"monitoring_location_id": "USGS-09147000", "unit": "ft^3/s"}),
+])
+def test_a_selector_cannot_admit_mixed_units_by_omitting_its_unit_pin(unit_field, match):
+    with pytest.raises(ValueError, match="must pin a non-empty unit"):
+        SeriesSelector(source_id="flow", extraction_method=DV_METHOD, property="discharge",
+                       match=match, unit_field=unit_field)
+
+
+def test_a_pinned_selector_keeps_other_units_out_on_later_timestamps():
+    recs = [_dv("USGS-09147000", "00060", "ft^3/s", DAYS_3[0], 120.0),
+            _dv("USGS-09147000", "00060", "m^3/s", DAYS_3[1], 3.4),
+            _dv("USGS-09147000", "00060", "ft^3/s", DAYS_3[2], 118.0)]
+    bs = _dv_bridge(recs)
+    assert bs.provenance["n_ignored"] == 1
+    assert [o.mask.tolist() for o in bs.observations] == [[True], [False], [True]]
+    assert np.isnan(bs.observations[1].y[0])
+    assert bs.provenance["selectors"][0]["match"]["unit"] == "ft^3/s"
+
+
+def test_a_selector_can_pin_a_custom_unit_field():
+    recs = [_dv("USGS-09147000", "00060", "ft^3/s", DAYS_3[0], 120.0)]
+    recs[0]["content"]["units"] = recs[0]["content"].pop("unit")
+    sel = SeriesSelector(source_id="flow", extraction_method=DV_METHOD, property="discharge",
+                         match={"monitoring_location_id": "USGS-09147000", "units": "ft^3/s"},
+                         unit_field="units")
+    bs = _dv_bridge(recs, series=[sel], declared_sigma={"flow": SIG})
+    assert bs.observations[0].y.tolist() == [120.0]
+    assert bs.provenance["selectors"][0]["match"]["units"] == "ft^3/s"
+
+
 def test_the_noaa_shorthand_is_exactly_the_noaa_selector():
     assert noaa_water_level_series(*MLLW) == SeriesSelector(
         source_id=series_source_id(MLLW), extraction_method=bridge_mod.DAF_NOAA_MEASUREMENT_METHOD,

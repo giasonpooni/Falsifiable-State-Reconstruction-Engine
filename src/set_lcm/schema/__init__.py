@@ -11,6 +11,7 @@ declared model is preserved rather than erased.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
 
@@ -72,14 +73,32 @@ class ConstraintSet:
     validated here and a violation raises ValueError; the validated value is stored as a
     read-only float copy so it cannot drift after validation. The kernel (set_lcm.lcm)
     decides what it can do with a declared set; the schema only says what was declared.
+
+    row_units optionally declares the unit of each row of A x and b, in declared row
+    order (including dependent rows). None leaves units undeclared for compatibility.
+    Declarations are stored as an immutable tuple of non-empty strings. They are metadata:
+    no unit conversion, dimensional validation or numerical rescaling is performed. The
+    caller remains responsible for consistent units in A, b and b_var; covariance entry
+    (i, j) has the product of the declared units of rows i and j.
     """
     version: str
     A: np.ndarray                # linear equality constraints  A x = b
     b: np.ndarray
     description: str
     b_var: np.ndarray | None = None   # declared variance of b: (rows,) or (rows, rows); None = exact
+    row_units: tuple[str, ...] | None = None  # one unit per declared row; metadata only
 
     def __post_init__(self):
+        if self.row_units is not None:
+            units = self.row_units
+            if isinstance(units, (str, bytes)) or not isinstance(units, Sequence):
+                raise ValueError("row_units must be an ordered sequence of non-empty strings")
+            units = tuple(units)
+            if len(units) != self.dof:
+                raise ValueError(f"row_units has {len(units)} declarations; A has {self.dof} row(s)")
+            if not all(isinstance(unit, str) and unit.strip() for unit in units):
+                raise ValueError("row_units entries must be non-empty strings")
+            object.__setattr__(self, "row_units", units)
         if self.b_var is None:
             return
         rows = self.dof

@@ -64,6 +64,7 @@ class ToleranceException:
     contains: tuple[str, ...]
     rel_tol: float
     why: str
+    abs_tol: float = 0.0
 
     def matches(self, path: str) -> bool:
         return all(fragment in path for fragment in self.contains)
@@ -81,6 +82,13 @@ TOLERANCE: dict[str, float] = {
 }
 
 EXCEPTIONS: dict[str, tuple[ToleranceException, ...]] = {
+    "real_water_balance.json": (
+        ToleranceException(
+            contains=(".blind.d.null_space (S + G)",), rel_tol=1e-8, abs_tol=1e-30,
+            why="a structurally null direction computed by SVD: measured 0 versus 1.37e-37 "
+                "across builds; use the same absolute bound as the analytic null-direction test",
+        ),
+    ),
     "real_noaa.json": (
         ToleranceException(
             contains=(".profile[", ".loglik"),
@@ -101,11 +109,12 @@ class Deviation:
     rel: float | None          # None where the values are not both numbers
     allowed: float
     why: str = ""
+    abs_allowed: float = 0.0
 
     def __str__(self) -> str:
         rel = "not numeric" if self.rel is None else f"{self.rel:.3e}"
         return (f"{self.path}: committed {self.committed!r}, fresh {self.fresh!r} "
-                f"(relative {rel}, allowed {self.allowed:.3e})")
+                f"(relative {rel}, allowed {self.allowed:.3e}; absolute allowance {self.abs_allowed:.3e})")
 
 
 def strip(obj):
@@ -146,15 +155,16 @@ def compare(committed, fresh, *, rel_tol: float,
     Structure is compared exactly: a missing key, an extra key or a changed list length is a
     deviation whatever the tolerance. Booleans, strings and None must be equal exactly -- a
     tolerance is for arithmetic, not for a claim flag or a label. Numbers must agree to
-    `rel_tol` relative, or to the tolerance of the first matching exception.
+    `rel_tol` relative, or to the relative/absolute tolerance of the first matching
+    exception. Absolute allowances are opt-in by path; labels and counts stay exact.
     """
     out: list[Deviation] = []
 
-    def allowed_for(path: str) -> tuple[float, str]:
+    def allowed_for(path: str) -> tuple[float, str, float]:
         for exc in exceptions:
             if exc.matches(path):
-                return exc.rel_tol, exc.why
-        return rel_tol, ""
+                return exc.rel_tol, exc.why, exc.abs_tol
+        return rel_tol, "", 0.0
 
     def walk(a, b, path: str) -> None:
         if isinstance(a, Mapping) or isinstance(b, Mapping):
@@ -182,13 +192,19 @@ def compare(committed, fresh, *, rel_tol: float,
         numeric = (not isinstance(a, bool) and not isinstance(b, bool)
                    and isinstance(a, (int, float)) and isinstance(b, (int, float)))
         if not numeric:
-            if a != b:
+            if a != b or (isinstance(a, bool) != isinstance(b, bool)):
                 out.append(Deviation(path, a, b, None, *allowed_for(path)))
             return
-        tol, why = allowed_for(path)
+        tol, why, abs_tol = allowed_for(path)
+        if not (np.isfinite(a) and np.isfinite(b)):
+            out.append(Deviation(path, a, b, float("inf"), tol, why, abs_tol))
+            return
         r = _rel(float(a), float(b))
-        if r > tol:
-            out.append(Deviation(path, a, b, r, tol, why))
+        # Integer-valued report fields represent counts/indices. A change of numeric
+        # representation must not turn their exact comparison into a tolerance check.
+        counts_changed = (isinstance(a, int) or isinstance(b, int)) and a != b
+        if counts_changed or (r > tol and abs(float(a) - float(b)) > abs_tol):
+            out.append(Deviation(path, a, b, r, tol, why, abs_tol))
 
     walk(strip(committed), strip(fresh), "")
     return out
@@ -204,9 +220,11 @@ def reproduction_failure(name: str, fresh, committed) -> str | None:
     generation = committed.get("provenance", {}) if isinstance(committed, Mapping) else {}
     generation = generation.get("generation", generation)
     if same_build(generation):
-        if strip(fresh) == strip(committed):
-            return None
+        # Python container equality equates True with 1 and accepts equal infinities.
+        # Use the leaf checks on this path too, without cross-build allowances.
         deviations = compare(committed, fresh, rel_tol=0.0)
+        if not deviations:
+            return None
         return (f"results/{name} does not match a fresh run of the source tree, on the very build that "
                 f"generated it ({current_build()}): a source change, not build noise. "
                 f"{len(deviations)} value(s) differ:\n  " + "\n  ".join(str(d) for d in deviations[:20]))

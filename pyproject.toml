@@ -1,7 +1,7 @@
 [project]
 name = "falsifiable-state-reconstruction-engine"
 version = "0.1.0"
-description = "State estimates that ship with the statistic that can reject them. Phase 1: SET + LCM on a two-reservoir material-transfer system."
+description = "Estimate fluid-system states, check declared physical balances, and preserve evidence of measurement disagreement."
 requires-python = ">=3.12"
 dependencies = ["numpy>=2.0"]
 
