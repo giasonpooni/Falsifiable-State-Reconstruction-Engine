@@ -123,6 +123,26 @@ error without locating it. It is implemented and tested in `fdi.py`, including t
 (rank 2 with non-collinear signatures *does* isolate) so it reads as a finding rather than a
 missing feature.
 
+**The bound is worse than state-space rank suggests — computed on the shipped filter.** At
+Ridgway the three flow gauges reach the residual *only* through the combination
+`(q_in1 + q_in2 − q_out)` inside the integrator that builds G, so their three-dimensional bias
+space is crushed to one dimension before it touches a state. Exactly two functionals are
+estimable: `β_S` and `β_out − β_in1 − β_in2`. Concretely: detect a flow-gauge bias at
+**≥ 0.073 cfs**; "isolate" it at **≥ 1.1×10⁹ cfs**.
+
+**And worse than non-isolation — non-membership.** That one estimable flow functional is
+collinear at **|cos| = 0.999999675** with a real +1 cfs of *ungauged inflow*, and likewise
+with net evaporation. So the estimable quantity **is not a sensor quantity at all**: it is the
+imbalance — the same +0.703 cfs the model-free closure already reports, and the same thing U
+absorbs. (This is Jiang & Bagajewicz equivalency, computed on this filter.)
+
+**Bias augmentation relocates the problem rather than solving it.** With `y = Hx + b` and
+`Ax = c`, the stacked map has null space of dimension `n_x − rank(A)`; full bias
+identifiability needs `rank(A) = n_x`, at which point the constraint determines the state and
+the sensors were never needed. Ridgway with four bias states: unobservable dimension **3 of
+4**, each flow bias retaining posterior/prior sd ≈ √(2/3) — four numbers with error bars,
+three of them prior in an evidence costume.
+
 **Two further blind spots, measured on the real topology:**
 - The null direction of the balance — storage and cumulative gauged inflow rising together —
   has `d(f) = 0` exactly.
@@ -143,10 +163,21 @@ own predictions went wrong*.
 
 Ordered by what moves the product, not by the old roadmap:
 
-1. **Multi-gauge river reach with Muskingum routing** — one constraint row per reach, so
-   three gauges give rank 2 and isolation becomes possible for the first time. Still linear;
-   the existing kernel handles it unchanged. *This is the item that changes the product's
-   category.*
+1. **Multi-gauge river chain with Muskingum routing** — still the right next step, but sell
+   it as *a necessary condition satisfied, never isolation delivered.* An adversarial pass
+   refuted the strong version 2/3. What survives: Muskingum has unit DC gain, so a mis-fit
+   routing parameter cannot absorb a constant gauge bias; the persistent signature is exactly
+   the path incidence matrix; and the shipped `isolability()` on a 3-gauge chain returns the
+   first non-empty `isolable` list, at a genuine 45°/90° margin. What is refuted: **a "reach"
+   is two gauges and two gauges is rank 1** — the threshold is *three* gauges; only
+   `k_max = ⌊(m−1)/2⌋ = 1` simultaneous bias is identifiable; the common mode `(1,…,1)` stays
+   blind at every m (a basin-wide rating revision, one ice season, one crew); and **realistic
+   ungauged lateral inflow collapses most of it** — both terminal gauges go exactly collinear
+   with it, and a GLR bank on the real Uncompahgre hydrograph names the right gauge 200/200 at
+   0–2% ungauged but **45/200 at 5%, below the 33% random-guess baseline**. Ridgway is 7.1%
+   ungauged. It works completely in an engineered closed conduit (lined canal, penstock,
+   metered pipe network) and introduces a failure mode the tree does not have today: it would
+   name the **wrong** station.
 2. **Empirical null on real, autocorrelated records** (block bootstrap / surrogate series)
    → per-station thresholds with a *measured* false-alarm rate. Currently the real-data
    false-alarm rate is explicitly **unknown**. This is the deployability gate.
@@ -217,22 +248,26 @@ you can do are the ones that are *independent* of that:
 
 Checkable, and genuinely open:
 
-1. Is the rank-1 isolation bound in §4 correct as stated? Derive it independently. Is there a
-   case where a rank-1 constraint *can* distinguish two faults that I have missed — for
-   example using the *time profile* of the residual rather than its instantaneous direction?
-   (That last one is the most interesting loophole: a drift and a step both move a scalar
-   residual, but not with the same shape over time. Does that recover isolation, and under
-   what assumptions?)
-2. For the Ridgway topology — four gauges, one conservation relation — what is the redundancy
-   degree in the classical sense, and what is the maximum number of simultaneous gross errors
-   identifiable? Cite the theorem.
-3. Does adding per-sensor bias states to the augmented filter make gauge biases identifiable,
-   or does it just relocate the unidentifiability into the state vector? Show the argument.
-4. For a three-gauge reach with Muskingum routing: how many independent constraint rows, and
-   which single-gauge biases become isolatable?
-5. What are the real degradation signatures of a USGS stream gauge and of a reservoir
-   stage–capacity relation — with sources — and which of them would the current CUSUM-on-
-   innovations channel actually catch?
+Questions 1–4 of the previous edition have been answered by a 27-agent adversarial pass and
+folded into §4 and §5 above. These are what remain open, in priority order:
+
+1. **The time-profile loophole — still open and still the sharpest question.** The rank-1
+   bound is about the *instantaneous* residual direction. A drift and a step both move a
+   scalar residual, but not with the same shape over time. Does matched filtering over a
+   window recover isolation from a rank-1 constraint, and under exactly what assumptions about
+   onset time, shape priors, and the residual's (measured, strong) autocorrelation? If yes,
+   Ridgway could isolate without waiting for a second instrument.
+2. **Errors in variables.** A thermal/energy row's coefficients are enthalpies computed from
+   *temperature measurements*, so `A` itself carries measurement error. `ConstraintSet` has
+   `b_var` and no `A_var`. What does the data-reconciliation literature prescribe, with
+   theorems, and what does it do to the χ² statistic's distribution?
+3. **Real degradation signatures**, with sources: how a USGS stream gauge and a reservoir
+   stage–capacity relation actually degrade in the field (drift, fouling, rating shift after a
+   flood, ice, datum step) — and which the CUSUM-on-innovations channel would catch.
+4. **Is "closure monitor" the right name?** The assessment's conclusion is that "sensor
+   degradation estimator" promises the one leg that is empty, and proposes *a closure monitor
+   that says what it cannot see and what second instrument would fix that*. Argue the other
+   side if you can.
 
 ---
 
@@ -240,12 +275,8 @@ Checkable, and genuinely open:
 
 Please push hardest here:
 
-- **The time-profile loophole in question 1.** The rank-1 bound is about the instantaneous
-  residual direction. Sequential detection over a record may recover something the static
-  argument forbids. This has not been worked out.
-- **Whether "sensor degradation estimator" is the right product framing at all**, versus the
-  narrower and more defensible "closure monitor that says when a gauge network stops adding
-  up".
+- **The time-profile loophole (§8 q1).** Unchanged and now the single most valuable open
+  question, because a positive answer would unlock isolation on hardware you already have.
 - **Whether the declared flow σ of 5% is defensible.** It is read from USGS's "Good" rating
   class (95% of daily values within 10%, read as 2σ), but the site-and-period rating was
   never acquired and the normality assumption is the consumer's.

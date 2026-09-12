@@ -534,14 +534,46 @@ def test_daf_recomputes_every_committed_id():
 
 
 @needs_daf
-def test_export_tool_reproduces_the_committed_files(tmp_path):
-    """Re-running DAF's extraction on DAF's fixtures (tools/export_daf_fixtures.py) gives the
-    committed data/daf/ byte for byte (manifest and PROVENANCE.md up to the Python version
-    they record), and leaves the DAF checkout as it found it."""
+def test_export_tool_reproduces_the_committed_fixture_files(tmp_path):
+    """Re-running DAF's extraction on DAF's OWN fixtures gives the committed
+    data/daf/*.observations.json for those fixtures byte for byte, and leaves the DAF checkout
+    as it found it.
+
+    Scoped to `--only fixtures` so it stays in the fast suite. The recorded live sessions are
+    checked by the slow test below: replaying the NOAA month means admitting 21,360
+    observations through DAF's pool, which takes hours, and a fast suite that took hours would
+    simply stop being run.
+    """
     root = Path(os.environ["DAF_ROOT"])
     before = _daf_state(root)
     subprocess.run(["uv", "run", "--python", "3.13", "python", str(REPO / "tools" / "export_daf_fixtures.py"),
-                    "--out", str(tmp_path)], cwd=REPO, check=True, capture_output=True, timeout=600)
+                    "--only", "fixtures", "--out", str(tmp_path)], cwd=REPO, check=True,
+                   capture_output=True, timeout=900)
+    fixtures = _fixture_entries()
+    assert len(fixtures) == 5
+    for f in fixtures:
+        assert (tmp_path / f["output"]).read_bytes() == (DATA / f["output"]).read_bytes(), f["output"]
+    # the partial manifest describes exactly the fixture files and nothing else
+    fresh = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    assert [f["output"] for f in fresh["files"]] == [f["output"] for f in fixtures]
+    for a, b in zip(fresh["files"], fixtures):
+        assert {k: v for k, v in a.items()} == {k: v for k, v in b.items()}, a["output"]
+    assert _daf_state(root) == before
+
+
+@pytest.mark.slow
+def test_export_tool_reproduces_every_committed_file(tmp_path):
+    """The whole of data/daf/, sessions included: byte for byte, with the manifest and
+    PROVENANCE.md matching up to the Python version they record.
+
+    Slow because replaying the recorded NOAA month puts 21,360 observations through DAF's
+    pool. That cost is the reason the fast test above is scoped, and it is stated here rather
+    than hidden: the guarantee is not weaker, it is just not free.
+    """
+    root = Path(os.environ["DAF_ROOT"])
+    before = _daf_state(root)
+    subprocess.run(["uv", "run", "--python", "3.13", "python", str(REPO / "tools" / "export_daf_fixtures.py"),
+                    "--out", str(tmp_path)], cwd=REPO, check=True, capture_output=True, timeout=4 * 3600)
     for f in MANIFEST["files"]:
         assert (tmp_path / f["output"]).read_bytes() == (DATA / f["output"]).read_bytes(), f["output"]
     fresh = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
