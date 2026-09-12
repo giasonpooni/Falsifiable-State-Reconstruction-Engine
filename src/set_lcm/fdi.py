@@ -39,10 +39,17 @@ tree cannot come from the constraint at all. It has to come from a channel that 
 pass through r -- which is precisely why `testbed.cusum` watches each sensor's own
 normalised innovation and reads no constraint. The two channels are not redundant and not
 alternatives: the constraint says the system is inconsistent, the per-sensor channel says
-which instrument's own predictions went wrong, and only together do they distinguish
-"evidence wrong" from "model wrong". Isolation through the constraint needs rank(A) >= 2
-AND signatures that are not collinear; `isolability()` computes both and refuses to report
-an isolation that the rank forbids.
+which CHANNEL's own predictions broke.
+
+That is not the same as which instrument is faulty, and the committed grid says so: on
+`leak_stale_constraint`, a 10 kg PROCESS leak carrying `bias=None` -- no sensor fault at all
+-- the per-sensor channel names sensor 2 in 20/20 seeds at median 59.5 steps, the same
+signature it gives when it is right about a real bias. So neither channel names an
+instrument, and a fault estimator built here must say so.
+
+Isolation through the constraint needs rank(A) >= 2, signatures that are not collinear, AND a
+separation large enough to act on; `isolability()` computes all three and refuses to report
+an isolation that any of them forbids.
 
 Nothing here estimates a fault. It says what could be estimated, before anything is.
 """
@@ -56,14 +63,22 @@ from .lcm import check_spd, reduced
 from .schema import ConstraintSet
 
 __all__ = [
-    "COLLINEAR_COS", "VISIBLE_D", "FaultPair", "Isolability", "residual_covariance",
-    "whitened_signature", "isolability",
+    "COLLINEAR_COS", "MIN_SEPARATION", "VISIBLE_D", "FaultPair", "Isolability",
+    "residual_covariance", "whitened_signature", "isolability",
 ]
 
-# |cos| at or above this counts the two signatures as the same direction. At rank 1 every
-# pair is exactly 1 up to floating point; the tolerance is for higher ranks, where a pair
-# can be near-collinear without being exactly so.
+# |cos| at or above this counts the two signatures as EXACTLY the same direction, to floating
+# point. At rank 1 every pair is 1 up to rounding.
 COLLINEAR_COS = 1.0 - 1e-9
+# ...but a cosine gate alone is not an isolation criterion, and treating it as one is the
+# mistake this constant exists to prevent. Two signatures at |cos| = 0.999998 are numerically
+# distinct and operationally identical: the component of one orthogonal to the other is
+# sin = 0.002, so telling them apart needs a fault 1/0.002 = 500x the size that detecting one
+# needs. MIN_SEPARATION is that orthogonal fraction, declared rather than inherited from
+# floating-point noise. The default says: an isolation requiring a fault ten times the
+# detection threshold is not an isolation anyone can act on. Callers with a physical margin
+# in the fault's own units should pass their own, computed from it.
+MIN_SEPARATION = 0.1
 # d(f) below this counts the fault as invisible: the signature is numerically zero, so the
 # fault moves the statistic by nothing a finite record could resolve.
 VISIBLE_D = 1e-12
@@ -103,6 +118,9 @@ class FaultPair:
     a: str
     b: str
     cos: float                  # cosine between the two whitened signatures
+    orthogonal_fraction: float  # sin: the part of one signature the other cannot explain
+    isolation_amplification: float   # 1 / orthogonal_fraction: how much bigger a fault must be
+                                     # to be ISOLATED than merely DETECTED. inf when collinear.
     distinguishable: bool
     why: str
 
@@ -127,13 +145,16 @@ class Isolability:
             "visible": list(self.visible),
             "invisible": list(self.invisible),
             "isolable": list(self.isolable),
-            "pairs": [{"a": p.a, "b": p.b, "cos": p.cos, "distinguishable": p.distinguishable,
-                       "why": p.why} for p in self.pairs],
+            "pairs": [{"a": p.a, "b": p.b, "cos": p.cos,
+                       "orthogonal_fraction": p.orthogonal_fraction,
+                       "isolation_amplification": p.isolation_amplification,
+                       "distinguishable": p.distinguishable, "why": p.why} for p in self.pairs],
             "note": self.note,
         }
 
 
-def isolability(directions: dict, P: np.ndarray, cs: ConstraintSet) -> Isolability:
+def isolability(directions: dict, P: np.ndarray, cs: ConstraintSet,
+                *, min_separation: float = MIN_SEPARATION) -> Isolability:
     """For a declared set of named fault directions, what the constraint test can tell apart.
 
     A direction whose d(f) is numerically zero is INVISIBLE: the constraint is structurally
@@ -163,20 +184,30 @@ def isolability(directions: dict, P: np.ndarray, cs: ConstraintSet) -> Isolabili
         for b in names[i + 1:]:
             if a in invisible or b in invisible:
                 dead = a if a in invisible else b
-                pairs.append(FaultPair(a, b, float("nan"), False,
+                pairs.append(FaultPair(a, b, float("nan"), float("nan"), float("inf"), False,
                                        f"{dead} is invisible (d = 0), so nothing distinguishes it from "
                                        "anything -- it never moves the residual at all"))
                 continue
             na, nb = sig[a], sig[b]
             c = float(na @ nb / (np.linalg.norm(na) * np.linalg.norm(nb)))
             c = max(-1.0, min(1.0, c))
-            same = abs(c) >= COLLINEAR_COS
-            pairs.append(FaultPair(
-                a, b, c, not same,
-                ("the two whitened signatures are collinear: the residual moves the same way for "
-                 "both, so observing it is equally consistent with either and only their ratio is "
-                 "recoverable") if same else
-                "the signatures point in different directions, so the residual distinguishes them"))
+            orth = float(np.sqrt(max(0.0, 1.0 - c * c)))
+            amp = float("inf") if orth <= 0.0 else 1.0 / orth
+            collinear = abs(c) >= COLLINEAR_COS
+            separated = orth >= min_separation
+            if collinear:
+                why = ("the two whitened signatures are collinear: the residual moves the same way "
+                       "for both, so observing it is equally consistent with either and only their "
+                       "ratio is recoverable")
+            elif not separated:
+                why = (f"the signatures differ by an orthogonal fraction of {orth:.3g}, below the "
+                       f"declared separation {min_separation:g}: isolating these two needs a fault "
+                       f"{amp:.3g}x the size that detecting one needs, which is numerical residue "
+                       "rather than structure")
+            else:
+                why = (f"the signatures are separated by an orthogonal fraction of {orth:.3g}, so a "
+                       f"fault {amp:.3g}x the detection size is isolated")
+            pairs.append(FaultPair(a, b, c, orth, amp, separated and not collinear, why))
 
     isolable = [n for n in visible
                 if all(p.distinguishable for p in pairs if n in (p.a, p.b) and p.a in visible and p.b in visible)]

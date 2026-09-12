@@ -78,6 +78,26 @@ def test_the_detection_delay_claim_comes_from_the_committed_grid():
         assert shown in README, shown
 
 
+def test_the_readme_does_not_claim_cusum_names_the_faulty_instrument():
+    """The README once said the per-sensor channel "names the instrument". It does not, and
+    the committed grid says so: leak_stale_constraint injects a 10 kg PROCESS leak with
+    bias=None -- no sensor fault anywhere -- and CUSUM names sensor 2 in 20/20 seeds with the
+    same confidence it has when it is right. It indicates a channel, not an instrument."""
+    import json
+    s = json.loads((Path(__file__).resolve().parents[1] / "results"
+                    / "summary.json").read_text(encoding="utf-8"))
+    leak = s["scenarios"]["leak_stale_constraint"]
+    assert leak["meta"]["deg"]["bias"] is None, "this scenario must carry no sensor fault"
+    kf = leak["aggregate"]["kf"]["cusum"]
+    assert kf["s2"]["detection"]["detected_within"] == 20        # named, confidently
+    assert kf["s2"]["detection"]["median_delay"] == 59.5
+    assert kf["s1"]["detection"]["detected_within"] == 0
+    # the README must carry that counterexample, not just the flattering one
+    for shown in ("leak_stale_constraint", "no sensor fault at all", "median 59.5",
+                  "not the faulty instrument"):
+        assert shown in README, shown
+
+
 def test_the_null_range_the_readme_quotes_is_the_measured_one():
     """Also once wrong, also in the flattering direction: the README quoted 0.57-0.64 for a
     null whose measured range is 0.463-0.644."""

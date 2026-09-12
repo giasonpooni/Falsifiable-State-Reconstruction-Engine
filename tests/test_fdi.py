@@ -81,6 +81,30 @@ def test_rank_two_can_isolate_when_the_signatures_are_not_collinear():
     assert "c" in r2.isolable
 
 
+def test_a_separation_too_small_to_act_on_is_not_an_isolation():
+    """A cosine gate alone would call these distinguishable. The orthogonal fraction says what
+    that would cost: telling them apart needs a fault 1/sin times the size detecting one does,
+    so the gate is a declared separation, not floating-point distance from 1."""
+    cs = ConstraintSet(version="two-row", A=np.array([[1.0, 0.0], [0.0, 1.0]]),
+                       b=np.array([0.0, 0.0]), description="two independent rows")
+    near = np.array([1.0, 2e-3])                      # |cos| with [1,0] is 0.999998
+    r = isolability({"f": [1.0, 0.0], "g": near}, np.eye(2), cs)
+    pair = r.pairs[0]
+    assert abs(pair.cos) > COLLINEAR_COS - 1e-5 or abs(pair.cos) > 0.99999
+    assert pair.orthogonal_fraction == pytest.approx(2e-3, rel=1e-3)
+    assert pair.isolation_amplification == pytest.approx(500.0, rel=1e-2)
+    assert not pair.distinguishable and "numerical residue" in pair.why
+    assert r.isolable == []
+    # a caller with a real margin can declare it, and a genuinely separated pair still passes
+    wide = isolability({"f": [1.0, 0.0], "h": [0.0, 1.0]}, np.eye(2), cs)
+    assert wide.pairs[0].orthogonal_fraction == pytest.approx(1.0)
+    assert wide.pairs[0].isolation_amplification == pytest.approx(1.0)
+    assert set(wide.isolable) == {"f", "h"}
+    # declaring a separation stricter than the pair achieves withdraws the isolation
+    assert isolability({"f": [1.0, 0.0], "g": near}, np.eye(2), cs,
+                       min_separation=1e-4).isolable == ["f", "g"]
+
+
 def test_a_rank_two_residual_does_not_by_itself_buy_isolation():
     """Room in the residual is necessary, not sufficient: two faults that happen to push the
     same way stay confusable even at rank 2."""

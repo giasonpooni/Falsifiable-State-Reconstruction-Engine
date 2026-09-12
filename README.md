@@ -36,7 +36,7 @@ Four questions, four distinct mechanisms — and the fourth is the unusual one.
 | question | mechanism | measured today |
 |---|---|---|
 | **Is something wrong?** | consistency statistic `rᵀ S⁻¹ r ~ χ²(rank A)` on the constraint residual `r = A x − b`, with `S = A P Aᵀ + Σ_b` | rejects the Ridgway closure on 38.6% of days |
-| **Which instrument?** | per-sensor CUSUM on normalised innovations — **reads no constraint** | on an injected +3 kg bias on sensor 1 (`bias_quant_delay`, `kf`): that sensor's channel alarms **20/20 seeds, median 13.5 steps**, against the constraint test's 20/20 at **36.0** — and sensor 2's channel stays **0/20**, so it names the instrument |
+| **Which channel?** | per-sensor CUSUM on normalised innovations — **reads no constraint** | on a +3 kg bias on sensor 1 (`bias_quant_delay`, `kf`) that channel alarms **20/20, median 13.5 steps** against the constraint test's 20/20 at **36.0**, and sensor 2 stays **0/20**. But it names the channel whose *predictions* broke, **not the faulty instrument**: on `leak_stale_constraint` — a process leak with **no sensor fault at all** — it names sensor 2 at **20/20, median 59.5**, with the same confidence |
 | **How much?** | an augmented state carrying the unexplained term (pump scale α, boundary flux L, ungauged volume U) as a first-class output with its own σ | ungauged net inflow +2,068 acre-ft (+0.56%), against +1,526 from model-free arithmetic |
 | **What can't I see?** | `detectability(f) = fᵀAᵀS⁻¹A f`, and `fdi.isolability()` on whether two faults are *distinguishable* | `d(f) = 0` exactly along null(A); **no fault in the tree is isolatable** — see below |
 
@@ -111,9 +111,13 @@ error without locating it (Crowe, 1985) — computed here for the topologies act
 rather than quoted. `fdi.isolability()` refuses to report an isolation the rank forbids, and
 the converse is tested: rank 2 with non-collinear signatures *does* isolate.
 
-**It follows that the per-sensor channel is not a second opinion — it is the only localiser.**
-The constraint says *the system is inconsistent*; CUSUM on each sensor's own innovations says
-*which instrument's predictions went wrong*. Neither substitutes for the other.
+**It follows that the per-sensor channel is not a second opinion — it is the only per-sensor
+signal there is.** The constraint says *the system is inconsistent*; CUSUM says *which
+channel's own predictions broke*. Neither substitutes for the other, and neither names a
+faulty instrument: on `leak_stale_constraint`, a 10 kg process leak with `bias: null` — no
+sensor fault anywhere — CUSUM names sensor 2 in **20/20 seeds at median 59.5 steps**, the same
+signature it gives when it is right. A localiser that cannot tell a process fault from an
+instrument fault is a channel indicator, and this one is labelled as such.
 
 ## Use case: a fluid sensor degradation estimator
 

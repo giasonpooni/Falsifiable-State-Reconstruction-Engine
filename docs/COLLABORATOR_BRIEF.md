@@ -64,7 +64,7 @@ or ML tooling is warranted at this scale — please do not propose any.*
 |---|---|
 | `lcm/` | reconciliation kernel: χ² consistency statistic, hard/soft projection, feasibility, `detectability(f)`, declared constraint uncertainty (`b_var`) |
 | `fdi.py` | **new** — whether two faults are *distinguishable* (see §4) |
-| `testbed/cusum.py` | per-sensor CUSUM on normalised innovations; **reads no constraint** |
+| `testbed/cusum.py` | per-sensor CUSUM on normalised innovations; **reads no constraint**. Indicates a channel, not a faulty instrument — see §3 |
 | `testbed/degrade.py` | injects known sensor faults into a simulator with hidden truth |
 | `testbed/estimators*.py` | Kalman family; augmented filters carrying a pump scale α, a boundary flux L, an ungauged volume U as first-class outputs with their own σ |
 | `bridge/daf.py` | consumes evidence admitted by DAF (a separate acquisition repo); refuses rather than defaults |
@@ -88,8 +88,12 @@ days each, gauged fraction 0.929.
   autocorrelation **0.761–0.935**, autocorrelation time **7.4–29.7 steps**.
 - On an injected +3 kg bias on sensor 1 (`bias_quant_delay`, `kf`), that sensor's CUSUM
   channel alarms **20/20 seeds at median 13.5 steps**, against the constraint test's 20/20 at
-  **36.0** — and sensor 2's channel stays **0/20**, so the per-sensor channel names the
-  instrument where the constraint test cannot.
+  **36.0**, with sensor 2 at **0/20**.
+- **But CUSUM does not name the faulty instrument.** On `leak_stale_constraint` — a 10 kg
+  *process* leak with `bias: null`, no sensor fault at all — it names sensor 2 at **20/20,
+  median 59.5**, with the same signature it gives when correct. It indicates the channel whose
+  own predictions broke. Treating that as instrument identification is the single easiest
+  mistake to make with this tree.
 - A declared storage σ *no source states* moves the rejection rate **52.0% → 38.6% → 13.3%**
   across its declared sweep (50/200/800 acre-ft).
 
