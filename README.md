@@ -90,7 +90,8 @@ stamp excluded), and the slow test in `tests/test_calibration_sweep.py` does the
 `results/calibration.json` and `results/sweep.json`. Every results file carries a provenance
 block — Python and numpy versions, platform, a line-ending-independent SHA-256 of the source
 tree, and git HEAD at generation time (the parent of the commit that contains the results) —
-and prints it as the first line of the markdown. Every scenario is
+and prints it as the first line under the markdown's title; all four results files were last generated
+from one clean source tree (source sha256 `50c2c46529ce`, git `f158c5465b`). Every scenario is
 run over 20 seeds (simulation and degradation seeds offset together); tables report
 mean ± sd across seeds and the JSON keeps every per-seed metric. A single seed is a
 realization, not a result: seed 0 of the noisy-valve scenario on its own puts `kf+hard`
@@ -264,8 +265,9 @@ nz is the RMS normalised error eᵢ/σᵢ: 1.0 when calibrated, above 1 over-con
   overhead on 2×2 matrices (4×4 for `kf_aug`) on one laptop, and what it counts has
   grown: the kernel guards' eigenvalue and condition checks every step, the per-sensor
   CUSUM update on every ingest, the 4-state predict and update, and the projection
-  itself for the projected variants (`closed_noise` p50: kf 360 µs, kf_aug 390,
-  kf+hard 546); determinism beyond same-process (the reproduction test proves
+  itself for the projected variants (`closed_noise` p50: kf 417 µs, kf_aug 444,
+  kf+hard 632, from a grid run concurrently with calibration and sweep, so the machine was
+  shared; wall-clock that moves between regenerations); determinism beyond same-process (the reproduction test proves
   same-build, same-machine reproduction, nothing more); the shipped soft variant at
   1/λ = 4 kg² as a meaningfully different estimator against S ≈ 0.2 kg² — the
   `uncertain_total` sweep is where soft mode earns its place.

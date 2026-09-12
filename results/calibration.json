@@ -5,9 +5,9 @@
     "numpy": "2.5.3",
     "platform": "Windows-11-10.0.26200-SP0",
     "machine": "AMD64",
-    "source_sha256": "93f1aba6cc1e2a1ca3a959b276c8846b7850d752c7bd93aa953a307ff1b8b9b3",
-    "git_head": "3015a7007fd8ea2a19ef270edac86a8f45ca0c98",
-    "source_dirty": true,
+    "source_sha256": "50c2c46529ce19dfedb4f6bfb409ecfb15607f3b10d34723031c569829a61b3f",
+    "git_head": "f158c5465baaee3820f876d56fc284d26ff0a794",
+    "source_dirty": false,
     "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
   },
   "null": {
