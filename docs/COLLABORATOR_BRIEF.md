@@ -77,14 +77,19 @@ days each, gauged fraction 0.929.
 **Key measured numbers** (all from `results/`, all reproducible):
 
 - Ridgway model-free closure residual: mean **+0.703 ft³/s** against 169.5 ft³/s mean gauged
-  inflow; three-year cumulative **+1,526 acre-ft = +0.41%** of inflow.
+  inflow; three-year cumulative **+1,526 acre-ft = +0.41%** of inflow — **but that total is
+  0.72 standard errors from zero** (sd 64.12 acre-ft/day over 1,095 days ⇒ se ≈ 2,122), so it
+  is *not* evidence of a net imbalance. The daily statistic is what rejects.
 - Declared-closure rejection: consistency statistic mean **9.69** vs χ²(1) threshold 10.83,
   exceeded on **38.6%** of days.
 - The augmented filter is never rejected (mean 0.28) — it *cannot* be, which is what makes
   it an estimate rather than a test.
-- **The in-loop null is not χ²(1).** Mean 0.57–0.64 against a nominal 1.0, lag-1
-  autocorrelation **0.76–0.93**, autocorrelation time **7–30 steps**.
-- CUSUM detected a sensor bias in **9 steps** where the constraint test took **38**.
+- **The in-loop null is not χ²(1).** Mean **0.463–0.644** against a nominal 1.0, lag-1
+  autocorrelation **0.761–0.935**, autocorrelation time **7.4–29.7 steps**.
+- On an injected +3 kg bias on sensor 1 (`bias_quant_delay`, `kf`), that sensor's CUSUM
+  channel alarms **20/20 seeds at median 13.5 steps**, against the constraint test's 20/20 at
+  **36.0** — and sensor 2's channel stays **0/20**, so the per-sensor channel names the
+  instrument where the constraint test cannot.
 - A declared storage σ *no source states* moves the rejection rate **52.0% → 38.6% → 13.3%**
   across its declared sweep (50/200/800 acre-ft).
 

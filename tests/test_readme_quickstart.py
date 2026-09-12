@@ -56,6 +56,61 @@ def test_the_threshold_the_readme_quotes_is_the_one_the_kernel_returns():
     assert "10.83" in README
 
 
+def test_the_detection_delay_claim_comes_from_the_committed_grid():
+    """This test exists because the README once said "9 steps where the constraint test took
+    38" and neither number appeared anywhere in results/. Rule 5 says every reported number
+    traces to results/; a front-page claim with no artifact behind it is the exact failure
+    that rule forbids, so the claim is now pinned to the run that produces it."""
+    import json
+    s = json.loads((Path(__file__).resolve().parents[1] / "results"
+                    / "summary.json").read_text(encoding="utf-8"))
+    kf = s["scenarios"]["bias_quant_delay"]["aggregate"]["kf"]
+    constraint, cusum = kf["detection"], kf["cusum"]
+    # the biased sensor's own channel finds it, and finds it sooner than the constraint test
+    assert cusum["s1"]["detection"]["detected_within"] == constraint["detected_within"] == 20
+    assert cusum["s1"]["detection"]["median_delay"] == 13.5
+    assert constraint["median_delay"] == 36.0
+    assert cusum["s1"]["detection"]["median_delay"] < constraint["median_delay"]
+    # and the UNbiased sensor's channel stays silent -- this is the localisation claim
+    assert cusum["s2"]["detection"]["detected_within"] == 0
+    assert cusum["s1"]["false_alarms"]["rate"] == cusum["s2"]["false_alarms"]["rate"] == 0.0
+    for shown in ("median 13.5 steps", "36.0", "0/20", "bias_quant_delay"):
+        assert shown in README, shown
+
+
+def test_the_null_range_the_readme_quotes_is_the_measured_one():
+    """Also once wrong, also in the flattering direction: the README quoted 0.57-0.64 for a
+    null whose measured range is 0.463-0.644."""
+    import json
+    null = json.loads((Path(__file__).resolve().parents[1] / "results"
+                       / "calibration.json").read_text(encoding="utf-8"))["null"]
+    means = [v["mean"] for v in null.values()]
+    lags = [v["lag1_autocorr"] for v in null.values()]
+    taus = [v["autocorr_time"] for v in null.values()]
+    assert f"{min(means):.3f}" == "0.463" and f"{max(means):.3f}" == "0.644"
+    assert f"{min(lags):.3f}" == "0.761" and f"{max(lags):.3f}" == "0.935"
+    assert f"{min(taus):.1f}" == "7.4" and f"{max(taus):.1f}" == "29.7"
+    for shown in ("0.463–0.644", "0.761–0.935", "7.4–29.7"):
+        assert shown in README, shown
+
+
+def test_the_readme_does_not_present_the_cumulative_imbalance_as_a_finding():
+    """The three-year total is 0.72 standard errors from zero, so it is not evidence of a net
+    imbalance, and the front page must not lead with it as though it were. What rejects is the
+    daily statistic."""
+    import json
+    import math
+    w = json.loads((Path(__file__).resolve().parents[1] / "results"
+                    / "real_water_balance.json").read_text(encoding="utf-8"))["closure_free"]
+    se = w["sd"] * math.sqrt(w["n_days"])
+    assert abs(w["cumulative"]) < se, "the cumulative is now outside 1 se: the README must be rewritten"
+    assert f"{se:,.0f}" == "2,122"
+    assert w["lag1_autocorr"] > 0, "positive lag-1 only widens the true standard error"
+    assert "inside one standard error of zero" in README
+    assert "2,122" in README and "64.12" in README
+    assert "cumulative total is *not* the finding" in README
+
+
 def test_the_headline_numbers_come_from_the_committed_results():
     """The front page quotes the Ridgway figures; they must be the ones in results/."""
     import json

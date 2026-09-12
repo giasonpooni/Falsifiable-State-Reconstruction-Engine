@@ -16,10 +16,15 @@ instruments.
 
 Conventional monitoring answers "that reading looks odd". This answers:
 
-> The balance is inconsistent by **+1,526 acre-ft over three years (+0.41% of inflow)**. The
-> statistic that tests it is **9.69** against a χ²(1) threshold of **10.83**, exceeded on
-> **38.6%** of days. Here is the residual before and after correction, here is what the
-> correction was, and here are the faults this configuration is **structurally blind to**.
+> Over three years the imbalance accumulates to **+1,526 acre-ft (+0.41% of the 368,576
+> acre-ft that flowed in)** — but the daily residual has **sd 64.12 acre-ft/day over 1,095
+> days**, so that total carries a standard error of 64.12·√1095 ≈ **2,122 acre-ft** (wider
+> still at the measured lag-1 of +0.173) and sits **inside one standard error of zero**. The
+> cumulative total is *not* the finding. What rejects is the **daily** statistic: `rᵀS⁻¹r` has
+> mean **9.69** against a per-day χ²(1) threshold of **10.83** at q = 0.999, exceeding it on
+> **38.6% of days**, where under the declared hypothesis its mean would be **1**. Here is the
+> residual before and after correction, here is what the correction was, and here are the
+> faults this configuration is **structurally blind to**.
 
 Those are real numbers, from `results/real_water_balance.md`, on 1,096 days of USGS gauge
 records for Ridgway Reservoir, Colorado.
@@ -31,7 +36,7 @@ Four questions, four distinct mechanisms — and the fourth is the unusual one.
 | question | mechanism | measured today |
 |---|---|---|
 | **Is something wrong?** | consistency statistic `rᵀ S⁻¹ r ~ χ²(rank A)` on the constraint residual `r = A x − b`, with `S = A P Aᵀ + Σ_b` | rejects the Ridgway closure on 38.6% of days |
-| **Which instrument?** | per-sensor CUSUM on normalised innovations — **reads no constraint** | found an injected sensor bias in 9 steps where the constraint test took 38 |
+| **Which instrument?** | per-sensor CUSUM on normalised innovations — **reads no constraint** | on an injected +3 kg bias on sensor 1 (`bias_quant_delay`, `kf`): that sensor's channel alarms **20/20 seeds, median 13.5 steps**, against the constraint test's 20/20 at **36.0** — and sensor 2's channel stays **0/20**, so it names the instrument |
 | **How much?** | an augmented state carrying the unexplained term (pump scale α, boundary flux L, ungauged volume U) as a first-class output with its own σ | ungauged net inflow +2,068 acre-ft (+0.56%), against +1,526 from model-free arithmetic |
 | **What can't I see?** | `detectability(f) = fᵀAᵀS⁻¹A f`, and `fdi.isolability()` on whether two faults are *distinguishable* | `d(f) = 0` exactly along null(A); **no fault in the tree is isolatable** — see below |
 
@@ -127,10 +132,18 @@ Two things make that credible here rather than asserted:
   outflow gauge cancels inside `(q_in1 + q_in2 − q_out)` *before it reaches any state*, so it
   is invisible to the balance and outside what `d(f)` can even score.
 
-**Where it is not ready**, stated plainly: the real-data false-alarm rate is **unknown** — the
-in-loop null is not χ²(1) (mean 0.57–0.64, lag-1 autocorrelation 0.76–0.93) and the CUSUM
-threshold was calibrated on simulated records. Fixing that, and reaching rank(A) ≥ 2 so
-isolation becomes possible, are the next two pieces of work
+**Where it is not ready**, stated plainly: the real-data false-alarm rate is **unknown**. No
+window of the real record is *known* to be fault-free — the reports are truth-free — so there
+is nothing on the gauges to calibrate a null against. On the simulator's nominal windows,
+where truth is known, the same statistic computed in the loop has mean **0.463–0.644** where
+an exact χ²(1) gives 1.0, and lag-1 autocorrelation **0.761–0.935** where independent draws
+give 0 (autocorrelation time 7.4–29.7 steps). There the null is measurably not the
+distribution the 10.83 threshold comes from; on the real record it has not been measured at
+all. So the 38.6% rejection rate **cannot be converted into a false-alarm probability in
+either direction** — nothing here says whether the tool over- or under-alarms on those
+gauges. The CUSUM threshold (k = 0.5, h = 8) was likewise calibrated on simulated records.
+**Do not wire either channel to an alarm until both are calibrated on real records.** Fixing
+that, and reaching rank(A) ≥ 2 so isolation becomes possible, are the next two pieces of work
 ([`docs/COLLABORATOR_BRIEF.md`](docs/COLLABORATOR_BRIEF.md) §5).
 
 ## The mandate
