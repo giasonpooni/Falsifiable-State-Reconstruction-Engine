@@ -50,9 +50,10 @@ def render_report(r: dict) -> str:
       f"Missing readings per series: {rec['n_missing']}.")
     A("")
 
-    A("## The closure residual, model-free")
+    A("## The closure residual, before filtering")
     A("")
-    A("No filter, no declared uncertainty, no model — arithmetic on the readings:")
+    A("Arithmetic on the readings, without a filter or uncertainty weights. The daily-mean "
+      "time pairing is an approximation, so even perfect gauges need not give zero:")
     A("")
     A("    r_k = (S_{k+1} − S_k) − c (q_in1 + q_in2 − q_out)_k,    "
       f"c = {dec['cfs_day_to_acre_ft']:.10f} acre-ft per ft³/s-day")
@@ -96,7 +97,10 @@ def render_report(r: dict) -> str:
     A("| direction | d(f) |")
     A("|---|---|")
     for name, d in blind["d"].items():
-        A(f"| {name} | {d:.6g} |")
+        # Report the analytic null as such, rather than platform-specific SVD roundoff.
+        # The raw computed d remains in JSON; no weak nonzero direction is rounded to null.
+        shown = "0 (structural null)" if name == "null_space (S + G)" else f"{d:.6g}"
+        A(f"| {name} | {shown} |")
     A("")
     A("- **Structurally invisible:** " + blind["structurally_invisible"]["meaning"])
     A("- **Not even a direction:** " + blind["not_even_a_direction"]["meaning"])
@@ -154,19 +158,19 @@ def render_report(r: dict) -> str:
               "stays at its prior of 0 for the whole record while its sd grows — the augmented state is "
               "not identified by the data at all, unlike the simulated `kf_aug`, whose boundary flux L "
               "is identified through the dynamics. `+hard` moves the REPORTED U; only `+feedback` puts "
-              "the projection back into the filter, and that is the run whose statistic then drops, "
-              "because a constraint fed back is absorbed as if it were fresh evidence. Read the three "
-              "together: the middle row is an estimate of the imbalance, the last row is the same "
-              "estimate with the test no longer independent of it.")
+              "the projection back into the full filter state and covariance. A constraint fed back "
+              "is absorbed as if it were fresh evidence; subsequent agreement is therefore not "
+              "independent validation. The finite prior and process variance on U still permit "
+              "rejection of sufficiently large disagreements on other records.")
             mid = dict(augs).get("wb_aug+hard")
             if mid is not None:
                 A("")
                 A(f"Cross-check: `wb_aug+hard` puts the three-year imbalance at {_f(mid['final'], 0)} "
                   f"acre-ft ({mid['final_as_fraction_of_gauged_inflow'] * 100:+.2f}% of gauged inflow), "
                   f"against {_f(c['cumulative'], 0)} acre-ft "
-                  f"({c['cumulative_as_fraction_of_gauged_inflow'] * 100:+.2f}%) from the model-free "
-                  "arithmetic at the top of this report. Same sign, same order, two independent routes "
-                  "— one a filter under declared noise, one a sum of differences with no model at all. "
+                  f"({c['cumulative_as_fraction_of_gauged_inflow'] * 100:+.2f}%) from the "
+                  "arithmetic at the top of this report. These are two calculations from the same "
+                  "measurements: a filter under declared noise, and a sum under a time-pairing assumption. "
                   "They are not required to agree: the filter's U is a smoothed quantity under a "
                   "declared random walk, and the arithmetic is not.")
         A("")
@@ -189,15 +193,19 @@ def render_report(r: dict) -> str:
         "reject it. It is the baseline that shows what assuming closure looks like, not a candidate "
         "that lost.",
         "**Anything about an equal-and-opposite gauge bias.** It cancels before it reaches the state. "
-        "No statistic computed here, and no covariance, can see it; only a second independent "
-        "measurement of one of those flows could.",
+        "The balance cannot see it. Individual channel predictions may still disagree, but that "
+        "does not by itself establish which gauge is faulty.",
+        "**That the reference is independent.** The first storage reading supplies b and also "
+        "enters the estimate. The kernel does not include their shared-reference cross-covariance. "
+        "Repeated feedback of this reference is not independent evidence.",
         "**That the alignment question is settled.** The centred pairing has the smallest scatter and "
         "also averages two readings, which would reduce the scatter regardless. Separating the two "
         "needs a sub-daily record, which is a different acquisition.",
         "**Generality.** One reservoir, three water years, one climate. Winter ice affects the inflow "
         "records here — a substantial number of daily values at these sites carry USGS's ESTIMATED "
         "qualifier, which DAF keeps out of content by design, so every reading is scored alike above "
-        "and nothing joins the qualifier to the residual.",
+        "and nothing joins the qualifier to the residual. Such qualifiers would be corroborating "
+        "metadata, not ground-truth fault labels.",
     ):
         A(f"- {line}")
     A("")

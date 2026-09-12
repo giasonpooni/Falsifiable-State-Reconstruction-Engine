@@ -29,11 +29,13 @@ and is the one interesting result of the exercise: every one of real_noaa's larg
 deviations is a `tide_kf` log-likelihood at a q FAR FROM the fitted one, where the
 nine-state filter is so confident that S is tiny and nu^2/S is a large cancelling sum --
 -14290.5616 against -14290.6154 at q = 3.16e-7. At the fitted q the same quantity agrees to
-2.8e-10, the argmax is identical on both builds, and `results/real_noaa.md` -- every number
-the report actually states, at the precision it states it -- is byte-identical apart from
-its own provenance header. So the ill-conditioning is real, it is confined to the profile
-skirts, and it changes no reported number and no decision. The tolerances below say exactly
-that: a tight one per file, and one declared exception naming the skirts.
+2.8e-10 and the argmax is identical on both builds. The report also prints the non-winning
+profile cells: later Windows and Linux CI runs showed that permitted differences can change
+their final displayed digit (for example -14470.4 versus -14470.2 or -14470.3). This does not
+change the fitted q or relax any decision check. Markdown is therefore checked exactly
+against the renderer of its own JSON and saved generation header, while this comparator
+checks numerical reproduction across builds. The tolerances remain a tight one per file
+and one declared exception for profile log-likelihoods.
 
 A deviation beyond the declared tolerance is a failure on every build. These numbers leave
 two to three orders of magnitude of headroom over what was measured, so a real regression
@@ -64,30 +66,52 @@ class ToleranceException:
     contains: tuple[str, ...]
     rel_tol: float
     why: str
+    abs_tol: float = 0.0
 
     def matches(self, path: str) -> bool:
         return all(fragment in path for fragment in self.contains)
 
 
 # Per file: the relative tolerance a fresh run must meet on a build other than the one that
-# generated the file. Each is roughly 100x the worst deviation measured for that file (see
-# the module docstring), so it absorbs build noise and nothing else.
+# generated the file. Historical measured allowances are described above. The new fluid
+# baselines use a declared engineering allowance pending broader cross-build measurements;
+# labels, counts and structure must still match exactly.
 TOLERANCE: dict[str, float] = {
     "summary.json": 1e-12,       # measured 5.878e-15
     "sweep.json": 1e-11,         # measured 1.191e-13
     "calibration.json": 1e-12,   # measured 4.828e-16
     "real_noaa.json": 1e-8,      # measured 2.3e-10 outside the exception below
     "real_water_balance.json": 1e-8,
+    "fluid_baseline.json": 1e-8,
+    "real_fluid_baseline.json": 1e-8,
+    "invariant_layer.json": 1e-8,
+    "camera_baseline.json": 1e-8,
 }
 
 EXCEPTIONS: dict[str, tuple[ToleranceException, ...]] = {
+    "invariant_layer.json": tuple(
+        ToleranceException(
+            contains=(f".{metric}",), rel_tol=1e-8, abs_tol=1e-10,
+            why="near-zero floating-point discrepancies between algebraically equivalent filters; "
+                "declared cross-build absolute allowance in original kg, kg^2 or dimensionless NIS. "
+                "The experiment's 1e-8 acceptance bound, statuses and equivalent-run counts remain checked.",
+        ) for metric in ("max_abs_mean_difference_kg", "max_abs_covariance_difference_kg2", "max_abs_nis_difference")
+    ),
+    "real_water_balance.json": (
+        ToleranceException(
+            contains=(".blind.d.null_space (S + G)",), rel_tol=1e-8, abs_tol=1e-30,
+            why="a structurally null direction computed by SVD: measured 0 versus 1.37e-37 "
+                "across builds; use the same absolute bound as the analytic null-direction test",
+        ),
+    ),
     "real_noaa.json": (
         ToleranceException(
             contains=(".profile[", ".loglik"),
             rel_tol=1e-4,        # measured 3.765e-06
             why="the log-likelihood at a q far from the fitted one: S is tiny there and the sum of "
                 "nu^2 / S cancels heavily, so the last significant figures are the LAPACK build's. "
-                "The argmax, the fitted q_scale and every number the report prints are unaffected.",
+                "The argmax and fitted q_scale remain checked; non-winning profile cells may "
+                "round differently in the report, which must render its own JSON exactly.",
         ),
     ),
 }
@@ -101,11 +125,12 @@ class Deviation:
     rel: float | None          # None where the values are not both numbers
     allowed: float
     why: str = ""
+    abs_allowed: float = 0.0
 
     def __str__(self) -> str:
         rel = "not numeric" if self.rel is None else f"{self.rel:.3e}"
         return (f"{self.path}: committed {self.committed!r}, fresh {self.fresh!r} "
-                f"(relative {rel}, allowed {self.allowed:.3e})")
+                f"(relative {rel}, allowed {self.allowed:.3e}; absolute allowance {self.abs_allowed:.3e})")
 
 
 def strip(obj):
@@ -146,15 +171,16 @@ def compare(committed, fresh, *, rel_tol: float,
     Structure is compared exactly: a missing key, an extra key or a changed list length is a
     deviation whatever the tolerance. Booleans, strings and None must be equal exactly -- a
     tolerance is for arithmetic, not for a claim flag or a label. Numbers must agree to
-    `rel_tol` relative, or to the tolerance of the first matching exception.
+    `rel_tol` relative, or to the relative/absolute tolerance of the first matching
+    exception. Absolute allowances are opt-in by path; labels and counts stay exact.
     """
     out: list[Deviation] = []
 
-    def allowed_for(path: str) -> tuple[float, str]:
+    def allowed_for(path: str) -> tuple[float, str, float]:
         for exc in exceptions:
             if exc.matches(path):
-                return exc.rel_tol, exc.why
-        return rel_tol, ""
+                return exc.rel_tol, exc.why, exc.abs_tol
+        return rel_tol, "", 0.0
 
     def walk(a, b, path: str) -> None:
         if isinstance(a, Mapping) or isinstance(b, Mapping):
@@ -182,13 +208,19 @@ def compare(committed, fresh, *, rel_tol: float,
         numeric = (not isinstance(a, bool) and not isinstance(b, bool)
                    and isinstance(a, (int, float)) and isinstance(b, (int, float)))
         if not numeric:
-            if a != b:
+            if a != b or (isinstance(a, bool) != isinstance(b, bool)):
                 out.append(Deviation(path, a, b, None, *allowed_for(path)))
             return
-        tol, why = allowed_for(path)
+        tol, why, abs_tol = allowed_for(path)
+        if not (np.isfinite(a) and np.isfinite(b)):
+            out.append(Deviation(path, a, b, float("inf"), tol, why, abs_tol))
+            return
         r = _rel(float(a), float(b))
-        if r > tol:
-            out.append(Deviation(path, a, b, r, tol, why))
+        # Integer-valued report fields represent counts/indices. A change of numeric
+        # representation must not turn their exact comparison into a tolerance check.
+        counts_changed = (isinstance(a, int) or isinstance(b, int)) and a != b
+        if counts_changed or (r > tol and abs(float(a) - float(b)) > abs_tol):
+            out.append(Deviation(path, a, b, r, tol, why, abs_tol))
 
     walk(strip(committed), strip(fresh), "")
     return out
@@ -204,9 +236,11 @@ def reproduction_failure(name: str, fresh, committed) -> str | None:
     generation = committed.get("provenance", {}) if isinstance(committed, Mapping) else {}
     generation = generation.get("generation", generation)
     if same_build(generation):
-        if strip(fresh) == strip(committed):
-            return None
+        # Python container equality equates True with 1 and accepts equal infinities.
+        # Use the leaf checks on this path too, without cross-build allowances.
         deviations = compare(committed, fresh, rel_tol=0.0)
+        if not deviations:
+            return None
         return (f"results/{name} does not match a fresh run of the source tree, on the very build that "
                 f"generated it ({current_build()}): a source change, not build noise. "
                 f"{len(deviations)} value(s) differ:\n  " + "\n  ".join(str(d) for d in deviations[:20]))

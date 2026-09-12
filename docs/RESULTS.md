@@ -1,5 +1,12 @@
 # Results, in the order they were built
 
+> **Historical research narrative.** The current generated Markdown and JSON reports in
+> [`results/`](../results/) are canonical for numerical results at their recorded source
+> provenance. Numbers and implementation descriptions below may reflect earlier versions,
+> including behavior changed by later fixes. Use [Methods](METHODS.md) for current
+> interpretation limits and [Roadmap](ROADMAP.md) for planned work; this historical narrative
+> does not establish that every phase or proposal is implemented today.
+
 Every number in this file traces to a file in `results/`, which is a verified artifact: the
 fast suite regenerates the real-data reports and compares them value for value, and a slow
 test regenerates the full simulated grid and does the same. Each section also says what its

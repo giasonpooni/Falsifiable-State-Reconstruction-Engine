@@ -1,297 +1,72 @@
-# Collaborator brief — FSRE
+# Contributor brief
 
-*Written for a second AI assistant (ChatGPT) joining this project alongside Claude, who has
-been building it. Self-contained: you can work from this document without repository access,
-though you will be more useful with it. Last updated at commit `a2ac1eb`.*
+`main` is the canonical development version. Build, validate and publish changes directly
+there; do not maintain separate development branches unless the user requests one.
+See [AGENTS.md](../AGENTS.md) for the repository workflow.
 
----
+The Fluid State Reconstruction Engine (FSRE) is a research toolkit for testing agreement between estimated states and declared physical relationships while retaining the evidence and every correction. Its development target is measurement-system diagnostics in fluid networks, including instrument drift, rating-curve errors and storage-model errors. Current real-data experiments demonstrate consistency checking, not validated causal diagnosis or degradation magnitude.
 
-## 1. What this is, in one paragraph
+Start with the [README](../README.md) and [usage guide](USAGE.md). Read [Methods](METHODS.md) before interpreting scores or fault geometry, and [Roadmap](ROADMAP.md) before extending the scope. Current numerical claims belong in the generated [reports](../results/); [Results](RESULTS.md) preserves the research history.
 
-**FSRE (Falsifiable State Reconstruction Engine)** reconciles state estimates against
-declared conservation relations in fluid systems where a balance must close and the evidence
-does not — reservoirs, river reaches, pipe and cooling networks. Its lineage is **data
-validation and reconciliation** with a global χ² test (Crowe, 1985) and **constrained Kalman
-filtering**. As built it is an *evidence-preserving reconciliation stage over a
-state-estimation testbed*. Its tagline: **state estimates that ship with the statistic that
-can reject them.**
+Development remains focused on fluids. The camera prototype delivers fixed-marker vertical image registration; general 3-D camera pose and odometry remain planned pending a specific experiment and geometric model. Telemetry timing and missingness are already represented through `arrival_t`, `mask` and `arrival_policy`. A mass-plus-energy cooling-loop experiment is a planned alternative to the river reach, not delivered thermal support. Its fault signatures need analysis after heat/storage nuisance and correlated measurement uncertainty are included; see the roadmap.
 
-**The use case has just been tightened to: a fluid sensor degradation estimator.** That is
-the frame for everything below.
+## Architecture
 
----
-
-## 2. The mandate — read this before proposing anything
-
-These five rules are enforced by code and pinned by tests. A suggestion that violates one
-will be rejected, so check against them first. They are not style preferences; they are the
-reason the project exists.
-
-1. **Every estimate ships with the statistic that can reject it.** `reconcile()` returns a
-   consistency statistic `rᵀS⁻¹r ~ χ²(rank A)`, its threshold, and residuals before *and*
-   after projection. `detectability(f)` reports, per fault direction, what that statistic is
-   structurally blind to.
-2. **Nothing overwrites an observation or the unprojected estimate.** Disagreement between
-   evidence and model is preserved, never reconciled away. A revision is not a state
-   transition: contradictory readings are refused or reported, never averaged, and the later
-   one never silently wins.
-3. **An assumption without a source is refused, not defaulted.** A measurement variance the
-   source did not state must be declared **with a citation**; a bare date must be given a
-   zone **with a citation**. The bridge raises rather than guesses.
-4. **The estimator side never reads hidden truth.** Pinned by an AST test. The single
-   labelled exception is an oracle bound, via an explicit argument.
-5. **Every reported number traces to `results/`, and every result says what it does not
-   show.** Real-data reports are **truth-free** — nobody knows the true water level, so no
-   number in them is an error, and each carries its own "cannot validate" list.
-
-**Standing working rules:** `results/` is a verified artifact with a source hash and
-reproduction tests; never tune configs or seeds to make numbers look better; identified
-parameters are fitted on one window and evaluated on a disjoint one; the DAF repository
-(a separate upstream) is **never pushed to**.
-
----
-
-## 3. What exists today — measured, not estimated
-
-**Scale.** Everything here is small. The largest matrix operation is a 9×9 solve. The
-longest real record is 1,096 daily points; the tide-gauge records are 240 six-minute points.
-The full simulated grid runs in about a minute of CPU. The project is **numpy-only**. *No GPU
-or ML tooling is warranted at this scale — please do not propose any.*
-
-**Machinery:**
-
-| piece | what it does |
+| Location | Responsibility |
 |---|---|
-| `lcm/` | reconciliation kernel: χ² consistency statistic, hard/soft projection, feasibility, `detectability(f)`, declared constraint uncertainty (`b_var`) |
-| `fdi.py` | **new** — whether two faults are *distinguishable* (see §4) |
-| `testbed/cusum.py` | per-sensor CUSUM on normalised innovations; **reads no constraint**. Indicates a channel, not a faulty instrument — see §3 |
-| `testbed/degrade.py` | injects known sensor faults into a simulator with hidden truth |
-| `testbed/estimators*.py` | Kalman family; augmented filters carrying a pump scale α, a boundary flux L, an ungauged volume U as first-class outputs with their own σ |
-| `bridge/daf.py` | consumes evidence admitted by DAF (a separate acquisition repo); refuses rather than defaults |
-| `experiments/` | the simulated grid, calibration, sweeps, and two real-data reports |
+| `src/set_lcm/schema/` | Observation, estimate and constraint contracts. |
+| `src/set_lcm/lcm/` | Linear reconciliation, feasibility, residuals and consistency statistics. |
+| `src/set_lcm/fdi.py` | Static single-fault geometry of the residual vector. |
+| `src/set_lcm/measurement.py` | Explicit interval balances and joint measurement/reference covariance. |
+| `src/set_lcm/diagnostics.py` | Conditional fixed-horizon single-fault fits, nuisance projection and explicit ambiguity. |
+| `src/set_lcm/invariant.py`, `coordinates.py` | Additive invariant error-state filtering and fixed affine coordinate charts. |
+| `src/set_lcm/frame_quality.py` | Frame identity, provenance and capture-clock admission; advisory spectra on complete uniform windows. |
+| `src/set_lcm/camera.py` | Declared horizontal-edge extraction, vertical marker registration and first-order calibrated level covariance. |
+| `src/set_lcm/camera_fusion.py` | Camera/gauge comparison and per-time fusion with full shared covariance and retained raw disagreement. |
+| `src/set_lcm/testbed/` | Estimators, arrival-aware runner, CUSUM, simulation and evaluators. |
+| `src/set_lcm/bridge/daf.py` | Explicit selection and admission of supported DAF evidence. |
+| `src/set_lcm/experiments/` | Reproducible scenarios, calibration, sweeps and real-data reports. |
+| `data/daf/` | Committed replay evidence, manifest and acquisition provenance. |
 
-**Real evidence committed:** NOAA tide gauge 8454000 (Providence RI) six-minute water levels;
-Ridgway Reservoir CO daily means for storage, outflow and two inflows, WY2023–2025, 1,096
-days each, gauged fraction 0.929.
+## Evidence and contribution rules
 
-**Key measured numbers** (all from `results/`, all reproducible):
+- Preserve observations and unprojected estimates. Derived values and corrections must stay distinguishable from evidence. Refuse or report contradictory revisions; do not silently average them or select the latest one as truth.
+- Declare units, interval semantics, arrival policy and uncertainties. Carry citations where required by the bridge. If a source does not supply a quantity, identify the consumer's assumption and assess sensitivity; a citation does not validate an assumption it does not support.
+- Keep simulated hidden truth outside estimators. The labeled oracle is the explicit exception. Evaluate synthetic errors against truth and real-record consistency with the truth-free evaluator.
+- Keep camera inference inputs separate from held-out reference readings and synthetic truth. Preserve capture times and frame hashes; do not silently interpolate, repair frame rate or promote generated views to independent observations. Shared calibration uncertainty must remain correlated across frames and sources.
+- Do not select configurations or seeds to obtain a preferred conclusion. State fitting and evaluation windows, keep them disjoint where parameters are fitted, and distinguish model-development data from independent validation data.
+- Change report generators and their evidence together. Follow the usage guide to regenerate affected Markdown and JSON reports, retain provenance, and run reproduction checks. Do not hand-edit result numbers to match a narrative. Update claims when behavior changes.
+- Add focused tests for corrected failures and meaningful method contracts. Compare numerical changes with independent calculations where practical; document remaining limitations.
+- DAF is a separate upstream repository. **Do not push to DAF.** Changes here must not silently alter upstream acquisition, evidence identity or revision policy.
 
-- Ridgway model-free closure residual: mean **+0.703 ft³/s** against 169.5 ft³/s mean gauged
-  inflow; three-year cumulative **+1,526 acre-ft = +0.41%** of inflow — **but that total is
-  0.72 standard errors from zero** (sd 64.12 acre-ft/day over 1,095 days ⇒ se ≈ 2,122), so it
-  is *not* evidence of a net imbalance. The daily statistic is what rejects.
-- Declared-closure rejection: consistency statistic mean **9.69** vs χ²(1) threshold 10.83,
-  exceeded on **38.6%** of days.
-- The augmented filter is never rejected (mean 0.28) — it *cannot* be, which is what makes
-  it an estimate rather than a test.
-- **The in-loop null is not χ²(1).** Mean **0.463–0.644** against a nominal 1.0, lag-1
-  autocorrelation **0.761–0.935**, autocorrelation time **7.4–29.7 steps**.
-- On an injected +3 kg bias on sensor 1 (`bias_quant_delay`, `kf`), that sensor's CUSUM
-  channel alarms **20/20 seeds at median 13.5 steps**, against the constraint test's 20/20 at
-  **36.0**, with sensor 2 at **0/20**.
-- **But CUSUM does not name the faulty instrument.** On `leak_stale_constraint` — a 10 kg
-  *process* leak with `bias: null`, no sensor fault at all — it names sensor 2 at **20/20,
-  median 59.5**, with the same signature it gives when correct. It indicates the channel whose
-  own predictions broke. Treating that as instrument identification is the single easiest
-  mistake to make with this tree.
-- A declared storage σ *no source states* moves the rejection rate **52.0% → 38.6% → 13.3%**
-  across its declared sweep (50/200/800 acre-ft).
+## Interpretation rules
 
----
+The [invariant layer](INVARIANT_LAYER.md) is the additive-group affine Gaussian case,
+equivalent to an ordinary KF. It retains pre-update evidence and full covariance. Its
+coordinate consistency does not establish physical conservation, sensor identifiability,
+nonlinear robustness or general Lie-group IEKF support. Those require separate models
+and evidence. Do not infer noise or hide uncertain shared references inside fixed charts.
 
-## 4. The result that shapes the current direction
+The [fluid baseline](FLUID_BASELINE.md) is delivered with analytical tests, an offset/drift/
+gain benchmark and a truth-free Ridgway replay. Candidate signatures and onset are supplied;
+`identified` means unique adequacy within that declared catalogue, not verified causality.
+Amplitude intervals are conditional and not adjusted for model selection. The new measurement
+path does not silently replace the historical water-balance filters or their assumptions.
 
-**Detection is not isolation, and rank(A) = 1 is why.**
+The [camera baseline](CAMERA_BASELINE.md) processes actual rendered grayscale frames and
+gauge readings under a fixed synthetic protocol. It has no field validation. Detector
+thresholds are quality rules, not confidence estimates; uncertainty is separately declared.
+GLS calibration treats pixel anchors as exact, and height covariance uses first-order
+propagation with declared independence assumptions. Neither real-anchor errors-in-variables
+calibration nor exact Gaussian coverage after image selection is established. A reused
+calibration realization is shared evidence, not an independent trial for each frame.
 
-Everything the constraint test knows about a fault arrives through the residual
-`r = A x − b` with covariance `S = A P Aᵀ + Σ_b`. Whiten it: a unit fault along `f` has
-signature `S^(−1/2) A f`, whose squared norm **is** `d(f)` and whose *direction* is
-everything else the residual carries. Two faults with collinear signatures move the residual
-identically — observing it is equally consistent with either, and only their ratio is ever
-recoverable.
+Fixed-marker compensation estimates vertical image translation only. It does not deliver
+general 3-D pose, perspective correction or odometry. Preserve raw camera/gauge disagreement:
+signed drift explanations can remain confounded, and shared errors can escape a difference
+check. Spectral features are advisory and cannot verify an incorrectly declared physical
+clock without an external reference. No FluidNexus code or generated views are used.
 
-Every constraint in the repository has **rank(A) = 1** (the two-reservoir sum `[1,1]`, the
-reservoir closure `[1,−1]`, the augmented closure `[1,−1,−1]`). A rank-1 `A` makes the
-residual a **scalar**, so every signature lies on one axis and every detectable pair is
-collinear by construction. Therefore:
+A consistency threshold is a reference under a calibrated Gaussian null. An alarm is not a diagnosis. Per-channel CUSUM locates prediction disagreement, not necessarily a faulty instrument. Static rank-one geometry does not establish impossibility over every time record; known dynamics can add information. Finite uncertainty on an augmented imbalance term does not make its model statistically unfalsifiable.
 
-> With rank(A) = 1, no fault is isolatable from any other. Not with a better covariance, not
-> with more data, not with a longer record.
-
-This is the classical statement that a *global* test on constraint residuals detects a gross
-error without locating it. It is implemented and tested in `fdi.py`, including the converse
-(rank 2 with non-collinear signatures *does* isolate) so it reads as a finding rather than a
-missing feature.
-
-**The bound is worse than state-space rank suggests — computed on the shipped filter.** At
-Ridgway the three flow gauges reach the residual *only* through the combination
-`(q_in1 + q_in2 − q_out)` inside the integrator that builds G, so their three-dimensional bias
-space is crushed to one dimension before it touches a state. Exactly two functionals are
-estimable: `β_S` and `β_out − β_in1 − β_in2`. Concretely: detect a flow-gauge bias at
-**≥ 0.073 cfs**; "isolate" it at **≥ 1.1×10⁹ cfs**.
-
-**And worse than non-isolation — non-membership.** That one estimable flow functional is
-collinear at **|cos| = 0.999999675** with a real +1 cfs of *ungauged inflow*, and likewise
-with net evaporation. So the estimable quantity **is not a sensor quantity at all**: it is the
-imbalance — the same +0.703 cfs the model-free closure already reports, and the same thing U
-absorbs. (This is Jiang & Bagajewicz equivalency, computed on this filter.)
-
-**Bias augmentation relocates the problem rather than solving it.** With `y = Hx + b` and
-`Ax = c`, the stacked map has null space of dimension `n_x − rank(A)`; full bias
-identifiability needs `rank(A) = n_x`, at which point the constraint determines the state and
-the sensors were never needed. Ridgway with four bias states: unobservable dimension **3 of
-4**, each flow bias retaining posterior/prior sd ≈ √(2/3) — four numbers with error bars,
-three of them prior in an evidence costume.
-
-**Two further blind spots, measured on the real topology:**
-- The null direction of the balance — storage and cumulative gauged inflow rising together —
-  has `d(f) = 0` exactly.
-- **An equal bias on an inflow gauge and the outflow gauge cancels inside
-  `(q_in1 + q_in2 − q_out)` before it reaches any state.** It is invisible to the balance
-  *and* outside what `d(f)` can even score, because `d(f)` measures directions in state
-  space and this never becomes one.
-
-**What follows architecturally:** sensor-level localisation cannot come through the residual,
-because the residual is one number. It must come from a channel that does not pass through
-it — which is exactly what the per-sensor CUSUM channel is. The two are not redundant: the
-constraint says *the system is inconsistent*, the per-sensor channel says *which instrument's
-own predictions went wrong*.
-
----
-
-## 5. The development plan under discussion
-
-Ordered by what moves the product, not by the old roadmap:
-
-1. **Multi-gauge river chain with Muskingum routing** — still the right next step, but sell
-   it as *a necessary condition satisfied, never isolation delivered.* An adversarial pass
-   refuted the strong version 2/3. What survives: Muskingum has unit DC gain, so a mis-fit
-   routing parameter cannot absorb a constant gauge bias; the persistent signature is exactly
-   the path incidence matrix; and the shipped `isolability()` on a 3-gauge chain returns the
-   first non-empty `isolable` list, at a genuine 45°/90° margin. What is refuted: **a "reach"
-   is two gauges and two gauges is rank 1** — the threshold is *three* gauges; only
-   `k_max = ⌊(m−1)/2⌋ = 1` simultaneous bias is identifiable; the common mode `(1,…,1)` stays
-   blind at every m (a basin-wide rating revision, one ice season, one crew); and **realistic
-   ungauged lateral inflow collapses most of it** — both terminal gauges go exactly collinear
-   with it, and a GLR bank on the real Uncompahgre hydrograph names the right gauge 200/200 at
-   0–2% ungauged but **45/200 at 5%, below the 33% random-guess baseline**. Ridgway is 7.1%
-   ungauged. It works completely in an engineered closed conduit (lined canal, penstock,
-   metered pipe network) and introduces a failure mode the tree does not have today: it would
-   name the **wrong** station.
-2. **Empirical null on real, autocorrelated records** (block bootstrap / surrogate series)
-   → per-station thresholds with a *measured* false-alarm rate. Currently the real-data
-   false-alarm rate is explicitly **unknown**. This is the deployability gate.
-3. **Realistic degradation modes** in `degrade.py`: drift (slow ramp), fouling (progressive
-   gain loss), rating shift (step change after a flood), ice effect (seasonal, correlated),
-   datum step. Today it only has a *step* bias.
-4. **Detection-delay curves** at a fixed false-alarm rate, per fault mode — the product's
-   spec sheet.
-5. **Join the sources' own QC flags to detector output, in the report only** — NOAA QC flags
-   and USGS `ESTIMATED` qualifiers are a partial ground truth currently unused.
-6. **Multi-site panel** (2–3 more reservoirs) — every real-data claim is currently one-site.
-7. **Physical bounds as inequality rows** (storage ≥ 0, flow ≥ 0) — the cheapest unambiguous
-   sensor-fault detector, and the declared first producer of the reserved `NOT_CONVERGED`
-   status.
-
----
-
-## 6. Failure modes to avoid — specific to this project
-
-An assistant unfamiliar with the mandate will reliably make these mistakes. Please don't:
-
-- **Invent a number.** If you don't have a source for an uncertainty, say so and propose a
-  *sweep* over declared values, which is what the project does for the storage σ.
-- **Plot or compute "estimate vs. truth" on real data.** There is no truth in the real-data
-  reports. Two separate evaluators exist for exactly this reason.
-- **Claim isolation.** Until rank(A) ≥ 2 with non-collinear signatures, naming which sensor
-  is at fault from the constraint test is unsupported.
-- **Treat the CUSUM channel as a second opinion on the constraint test.** It is the *only*
-  localiser, precisely because it reads no constraint.
-- **Propose GPU, NVIDIA, Omniverse, or ML.** The compute is 9×9 matrices. It would be
-  cargo-culting.
-- **Suggest a dashboard before the false-alarm rate is known.** A visualiser showing alarms
-  at an unmeasured rate is worse than none.
-- **Say "just use a rolling z-score / threshold on the raw series."** The whole point is that
-  a fault must be distinguished from real dynamics, which is what the constraint and the
-  innovation-based channel do and a raw threshold cannot.
-- **Assume `Observation`/`PublicInputs` are dicts.** They are frozen, validating dataclasses.
-
----
-
-## 7. Suggested division of labour
-
-Claude has repository access, runs the tests, and makes the commits. The highest-value things
-you can do are the ones that are *independent* of that:
-
-**Best fit for you:**
-- **Independent derivation and literature work.** Redundancy classification and
-  observability in process networks, parity-space FDI, structured residuals, the classical
-  results on how many simultaneous gross errors are identifiable. Give theorems with sources.
-- **Cross-check the rank-1 result in §4 from scratch.** If it is wrong, the current direction
-  is mis-set — this is the single most valuable thing you can check.
-- **Design the Muskingum reach topology concretely:** state vector, the `A` matrix it
-  produces, its rank, and which single-gauge biases become isolatable. Show the linear
-  algebra.
-- **Domain knowledge:** how stream gauges and reservoir stage–capacity relations actually
-  degrade in the field; USGS/NOAA operational practice; what a real network operator already
-  has on their desk and what they'd pay attention to.
-- **Adversarial reading of the reports.** `results/real_water_balance.md` and
-  `results/real_noaa.md` state conclusions and a "what these numbers do not show" list. Try
-  to find a claim that overreaches.
-
-**Leave to Claude:** writing code into the repo, running the suites, regenerating `results/`
-(they are hash-verified artifacts), and anything touching the DAF acquisition path.
-
----
-
-## 8. Concrete first questions
-
-Checkable, and genuinely open:
-
-Questions 1–4 of the previous edition have been answered by a 27-agent adversarial pass and
-folded into §4 and §5 above. These are what remain open, in priority order:
-
-1. **The time-profile loophole — still open and still the sharpest question.** The rank-1
-   bound is about the *instantaneous* residual direction. A drift and a step both move a
-   scalar residual, but not with the same shape over time. Does matched filtering over a
-   window recover isolation from a rank-1 constraint, and under exactly what assumptions about
-   onset time, shape priors, and the residual's (measured, strong) autocorrelation? If yes,
-   Ridgway could isolate without waiting for a second instrument.
-2. **Errors in variables.** A thermal/energy row's coefficients are enthalpies computed from
-   *temperature measurements*, so `A` itself carries measurement error. `ConstraintSet` has
-   `b_var` and no `A_var`. What does the data-reconciliation literature prescribe, with
-   theorems, and what does it do to the χ² statistic's distribution?
-3. **Real degradation signatures**, with sources: how a USGS stream gauge and a reservoir
-   stage–capacity relation actually degrade in the field (drift, fouling, rating shift after a
-   flood, ice, datum step) — and which the CUSUM-on-innovations channel would catch.
-4. **Is "closure monitor" the right name?** The assessment's conclusion is that "sensor
-   degradation estimator" promises the one leg that is empty, and proposes *a closure monitor
-   that says what it cannot see and what second instrument would fix that*. Argue the other
-   side if you can.
-
----
-
-## 9. Where Claude is least confident
-
-Please push hardest here:
-
-- **The time-profile loophole (§8 q1).** Unchanged and now the single most valuable open
-  question, because a positive answer would unlock isolation on hardware you already have.
-- **Whether the declared flow σ of 5% is defensible.** It is read from USGS's "Good" rating
-  class (95% of daily values within 10%, read as 2σ), but the site-and-period rating was
-  never acquired and the normality assumption is the consumer's.
-- **The identifiability claim for the reach.** Asserted from the row count, not yet derived.
-
----
-
-## 10. Provenance and honesty conventions
-
-If you propose text that will end up in the repository, match these:
-
-- Every number in a report traces to a `results/` file; the report and JSON are generated
-  together so they cannot disagree.
-- Consumer-declared uncertainties carry their citation verbatim through the bridge into the
-  report, including a statement of which assumptions are the consumer's and not the source's.
-- Reports state what they *cannot* validate as prominently as what they show.
-- Where a result depends on a declared value with no source, it is **swept**, and every
-  conclusion is reported at every point of the sweep.
+Treat source QC flags as corroborating metadata, not ground-truth fault labels. A constraint violation may reflect physical change, an omitted flux, a unit or timing problem, or a model error. Report ambiguous explanations explicitly. Describe unbuilt methods as planned work, and keep detection, isolation and magnitude estimation as separate claims.

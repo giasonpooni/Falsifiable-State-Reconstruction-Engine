@@ -1,4 +1,4 @@
-"""Falsifiable State Reconstruction Engine — Phase 1 slice.
+"""Fluid State Reconstruction Engine (FSRE).
 
 Subpackages:
     set_lcm.schema       typed envelopes (Observation, ConstraintSet, StateEstimate, Status)

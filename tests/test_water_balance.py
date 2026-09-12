@@ -262,6 +262,23 @@ def test_wb_aug_refuses_a_config_whose_ungauged_term_cannot_move():
                               BalanceConfig(q_storage=1.0, q_flow=1.0), clock=inputs.t)
 
 
+def test_finite_ungauged_variance_can_reject_a_large_storage_disagreement():
+    """An algebraically feasible U does not guarantee a plausible finite-prior estimate."""
+    clock = np.arange(8, dtype=float) * 86400.0
+    obs = [Observation(t=t, arrival_t=t,
+                       y=np.array([70000.0 if k == 0 else 75000.0, 0.0, 0.0, 0.0]),
+                       R=np.diag([200.0 ** 2, 1.0, 1.0, 1.0]), mask=np.ones(4, dtype=bool),
+                       source_ids=("storage", "outflow", "inflow1", "inflow2"))
+           for k, t in enumerate(clock)]
+    result = run(PublicInputs(clock, np.zeros(clock.size)), obs,
+                 wb.constraint_aug(70000.0, 200.0 ** 2),
+                 EstimatorSpec("wb_aug", "wb_aug", None, cusum=None),
+                 (70000.0,), wb.PRIOR_STORAGE_STD, est_cfg=wb.CFG)
+    assert np.all(result.x[:, 2] == 0.0)
+    assert result.stat[1] > 100.0
+    assert np.all(result.flag[3:])
+
+
 # ---------------------------------------------------------------------------
 # the report reproduces
 # ---------------------------------------------------------------------------
@@ -292,6 +309,7 @@ def test_the_sweep_reports_every_conclusion_at_every_declared_storage_sigma(fres
         over.append(specs["wb_open"]["consistency_stat"]["fraction_over_threshold"])
     # a wider declared storage sigma can only make the balance easier to accept
     assert over == sorted(over, reverse=True), over
-    # and the augmented filter is never rejected, at any declared sigma
+    # This record is not rejected at these storage sigmas and the fixed declared q_U.
+    # Finite U uncertainty does not guarantee acceptance for another record or q_U.
     for key in data["sweep"]:
         assert data["sweep"][key]["specs"]["wb_aug"]["consistency_stat"]["fraction_over_threshold"] == 0.0

@@ -40,8 +40,8 @@ CONSUMER-DECLARED and carries its citation through the bridge into this report.
               SWEEP (STORAGE_SIGMA_SWEEP), every conclusion is reported at each value, and
               the report says which conclusions survive the whole range and which do not.
 
-The model-free closure residual below needs no sigma at all: it is arithmetic on the
-readings, and it is the number to read first.
+The closure residual below needs no sigma: it is arithmetic on the readings under a
+declared daily-mean time pairing, and it is the number to read first.
 
     python -m set_lcm.experiments.real_water_balance   -> results/real_water_balance.{md,json}
 """
@@ -171,15 +171,16 @@ def load(storage_sigma: float) -> BridgedSeries:
 
 
 # ---------------------------------------------------------------------------
-# the model-free closure residual: arithmetic on the readings, no filter, no sigma
+# closure arithmetic on the readings, before filtering or uncertainty weighting
 # ---------------------------------------------------------------------------
 
 def closure_residual(bs: BridgedSeries) -> dict:
     """r_k = (S_{k+1} - S_k) - c (qin1 + qin2 - qout)_k, in acre-ft per day.
 
-    Every quantity is a reading. No estimator, no declared uncertainty, no model: if the
-    gauges closed the balance this would be zero every day, and whatever it is not is the
-    unmeasured term plus whatever the gauges get wrong. The daily-mean alignment is stated
+    Every quantity is a reading. No estimator or declared uncertainty is needed, but
+    the daily-mean time alignment is approximate: even perfect gauges can leave a residual.
+    The residual can include unmeasured flux, gauge error and time-aggregation error.
+    The daily-mean alignment is stated
     rather than assumed away: storage here is a daily MEAN, so S_{k+1} - S_k is the change
     between two daily means, which is centred on the boundary between the days and pairs
     with the mean flow of day k only to the extent that flows vary smoothly.
@@ -270,21 +271,23 @@ def constraint_open(s0: float, s0_var: float) -> ConstraintSet:
         version="ridgway-closure-open-v1",
         A=np.array([[1.0, -1.0]]), b=np.array([s0]),
         b_var=np.array([s0_var]),
+        row_units=("acre-ft",),
         description="storage minus cumulative gauged net inflow equals the storage at the epoch: the "
                     "declared statement that the four gauges account for every drop. b is the day-0 "
                     "storage reading and carries that reading's declared variance.")
 
 
 def constraint_aug(s0: float, s0_var: float) -> ConstraintSet:
-    """S - G - U = S0: the same relation with the ungauged term carried as a state, so it is
-    satisfiable by construction and cannot be falsified."""
+    """S - G - U = S0 with an ungauged state. An unconstrained U can close any balance,
+    but the shipped finite prior and process variance still allow statistical rejection."""
     return ConstraintSet(
         version="ridgway-closure-augmented-v1",
         A=np.array([[1.0, -1.0, -1.0]]), b=np.array([s0]),
         b_var=np.array([s0_var]),
+        row_units=("acre-ft",),
         description="storage minus cumulative gauged net inflow minus cumulative ungauged net inflow "
-                    "equals the storage at the epoch. U can always satisfy this, so the statistic "
-                    "cannot reject it; U_hat with its sd is the output.")
+                    "equals the storage at the epoch. U can absorb imbalance, but its finite "
+                    "declared uncertainty still permits rejection; U_hat is a model-dependent output.")
 
 
 SPECS = (
@@ -345,8 +348,9 @@ def blind_directions(s0: float, s0_var: float) -> dict:
             "meaning": "an equal bias on one inflow gauge and the outflow gauge. It cancels inside "
                        "(qin1 + qin2 - qout) before it reaches any state, so it never perturbs x at "
                        "all: it is invisible to the balance AND outside what d(f) can score, because "
-                       "d(f) measures directions in state space. Only a second, independent "
-                       "measurement of one of those flows could see it.",
+                       "d(f) measures directions in the reported state space. The individual flow "
+                       "channels may still disagree with their predictions; attribution needs "
+                       "additional information beyond this balance.",
         },
     }
 

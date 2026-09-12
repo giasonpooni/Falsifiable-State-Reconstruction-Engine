@@ -38,11 +38,12 @@ THE THREE FILTERS, and what each one assumes
 
     wb_aug     x = [S, G, U, qout, qin1, qin2],  n_report = 3 (S, G and U)
                U is the cumulative UNGAUGED net inflow volume, a random walk with its own
-               declared q. The constraint becomes S - G - U = S0, which U can always
-               satisfy, so this filter cannot be falsified by the balance -- it estimates
-               the imbalance instead, with a standard deviation, exactly as kf_aug's
-               boundary flux L does in the simulated testbed. U_hat is the output: the
-               water the gauges do not see.
+               declared q. The constraint becomes S - G - U = S0. Some value of U can
+               always satisfy that equation, but its finite prior and process variance
+               still allow the preprojection statistic to reject sufficiently large
+               disagreement. U is unchanged by gauge observations alone; reconciliation
+               estimates a modeled imbalance, and feedback carries that estimate forward.
+               U_hat does not distinguish ungauged water from gauge or model errors.
 
     wb_closed  x = [S, qout, qin1, qin2],  n_report = 1 (S)
                Closure in the DYNAMICS: S' = S + c dt (qin1 + qin2 - qout). The filter
@@ -204,29 +205,60 @@ class _BalanceKF:
         self.innov_z.append(nu_full / np.sqrt(s_full))
 
     def set_state(self, x_report: np.ndarray, P_report: np.ndarray) -> None:
-        """Replace the first n_report components of the filter's state with a projected
-        (x*, P*), leaving the rest and the cross-covariances as they were.
+        """Replace the reported marginal, preserving the rates' conditional distribution.
+
+        Requires an ingested sampling step; the declared initial prior is never replaced.
+
+        For reported variables r and remaining rate states z, the prior conditional is
+        z | r ~ N(mu_z + B (r - mu_r), C), where B = P_zr P_rr^-1. Replacing the
+        marginal of r therefore also changes the rate means, their covariance, and the
+        cross-covariance. When (x_report, P_report) comes from a Gaussian constraint
+        update on r, this is the same posterior as applying that update to the full
+        state with zero constraint coefficients on z. Copying just the marginal block
+        would violate those correlations and can make the full covariance indefinite.
 
         Only used under EstimatorSpec(feedback=True), and only for the balance filters,
         where it is the difference between an augmented state that is estimated and one
         that is not: U is observed by NOTHING except the constraint, so without feedback it
         stays at its prior for ever and only the reported output moves. The repository's
         standing warning applies in full -- a constraint fed back is absorbed as if it were
-        fresh evidence, and the statistic then stops disagreeing with what it tests -- which
-        is why the fed-back run is labelled and read alongside the others, never instead.
+        fresh evidence, which changes the statistic that tests it. Updating the full
+        covariance does not make repeated use of the same uncertain reference independent.
         """
+        if not self.xf:
+            raise ValueError("set_state before the first ingest would overwrite the declared prior")
         n = int(self.n_report)
         x = np.asarray(x_report, dtype=float).reshape(-1)
         P = np.asarray(P_report, dtype=float)
         if x.size != n or P.shape != (n, n):
             raise ValueError(f"set_state expects the first {n} reported component(s); got x {x.shape} "
                              f"and P {P.shape}")
-        self._x[:n] = x
-        self._P[:n, :n] = P
-        self._P = 0.5 * (self._P + self._P.T)
-        if self.xf:
-            self.xf[-1] = self._x.copy()
-            self.Pf[-1] = self._P.copy()
+        if not (np.all(np.isfinite(x)) and np.all(np.isfinite(P))):
+            raise ValueError("set_state requires finite state and covariance")
+        if not np.allclose(P, P.T, rtol=1e-10, atol=1e-12):
+            raise ValueError("set_state requires a symmetric covariance")
+        P = 0.5 * (P + P.T)
+        scale = max(1.0, float(np.linalg.norm(P, ord=2)))
+        if np.linalg.eigvalsh(P)[0] < -1e-12 * scale:
+            raise ValueError("set_state requires a positive-semidefinite covariance")
+
+        prior_P = self._P
+        try:
+            B = np.linalg.solve(prior_P[:n, :n], prior_P[:n, n:]).T
+        except np.linalg.LinAlgError as exc:
+            raise ValueError("set_state requires a nonsingular prior reported covariance") from exc
+        # Form the conditional covariance as a congruence of the full prior instead of
+        # subtracting covariance blocks. The assembled posterior is a sum of congruences.
+        conditional_map = np.hstack((-B, np.eye(self.N - n)))
+        conditional_P = conditional_map @ prior_P @ conditional_map.T
+        marginal_map = np.vstack((np.eye(n), B))
+        full_P = marginal_map @ P @ marginal_map.T
+        full_P[n:, n:] += conditional_P
+        full_x = np.concatenate((x, self._x[n:] + B @ (x - self._x[:n])))
+        self._x = full_x
+        self._P = 0.5 * (full_P + full_P.T)
+        self.xf[-1] = self._x.copy()
+        self.Pf[-1] = self._P.copy()
 
     def report(self, k: int) -> tuple[np.ndarray, np.ndarray]:
         """Predict forward from the last ingested step to report step k, as every estimator
