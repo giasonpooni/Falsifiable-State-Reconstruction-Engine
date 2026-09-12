@@ -68,16 +68,41 @@ def _refusal(reason: str, records, **kw) -> BridgeRefusal:
 # the committed evidence
 # ---------------------------------------------------------------------------
 
+def _fixture_entries():
+    """Entries exported by replaying one of DAF's OWN committed fixtures."""
+    return [f for f in MANIFEST["files"] if "source_fixture" in f]
+
+
+def _session_entries():
+    """Entries exported by replaying a recorded live session under data/daf/raw/."""
+    return [f for f in MANIFEST["files"] if "source_session" in f]
+
+
 def test_committed_daf_files_match_their_manifest():
     names = sorted(p.name for p in DATA.glob("*.observations.json"))
     assert names == sorted(f["output"] for f in MANIFEST["files"])
+    assert len(_fixture_entries()) + len(_session_entries()) == len(MANIFEST["files"])
     for f in MANIFEST["files"]:
         raw = (DATA / f["output"]).read_bytes()
         assert hashlib.sha256(raw).hexdigest() == f["output_sha256"], f["output"]
         assert b"\r" not in raw
-        assert len(load_records(DATA / f["output"])) == f["n_observations"] == f["n_readings"]
+        assert len(load_records(DATA / f["output"])) == f["n_observations"]
+    for f in _fixture_entries():
+        # one observation per reading of the fixture, and the NOAA request is pinned
+        assert f["n_observations"] == f["n_readings"]
         assert f["output"].startswith("SYNTHETIC_") == f["synthetic"] == ("synthetic" in f["source_fixture"])
         assert f["binding"]["time_zone"] == "gmt" and "time_zone=gmt" in f["request_url"]
+    for f in _session_entries():
+        # a session's readings are acquired through overlapping windows, so there are MORE
+        # observations than distinct measurement times: DAF does not collapse a reading seen
+        # under two records, and the bridge is what does, on content
+        assert not f["synthetic"] and f["fetched_live"]
+        assert f["n_observations"] >= f["n_distinct_measurement_times"]
+        assert f["n_recorded_responses"] == len(f["responses"])
+        for r in f["responses"]:
+            body = (DATA / "raw" / Path(f["source_session"]).name / r["file"]).read_bytes()
+            assert hashlib.sha256(body).hexdigest() == r["sha256"] == r["file"].removesuffix(".json")
+            assert len(body) == r["n_bytes"]
     # the replayed MLLW bytes are the bytes DAF fetched live: its document id is the version id
     # DAF's docs/PHASE_17_LIVE_SCIENTIFIC_OBSERVATION.md transcript records (3bc9041f042eb48f...)
     mllw = next(f for f in MANIFEST["files"] if f["output"] == F_MLLW)
@@ -85,8 +110,10 @@ def test_committed_daf_files_match_their_manifest():
     prov = (DATA / "PROVENANCE.md").read_text(encoding="utf-8")
     assert DAF_COMMIT in prov and MANIFEST["vendored_substrate"]["commit"] in prov
     assert "public domain" in prov
-    for f in MANIFEST["files"]:
+    for f in _fixture_entries():
         assert f["source_fixture_sha256"] in prov
+    for f in _session_entries():
+        assert f["source_session_index_sha256"] in prov and f["source_session"] in prov
 
 
 def test_strict_loader_refuses_what_is_not_json():

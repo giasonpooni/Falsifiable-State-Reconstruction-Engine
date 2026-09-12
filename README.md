@@ -974,6 +974,65 @@ What they do **not** show:
 - **An error against the water level.** Nobody knows it. Every number above is a property of the
   record and the filter together.
 
+## P4b: a real conservation law
+
+Ridgway Reservoir on the Uncompahgre (Colorado), water years 2023–2025: 1,096 days of daily-mean
+storage, outflow below the dam and two gauged inflows, acquired live through DAF's own adapter and
+committed as recorded responses plus the observations they replay into. Every number below is from
+`results/real_water_balance.md`, which the fast suite regenerates and compares value for value.
+
+Until here every constraint in this repository was a relation declared in a simulator whose truth
+we set. This one is conservation of water over four instruments nobody here calibrated, and it is
+**expected to fail**: gauged drainage is 246.2 of 265 sq mi, so 7.1% of the catchment is unmeasured,
+and evaporation, precipitation on the lake and any gauge bias land in the same term.
+
+**The model-free number, first.** No filter, no declared uncertainty, no model — a sum of
+differences, `r_k = (S_{k+1} − S_k) − c (q_in1 + q_in2 − q_out)_k`:
+
+| mean | sd | as a flow | 3-year cumulative |
+|---|---|---|---|
+| +1.39 acre-ft/day | 64.1 acre-ft/day | **+0.703 ft³/s** against 169.5 ft³/s of mean gauged inflow | **+1,526 acre-ft, +0.41%** of the 368,576 that flowed in |
+
+The gauges very nearly close over three years and miss by tens of acre-feet on a typical day.
+
+**Which day's flow a storage change belongs with is measured, not assumed.** Storage is a daily
+*mean*, so all three pairings are computed: centred has the smallest scatter at 20.6 ft³/s, against
+32.3 same-day and 27.4 next-day. Not proof, and the report says so — the centred pairing also
+averages two flow readings, which shrinks the scatter whether or not the alignment is right.
+
+**Through the kernel**, at the middle declared storage σ of 200 acre-ft:
+
+| estimator | consistency stat mean | over χ²(1) threshold 10.83 | what it is |
+|---|---|---|---|
+| `wb_open` | 9.69 | **38.6% of days** | the declared closure, rejected |
+| `wb_aug` | 0.28 | 0.0% | carries the ungauged volume as a state, so it cannot be rejected |
+| `wb_closed` | — | — | closure in the dynamics; declares no constraint, so nothing can reject it |
+
+Two things that were not anticipated:
+
+- **The augmented state is identified only through the constraint.** With no projection, `wb_aug`'s
+  ungauged volume U never leaves its prior of 0 across 1,096 days while its sd grows to 6,618
+  acre-ft: nothing else in the filter observes it. That is unlike the simulated `kf_aug`, whose
+  boundary flux is identified through the dynamics. Getting an estimate needs the projection fed
+  back — and the repository's standing warning is then a measurement rather than a recollection:
+  feeding it back drops the statistic that tests it from 0.28 to 0.06. All three runs are reported
+  together, never one instead of another.
+- **A σ no source states decides the verdict.** The rejection rate runs 52.0% → 38.6% → 13.3% across
+  the declared storage-σ sweep of 50, 200 and 800 acre-ft. Rather than pick one, every conclusion is
+  reported at every point, and the σ carries a citation whose first three words are "NOT a source
+  statement."
+
+**A cross-check by two routes that share no code path:** `wb_aug+hard` puts the three-year imbalance
+at +2,068 acre-ft (+0.56% of gauged inflow), against +1,526 (+0.41%) from the model-free arithmetic.
+
+What it does **not** show: which of the ungauged catchment, evaporation, the stage–capacity table or
+a gauge rating the rejection is (a global χ² test cannot localise a gross error — Crowe, 1985); that
+any R is calibrated, since USGS states no per-value uncertainty at all and every σ here is
+consumer-declared with its citation; that U is *the* ungauged inflow rather than everything the
+balance cannot close; or anything about an equal bias on an inflow and the outflow gauge, which
+cancels inside `(q_in1 + q_in2 − q_out)` before it reaches any state and is therefore invisible to
+the balance *and* outside what `d(f)` can score.
+
 ## Deliberately out of scope
 
 - **IMM (deferred, not rejected).** An interacting-multiple-model filter over {closed,
@@ -1001,6 +1060,8 @@ What they do **not** show:
 - **A 31-day live fetch.** The next step for real data is a month of six-minute readings fetched
   live through DAF's own NOAA adapter — enough to separate S2 and N2 from M2 and K1 from O1 — and
   it needs the user's go-ahead: nothing in this repository or its tests makes a network request.
-- **A real constraint.** A conservation relation needs a second, independent evidence source
-  (another gauge on the same water body, or a flux measurement); one tide-gauge series has
-  nothing to reconcile against, so the consistency channel waits for it.
+- **Localising the imbalance.** P4b's constraint is real and it is rejected, but a global χ²
+  test on constraint residuals cannot say which of the ungauged catchment, evaporation, the
+  stage–capacity table or a gauge rating is responsible. That is the documented limit of the
+  method (Crowe, 1985), and separating them needs a second, independent measurement of one of
+  the same quantities — another gauge on the same reach, or a lake-evaporation record.
