@@ -25,6 +25,7 @@ Nothing is fetched: DAF's own per-measurement NOAA binding (`daf.orchestration.b
 | `noaa_live_8454000_preliminary.observations.json` | `tests/fixtures/noaa_live_8454000_preliminary.json` (a DAF fixture, replayed) | 240 | 8454000 / MLLW / metric / gmt | 2026-08-25T00:00:00Z |
 | `SYNTHETIC_noaa_window_20260101_20260103.observations.json` (SYNTHETIC) | `tests/fixtures/noaa_window_synthetic_20260101_20260103.json` (a DAF fixture, replayed) | 4 | 9999999 / MLLW / metric / gmt | 2026-08-25T00:00:00Z |
 | `SYNTHETIC_noaa_window_20260101_20260103_revised.observations.json` (SYNTHETIC) | `tests/fixtures/noaa_window_synthetic_20260101_20260103_revised.json` (a DAF fixture, replayed) | 4 | 9999999 / MLLW / metric / gmt | 2026-08-26T00:00:00Z |
+| `noaa_8454000_202401_mllw.observations.json` | `data/daf/raw/noaa_8454000_202401_mllw` (30 recorded live response(s)) | 21360 | noaa-water-level-measurements, 7440 distinct measurement times | 2026-09-12T00:00:00Z |
 | `usgs_ridgway_wy2023_2025.observations.json` | `data/daf/raw/usgs_ridgway_wy2023_2025` (20 recorded live response(s)) | 4416 | usgs-daily-values, 1096 distinct measurement times | 2026-09-12T00:00:00Z |
 
 Per file:
@@ -83,6 +84,16 @@ Per file:
 - DAF locator `9999999:water_level:MLLW:metric:20260101:20260103`, version id (Document.id) `a9f98cba4260ae4f5ac7704d4d4c5b45536de5d105721091385bc41adb09b999`.
 - NOAA flags in the raw fixture, per reading (DAF's extractor keeps `q`, revision metadata, and `f`, the QC flag vector, out of Observation.content, so no exported observation carries them; counted here as provenance of the raw artifact, read by nothing on the bridging path): q `v` 4; f `0,0,0,0` 4.
 - Output sha256 `620983ba63ad6ab8370d22b6a5ccfd7b7c15af7b0db203f53065f60d0d7ceb76`.
+
+### `noaa_8454000_202401_mllw.observations.json` -- replayed from a recorded live session
+
+- Each response is the raw HTTPS body, byte for byte, stored under the sha256 of its own bytes. Consecutive windows overlap because DAF's adapter re-requests a trailing safety window; the overlap is recorded as it happened and resolved downstream by the bridge's deduplication.
+- Recorded by `tools/fetch_noaa_month.py` / `tools/fetch_usgs_reservoir.py` into `data/daf/raw/noaa_8454000_202401_mllw`: 30 HTTPS response(s) kept byte for byte under the sha256 of their own bytes, carrying 21360 item(s) in total. `index.json` sha256 `3c23c0176be3cf76b6a044c38e45d1f4a532d4a9df14dd798f4a5cfd85954a5e`; each response's own sha256 is checked against it before the replay serves it, and a URL the session never recorded is refused rather than fetched.
+- Replayed through `daf.orchestration.bindings.noaa_water_level_measurement_binding` (adapter id `noaa-water-level-measurements`, DAF code version `a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8`) and `execute_plan`, plan(s) `fsre-noaa-month`, outcomes ['ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'DUPLICATE'].
+- Recorded against DAF `ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2`, exported at `ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2`. These need not be equal: what must match, and is checked, is the binding version -- a hash of the adapter's and extractor's own source, which is what decides the bytes requested and the content extracted.
+- 21360 observation(s) over 7440 distinct measurement times. The two differ because DAF re-requests a trailing safety window, so a reading acquired through two overlapping windows is two observations under two records; collapsing them on content is the consumer's job (`set_lcm.bridge.daf`).
+- Extraction method(s) `json:noaa_water_level_measurement_v1`.
+- Output sha256 `20282bb54e265c0eea0daad7d4e30b19b6d6af9fb4947bae72577160f45a43e2`.
 
 ### `usgs_ridgway_wy2023_2025.observations.json` -- replayed from a recorded live session
 

@@ -5,9 +5,9 @@
       "numpy": "2.5.3",
       "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
       "machine": "x86_64",
-      "source_sha256": "21db4a63d56514ce855ad0fb52c7f0352ad8a16715b0dff9ce92adc661c9fde1",
-      "git_head": "fcf5e1214ebdd71cf2001bc24140c417a9a3b4f1",
-      "source_dirty": true,
+      "source_sha256": "6024c0ef46d360e16c312efe69203ee79c881477762b78f6302c699807f6f876",
+      "git_head": "b14d3b0a4d99fd0fbee680a51d47d5cb932294ef",
+      "source_dirty": false,
       "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
     },
     "daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
@@ -588,8 +588,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 69.72000028326875,
-          "latency_us_p99": 128.01012993804747
+          "latency_us_p50": 69.75700034672627,
+          "latency_us_p99": 128.73202980699713
         },
         "R x10": {
           "q_scale": 1e-06,
@@ -610,8 +610,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 69.00900007167365,
-          "latency_us_p99": 126.62553024711082
+          "latency_us_p50": 70.32749999780208,
+          "latency_us_p99": 133.26526062883204
         },
         "R x100": {
           "q_scale": 1e-06,
@@ -632,8 +632,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 69.26250034666737,
-          "latency_us_p99": 126.73491052737516
+          "latency_us_p50": 69.5530006851186,
+          "latency_us_p99": 134.34289954602713
         }
       },
       "held_out": {
@@ -656,8 +656,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 69.04850033606635,
-          "latency_us_p99": 121.71548049082047
+          "latency_us_p50": 69.7625000611879,
+          "latency_us_p99": 122.30009093400437
         },
         "R x10": {
           "q_scale": 1e-06,
@@ -678,8 +678,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 68.80050023028161,
-          "latency_us_p99": 125.10486983956064
+          "latency_us_p50": 69.7089990353561,
+          "latency_us_p99": 152.10540050247798
         },
         "R x100": {
           "q_scale": 1e-06,
@@ -700,8 +700,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 68.48199973319424,
-          "latency_us_p99": 117.84223000177008
+          "latency_us_p50": 69.77199973334791,
+          "latency_us_p99": 149.30933084542627
         }
       }
     },
@@ -726,8 +726,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 120.11250009891228,
-          "latency_us_p99": 196.94628997967797
+          "latency_us_p50": 124.21200062817661,
+          "latency_us_p99": 299.3835503730221
         },
         "R x10": {
           "q_scale": 0.00031622776601683794,
@@ -748,8 +748,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 116.47849987639347,
-          "latency_us_p99": 255.23614998746748
+          "latency_us_p50": 121.34949975006748,
+          "latency_us_p99": 272.58417925622774
         },
         "R x100": {
           "q_scale": 0.00031622776601683794,
@@ -770,8 +770,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 118.32150039481348,
-          "latency_us_p99": 200.627869926393
+          "latency_us_p50": 118.6540002890979,
+          "latency_us_p99": 189.45811923913416
         }
       },
       "held_out": {
@@ -794,8 +794,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 117.08900001394795,
-          "latency_us_p99": 205.926719945637
+          "latency_us_p50": 117.2954998764908,
+          "latency_us_p99": 243.16728924532063
         },
         "R x10": {
           "q_scale": 0.00031622776601683794,
@@ -816,8 +816,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 116.44500000329572,
-          "latency_us_p99": 221.21404028439426
+          "latency_us_p50": 116.54199988697655,
+          "latency_us_p99": 197.6318093329609
         },
         "R x100": {
           "q_scale": 0.00031622776601683794,
@@ -838,8 +838,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 117.29849984476459,
-          "latency_us_p99": 245.6261098541289
+          "latency_us_p50": 115.40750074345851,
+          "latency_us_p99": 194.08972113524197
         }
       }
     }

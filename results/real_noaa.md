@@ -1,6 +1,6 @@
 # P4: first real observations — NOAA 8454000 water levels through the same runner
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 21db4a63d565, git fcf5e1214e (source dirty). Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 6024c0ef46d3, git b14d3b0a4d. Latency columns are wall-clock on this machine and are not a claim.
 
 Truth-free: nobody knows the water level these readings measured, so no number below is an error. Every number is computed from the run's own record (`testbed.truth_free`), the bridged observations, or the committed evidence.
 
