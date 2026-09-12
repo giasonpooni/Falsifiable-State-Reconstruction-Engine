@@ -1,4 +1,4 @@
-# Fluid State Reconstruction Engine (FSRE) - WIP
+# Fluid-Sensor Reconstruction Testbed (WIP).
 
 **Check whether measurements in a fluid system agree with its physical relationships.**
 
