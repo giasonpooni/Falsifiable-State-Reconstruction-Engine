@@ -872,9 +872,12 @@ What the numbers show:
   offset between the mean level and the coefficients in proportion to their priors, and one day
   is not quite long enough for `tide_kf` to hand all of it back.
 - **A white error of NOAA's σ is incompatible with these days.** Model-free: if the error of each
-  six-minute value were white and independent of the water, the second differences would bound
-  its σ by rms(Δ²y)/√6 = 0.0029 m (2024-01-15) and 0.0033 m (2026-08-23); the stated σ has an rms
-  of 0.0105 and 0.0068 m, a mean σ² 12.9 and 4.4 times the bound.
+  six-minute value were white and independent of the water, the *expected* mean square of the
+  second differences would bound its σ by rms(Δ²y)/√6 = 0.0029 m (2024-01-15) and 0.0033 m
+  (2026-08-23); the stated σ has an rms of 0.0105 and 0.0068 m, a mean σ² 12.9 and 4.4 times the
+  bound. One day's mean square scatters about its expectation, but under that hypothesis the error
+  part's relative sd is only 0.17 and 0.18 (independent Gaussian errors of the stated σ; the
+  water–error cross term adds scatter this does not count), far less than those factors.
 - **R × 10 and R × 100 predict worse at the fitted q** on both days for both filters (held out,
   `level_trend` 709.5 → 584.1 → 400.8, `tide_kf` 673.3 → 575.1 → 398.4), with z RMS falling
   (0.993 → 0.690 → 0.369 for `level_trend` held out) and lag-1 rising (+0.560 → +0.637 → +0.713).

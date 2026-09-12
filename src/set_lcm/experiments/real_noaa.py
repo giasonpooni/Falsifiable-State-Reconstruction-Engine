@@ -244,9 +244,14 @@ def datum_check(kind: str, q_scale: float, bs_mllw: BridgedSeries, bs_stnd: Brid
 
 def series_check(bs: BridgedSeries) -> dict:
     """Model-free: if the error of each six-minute value were white with variance sigma_e^2
-    and independent of the water level, the mean square of the series' second differences
-    would be at least 6 sigma_e^2 (in expectation), so sigma_e <= rms(d2 y) / sqrt(6). Set
-    against NOAA's stated sigma. A time-correlated error is not bounded by this."""
+    and independent of the water level, the EXPECTED mean square of the series' second
+    differences would be at least 6 sigma_e^2 (the water's own second differences add to it),
+    so sigma_e <= rms(d2 y) / sqrt(6) in expectation. Set against NOAA's stated sigma. One day's
+    mean square scatters about its expectation: under that hypothesis, with independent
+    Gaussian errors of the stated sigma_j, the error part d2 e = D e has covariance
+    C = D diag(sigma_j^2) D^T, and its mean square has expectation tr(C)/N and relative sd
+    sqrt(2 tr(C C)) / tr(C) (a Gaussian quadratic form; the water-error cross term, zero in
+    mean, adds scatter this does not count). A time-correlated error is not bounded by this."""
     y = np.array([o.y[0] for o in bs.observations])
     var = np.array([float(o.R[0, 0]) for o in bs.observations])
     if not np.all(np.isfinite(y)):
@@ -255,6 +260,12 @@ def series_check(bs: BridgedSeries) -> dict:
     rms_d2 = float(np.sqrt(np.mean(d2 ** 2)))
     bound = rms_d2 / math.sqrt(6.0)
     rms_sigma = float(np.sqrt(np.mean(var)))
+    n = y.size
+    D = np.zeros((n - 2, n))
+    for i in range(n - 2):
+        D[i, i:i + 3] = (1.0, -2.0, 1.0)
+    C = D @ np.diag(var) @ D.T
+    tr = float(np.trace(C))
     return {
         "n_second_differences": int(d2.size),
         "rms_second_difference": rms_d2,
@@ -262,6 +273,8 @@ def series_check(bs: BridgedSeries) -> dict:
         "rms_stated_sigma": rms_sigma,
         "median_stated_sigma": float(np.median(np.sqrt(var))),
         "mean_stated_var_over_bound_var": float(np.mean(var) / bound ** 2),
+        "null_expected_mean_square": tr / d2.size,
+        "null_rel_sd_mean_square": float(math.sqrt(2.0 * float(np.sum(C * C))) / tr),
     }
 
 
@@ -342,6 +355,12 @@ def claims(r: dict) -> dict:
             for k in KINDS for d in (FIT.key, HELD_OUT.key)),
         "stated_var_exceeds_white_bound": all(
             r["days"][d]["series_check"]["mean_stated_var_over_bound_var"] > 1.0 for d in (FIT.key, HELD_OUT.key)),
+        # the day's mean square lies more than 3 error-only null sds below the error-only expectation
+        "white_bound_beyond_sampling_scatter": all(
+            r["days"][d]["series_check"]["rms_second_difference"] ** 2
+            < r["days"][d]["series_check"]["null_expected_mean_square"]
+            * (1.0 - 3.0 * r["days"][d]["series_check"]["null_rel_sd_mean_square"])
+            for d in (FIT.key, HELD_OUT.key)),
         "no_constraint_declared": all(not p["constraint_declared"] and set(p["status_counts"]) == {"skipped"}
                                       for k in KINDS for d in (FIT.key, HELD_OUT.key)
                                       for p in r["runs"][k][d].values()),
@@ -495,14 +514,19 @@ def render(r: dict) -> str:
           ""]
     L += ["## Model-free series check", "",
           "If each six-minute value's error were white with variance σ_e² and independent of the water level, the "
-          "mean square of the day's second differences would be at least 6 σ_e², so σ_e ≤ rms(Δ²y)/√6. A "
-          "time-correlated error is not bounded by this.", "",
-          "| day | rms Δ²y [m] | white-error bound [m] | rms stated σ [m] | median stated σ [m] | mean σ² / bound² |",
-          "|---|---|---|---|---|---|"]
+          "*expected* mean square of the day's second differences would be at least 6 σ_e² (the water's own second "
+          "differences add to it), so σ_e ≤ rms(Δ²y)/√6 in expectation. One day's mean square scatters about its "
+          "expectation: under that hypothesis, with independent Gaussian errors of the stated σ_j, the error part "
+          "alone has the expected mean square and relative sd in the last two columns (the water–error cross term, "
+          "zero in mean, adds scatter these do not count). A time-correlated error is not bounded by this.", "",
+          "| day | rms Δ²y [m] | white-error bound [m] | rms stated σ [m] | median stated σ [m] | mean σ² / bound² "
+          "| error-only expected mean square, stated σ [m²] | its relative sd |",
+          "|---|---|---|---|---|---|---|---|"]
     for d in (FIT, HELD_OUT):
         s = r["days"][d.key]["series_check"]
         L.append(f"| {r['days'][d.key]['label']} | {s['rms_second_difference']:.4f} | {s['white_error_sigma_bound']:.4f} | "
-                 f"{s['rms_stated_sigma']:.4f} | {s['median_stated_sigma']:.4f} | {s['mean_stated_var_over_bound_var']:.1f} |")
+                 f"{s['rms_stated_sigma']:.4f} | {s['median_stated_sigma']:.4f} | {s['mean_stated_var_over_bound_var']:.1f} "
+                 f"| {s['null_expected_mean_square']:.2e} | {s['null_rel_sd_mean_square']:.2f} |")
     lt_f, lt_h = r["runs"]["level_trend"][FIT.key]["R x1"], r["runs"]["level_trend"][HELD_OUT.key]["R x1"]
     td_f, td_h = r["runs"]["tide_kf"][FIT.key]["R x1"], r["runs"]["tide_kf"][HELD_OUT.key]["R x1"]
     prim = [lt_f, lt_h, td_f, td_h]
@@ -511,12 +535,14 @@ def render(r: dict) -> str:
     L += ["", "## What these numbers can and cannot validate", "",
           "- **NOAA's σ is not the error of the six-minute value.** It is the standard deviation of the one-second "
           "samples behind it — waves and seiche included — reported to 1 mm; R = σ² passes the source's statement "
-          "through. The series check says a white error that large is incompatible with these series: the "
-          f"second differences allow at most {sc_f['white_error_sigma_bound']:.4f} m on {fit['label']} and "
-          f"{sc_h['white_error_sigma_bound']:.4f} m on the held-out day, where the stated σ has an rms of "
-          f"{sc_f['rms_stated_sigma']:.4f} and {sc_h['rms_stated_sigma']:.4f} m (mean σ² "
+          "through. The series check says a white error that large is incompatible with these series: in "
+          f"expectation the second differences allow at most {sc_f['white_error_sigma_bound']:.4f} m on "
+          f"{fit['label']} and {sc_h['white_error_sigma_bound']:.4f} m on the held-out day, where the stated σ has an "
+          f"rms of {sc_f['rms_stated_sigma']:.4f} and {sc_h['rms_stated_sigma']:.4f} m (mean σ² "
           f"{sc_f['mean_stated_var_over_bound_var']:.1f} and {sc_h['mean_stated_var_over_bound_var']:.1f} times the "
-          "bound). A correlated error could be that large; nothing here can tell.",
+          "bound), while one day's mean square would scatter about its expectation by a relative sd of "
+          f"{sc_f['null_rel_sd_mean_square']:.2f} and {sc_h['null_rel_sd_mean_square']:.2f} under that hypothesis "
+          "(error part only). A correlated error could be that large; nothing here can tell.",
           f"- **z RMS with R = σ² does not say σ² is a calibrated measurement variance for these filters.** R is "
           f"{min(p['r_share_mean'] for p in prim):.2f}–{max(p['r_share_mean'] for p in prim):.2f} of the stated "
           "innovation variance on average (mean R/S), so the innovations are mostly the filters' own prediction "

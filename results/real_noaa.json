@@ -5,8 +5,8 @@
       "numpy": "2.5.3",
       "platform": "Windows-11-10.0.26200-SP0",
       "machine": "AMD64",
-      "source_sha256": "be26492b0a2f6e28f45913aa143c3aa0749dd9ce059acbf68c4d2a8fcb3d37bb",
-      "git_head": "2b7f480dd41e301281b9a8aafe2ffc4f06a4ba54",
+      "source_sha256": "7868d7aac188e799ee38d70f48b0f18ea23ffa7cd1e4992ed68b5a9613bb95c4",
+      "git_head": "4ba76898b3b3f62026bad5a9bc9ebf9d07ab4778",
       "source_dirty": true,
       "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
     },
@@ -272,7 +272,9 @@
         "white_error_sigma_bound": 0.002922553083625797,
         "rms_stated_sigma": 0.010490869045666967,
         "median_stated_sigma": 0.009,
-        "mean_stated_var_over_bound_var": 12.88540624743788
+        "mean_stated_var_over_bound_var": 12.88540624743788,
+        "null_expected_mean_square": 0.00066440756302521,
+        "null_rel_sd_mean_square": 0.17472284180953276
       },
       "file_sha256": "f4eafca84c9a34d240a75b58d97540b0ffb009a157b76510dc188450acdd64bc",
       "daf_version_id": "3bc9041f042eb48fdddaa04654a503138a9d63e14a2af22836231877a1993723",
@@ -298,7 +300,9 @@
         "white_error_sigma_bound": 0.0032630904222288207,
         "rms_stated_sigma": 0.0068236720319780906,
         "median_stated_sigma": 0.006,
-        "mean_stated_var_over_bound_var": 4.3729858599144995
+        "mean_stated_var_over_bound_var": 4.3729858599144995,
+        "null_expected_mean_square": 0.00027931092436974785,
+        "null_rel_sd_mean_square": 0.17888166435086048
       },
       "file_sha256": "2654d61c71019bc5731d2f760b1122915190caa98d54650f435d24dcb8161915",
       "daf_version_id": "1f28ddecdc6b5177191c729663876892eeee27caabcba7e732dfd12141335a7e",
@@ -482,8 +486,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 71.8499650247395,
-          "latency_us_p99": 164.41501677036268
+          "latency_us_p50": 72.7999722585082,
+          "latency_us_p99": 131.5129990689456
         },
         "R x10": {
           "q_scale": 1e-06,
@@ -504,8 +508,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 72.80008867383003,
-          "latency_us_p99": 104.98798452317713
+          "latency_us_p50": 72.40002742037177,
+          "latency_us_p99": 184.7300096414983
         },
         "R x100": {
           "q_scale": 1e-06,
@@ -526,8 +530,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 73.10003275051713,
-          "latency_us_p99": 213.70999747887254
+          "latency_us_p50": 68.54993989691138,
+          "latency_us_p99": 100.63404217362375
         }
       },
       "held_out": {
@@ -550,8 +554,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 71.09995931386948,
-          "latency_us_p99": 117.90608288720244
+          "latency_us_p50": 72.09996692836285,
+          "latency_us_p99": 179.60601602680958
         },
         "R x10": {
           "q_scale": 1e-06,
@@ -572,8 +576,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 75.09998977184296,
-          "latency_us_p99": 161.28601855598384
+          "latency_us_p50": 66.90004374831915,
+          "latency_us_p99": 126.33595964871334
         },
         "R x100": {
           "q_scale": 1e-06,
@@ -594,8 +598,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 74.29998368024826,
-          "latency_us_p99": 108.28793863765895
+          "latency_us_p50": 67.50004831701517,
+          "latency_us_p99": 116.8609585147351
         }
       }
     },
@@ -620,8 +624,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 110.44996790587902,
-          "latency_us_p99": 252.596989739686
+          "latency_us_p50": 100.65000969916582,
+          "latency_us_p99": 173.3279682230202
         },
         "R x10": {
           "q_scale": 0.00031622776601683794,
@@ -642,8 +646,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 173.0500371195376,
-          "latency_us_p99": 250.08099619299173
+          "latency_us_p50": 93.59995601698756,
+          "latency_us_p99": 168.60697767697246
         },
         "R x100": {
           "q_scale": 0.00031622776601683794,
@@ -664,8 +668,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 101.25001426786184,
-          "latency_us_p99": 172.11502999998626
+          "latency_us_p50": 94.54990504309535,
+          "latency_us_p99": 220.70597973652178
         }
       },
       "held_out": {
@@ -688,8 +692,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 105.19998613744974,
-          "latency_us_p99": 160.07798374630497
+          "latency_us_p50": 94.15001841261983,
+          "latency_us_p99": 170.9640666376796
         },
         "R x10": {
           "q_scale": 0.00031622776601683794,
@@ -710,8 +714,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 102.69996710121632,
-          "latency_us_p99": 156.19195415638376
+          "latency_us_p50": 101.19995567947626,
+          "latency_us_p99": 194.55794245004614
         },
         "R x100": {
           "q_scale": 0.00031622776601683794,
@@ -732,8 +736,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 101.89996100962162,
-          "latency_us_p99": 163.51300990208978
+          "latency_us_p50": 103.05002797394991,
+          "latency_us_p99": 194.79708629660297
         }
       }
     }
@@ -779,6 +783,7 @@
     "no_missing": true,
     "loglik_falls_with_r_scale": true,
     "stated_var_exceeds_white_bound": true,
+    "white_bound_beyond_sampling_scatter": true,
     "no_constraint_declared": true,
     "level_trend_datum_offset_absorbed_at_first_reading": true,
     "tide_kf_datum_offset_absorbed_slowly": true,

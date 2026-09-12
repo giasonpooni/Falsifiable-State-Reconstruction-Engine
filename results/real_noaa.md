@@ -1,6 +1,6 @@
 # P4: first real observations — NOAA 8454000 water levels through the same runner
 
-Generated with Python 3.13.5, numpy 2.5.3 on Windows-11-10.0.26200-SP0; source sha256 be26492b0a2f, git 2b7f480dd4 (source dirty). Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.5, numpy 2.5.3 on Windows-11-10.0.26200-SP0; source sha256 7868d7aac188, git 4ba76898b3 (source dirty). Latency columns are wall-clock on this machine and are not a claim.
 
 Truth-free: nobody knows the water level these readings measured, so no number below is an error. Every number is computed from the run's own record (`testbed.truth_free`), the bridged observations, or the committed evidence.
 
@@ -80,16 +80,16 @@ By linearity, the STND − MLLW difference between the two runs is the filter's 
 
 ## Model-free series check
 
-If each six-minute value's error were white with variance σ_e² and independent of the water level, the mean square of the day's second differences would be at least 6 σ_e², so σ_e ≤ rms(Δ²y)/√6. A time-correlated error is not bounded by this.
+If each six-minute value's error were white with variance σ_e² and independent of the water level, the *expected* mean square of the day's second differences would be at least 6 σ_e² (the water's own second differences add to it), so σ_e ≤ rms(Δ²y)/√6 in expectation. One day's mean square scatters about its expectation: under that hypothesis, with independent Gaussian errors of the stated σ_j, the error part alone has the expected mean square and relative sd in the last two columns (the water–error cross term, zero in mean, adds scatter these do not count). A time-correlated error is not bounded by this.
 
-| day | rms Δ²y [m] | white-error bound [m] | rms stated σ [m] | median stated σ [m] | mean σ² / bound² |
-|---|---|---|---|---|---|
-| 2024-01-15 MLLW | 0.0072 | 0.0029 | 0.0105 | 0.0090 | 12.9 |
-| 2026-08-23 MLLW (preliminary) | 0.0080 | 0.0033 | 0.0068 | 0.0060 | 4.4 |
+| day | rms Δ²y [m] | white-error bound [m] | rms stated σ [m] | median stated σ [m] | mean σ² / bound² | error-only expected mean square, stated σ [m²] | its relative sd |
+|---|---|---|---|---|---|---|---|
+| 2024-01-15 MLLW | 0.0072 | 0.0029 | 0.0105 | 0.0090 | 12.9 | 6.64e-04 | 0.17 |
+| 2026-08-23 MLLW (preliminary) | 0.0080 | 0.0033 | 0.0068 | 0.0060 | 4.4 | 2.79e-04 | 0.18 |
 
 ## What these numbers can and cannot validate
 
-- **NOAA's σ is not the error of the six-minute value.** It is the standard deviation of the one-second samples behind it — waves and seiche included — reported to 1 mm; R = σ² passes the source's statement through. The series check says a white error that large is incompatible with these series: the second differences allow at most 0.0029 m on 2024-01-15 MLLW and 0.0033 m on the held-out day, where the stated σ has an rms of 0.0105 and 0.0068 m (mean σ² 12.9 and 4.4 times the bound). A correlated error could be that large; nothing here can tell.
+- **NOAA's σ is not the error of the six-minute value.** It is the standard deviation of the one-second samples behind it — waves and seiche included — reported to 1 mm; R = σ² passes the source's statement through. The series check says a white error that large is incompatible with these series: in expectation the second differences allow at most 0.0029 m on 2024-01-15 MLLW and 0.0033 m on the held-out day, where the stated σ has an rms of 0.0105 and 0.0068 m (mean σ² 12.9 and 4.4 times the bound), while one day's mean square would scatter about its expectation by a relative sd of 0.17 and 0.18 under that hypothesis (error part only). A correlated error could be that large; nothing here can tell.
 - **z RMS with R = σ² does not say σ² is a calibrated measurement variance for these filters.** R is 0.12–0.28 of the stated innovation variance on average (mean R/S), so the innovations are mostly the filters' own prediction uncertainty; and they are not white (lag-1 +0.56 to +0.86, where 240 white samples would give 0 ± 0.065), so neither model is right about the dynamics. z RMS is 0.993 for `level_trend` on the held-out day and 0.793 in-sample, 0.703 and 0.759 for `tide_kf`. Below 1 the filter states more innovation variance than it sees; a value near 1 next to a lag-1 of +0.56 is not calibration either.
 - **R and Q are not separated here, and one gauge cannot separate them without trusting the model.** Only q is fitted; R is held at σ², so the fitted q absorbs whatever σ² does not explain. At the fitted q the log-likelihood falls when R is scaled by 10 and by 100 on both days and for both filters: those alternatives predict worse *at this q*, which does not make σ² right. A joint fit would split the variance only through the model's own assumptions (a white measurement error, these dynamics); telling sensor error from unmodelled water motion needs an independent measurement of the same water surface, which one gauge does not provide.
 - **The CUSUM alarms cannot be classified.** `level_trend`: 1 (first at step 10, 01:00 UTC) on 2024-01-15 MLLW, none on the held-out day; `tide_kf`: 1 (first at step 109, 10:54 UTC) and none. On a simulated record an alarm is scored against a known onset; here there is none, and whether an alarm is a real change in the water, an instrument event or the model's own misfit needs evidence independent of this series. The null behind h = 8 was measured on simulated nominal records (results/calibration.md); these innovations are strongly autocorrelated (the lag-1 column), and a positively autocorrelated z drifts further before it turns, so h = 8's false-alarm rate on this record is unknown.
