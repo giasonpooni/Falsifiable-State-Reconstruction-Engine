@@ -1,13 +1,13 @@
 {
   "provenance": {
     "generation": {
-      "python": "3.13.5",
+      "python": "3.13.12",
       "numpy": "2.5.3",
-      "platform": "Windows-11-10.0.26200-SP0",
-      "machine": "AMD64",
-      "source_sha256": "50c2c46529ce19dfedb4f6bfb409ecfb15607f3b10d34723031c569829a61b3f",
-      "git_head": "f158c5465baaee3820f876d56fc284d26ff0a794",
-      "source_dirty": false,
+      "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+      "machine": "x86_64",
+      "source_sha256": "0462339a3a8c829d9d024f0e9539ac6cac61216885e3f1bd9b7c9f38be4de10f",
+      "git_head": "0c79ca10ad8990f4b1ed0e838efee0a917267e73",
+      "source_dirty": true,
       "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
     },
     "daf_commit": "6b378590da3076d88a0f4bd8bad79e1ce0b48ae2",
@@ -20,11 +20,24 @@
     "bridge": {
       "fit": {
         "bridge": "set_lcm.bridge.daf",
-        "bridge_version": "daf-noaa-measurement-bridge-v1",
+        "bridge_version": "daf-measurement-bridge-v2",
         "daf_commit": "6b378590da3076d88a0f4bd8bad79e1ce0b48ae2",
         "extraction_method": "json:noaa_water_level_measurement_v1",
         "series": [
           "noaa:8454000:MLLW:m"
+        ],
+        "selectors": [
+          {
+            "source_id": "noaa:8454000:MLLW:m",
+            "extraction_method": "json:noaa_water_level_measurement_v1",
+            "property": "water_level",
+            "match": {
+              "datum": "MLLW",
+              "station_id": "8454000",
+              "unit": "m"
+            },
+            "unit_field": "unit"
+          }
         ],
         "n_records_in": 240,
         "n_used": 240,
@@ -42,6 +55,12 @@
         },
         "time_zone": "UTC",
         "time_zone_declared": "UTC",
+        "time": {
+          "time_semantics": "instant",
+          "time_zone": "UTC",
+          "time_zone_declared": "UTC",
+          "rule": "measurement_time is 'YYYY-MM-DD HH:MM[:SS]', read in the declared zone"
+        },
         "epoch_iso": "2024-01-15T00:00:00Z",
         "cadence_s": 360.0,
         "n_grid": 240,
@@ -69,11 +88,24 @@
       },
       "held_out": {
         "bridge": "set_lcm.bridge.daf",
-        "bridge_version": "daf-noaa-measurement-bridge-v1",
+        "bridge_version": "daf-measurement-bridge-v2",
         "daf_commit": "6b378590da3076d88a0f4bd8bad79e1ce0b48ae2",
         "extraction_method": "json:noaa_water_level_measurement_v1",
         "series": [
           "noaa:8454000:MLLW:m"
+        ],
+        "selectors": [
+          {
+            "source_id": "noaa:8454000:MLLW:m",
+            "extraction_method": "json:noaa_water_level_measurement_v1",
+            "property": "water_level",
+            "match": {
+              "datum": "MLLW",
+              "station_id": "8454000",
+              "unit": "m"
+            },
+            "unit_field": "unit"
+          }
         ],
         "n_records_in": 240,
         "n_used": 240,
@@ -91,6 +123,12 @@
         },
         "time_zone": "UTC",
         "time_zone_declared": "UTC",
+        "time": {
+          "time_semantics": "instant",
+          "time_zone": "UTC",
+          "time_zone_declared": "UTC",
+          "rule": "measurement_time is 'YYYY-MM-DD HH:MM[:SS]', read in the declared zone"
+        },
         "epoch_iso": "2026-08-23T00:00:00Z",
         "cadence_s": 360.0,
         "n_grid": 240,
@@ -118,11 +156,24 @@
       },
       "stnd": {
         "bridge": "set_lcm.bridge.daf",
-        "bridge_version": "daf-noaa-measurement-bridge-v1",
+        "bridge_version": "daf-measurement-bridge-v2",
         "daf_commit": "6b378590da3076d88a0f4bd8bad79e1ce0b48ae2",
         "extraction_method": "json:noaa_water_level_measurement_v1",
         "series": [
           "noaa:8454000:STND:m"
+        ],
+        "selectors": [
+          {
+            "source_id": "noaa:8454000:STND:m",
+            "extraction_method": "json:noaa_water_level_measurement_v1",
+            "property": "water_level",
+            "match": {
+              "datum": "STND",
+              "station_id": "8454000",
+              "unit": "m"
+            },
+            "unit_field": "unit"
+          }
         ],
         "n_records_in": 240,
         "n_used": 240,
@@ -140,6 +191,12 @@
         },
         "time_zone": "UTC",
         "time_zone_declared": "UTC",
+        "time": {
+          "time_semantics": "instant",
+          "time_zone": "UTC",
+          "time_zone_declared": "UTC",
+          "rule": "measurement_time is 'YYYY-MM-DD HH:MM[:SS]', read in the declared zone"
+        },
         "epoch_iso": "2024-01-15T00:00:00Z",
         "cadence_s": 360.0,
         "n_grid": 240,
@@ -209,7 +266,7 @@
         3.162277660168379e-07,
         1e-06,
         3.162277660168379e-06,
-        1e-05,
+        9.999999999999999e-06,
         3.1622776601683795e-05,
         0.0001,
         0.00031622776601683794,
@@ -220,7 +277,7 @@
         3.162277660168379e-07,
         1e-06,
         3.162277660168379e-06,
-        1e-05,
+        9.999999999999999e-06,
         3.1622776601683795e-05,
         0.0001,
         0.00031622776601683794,
@@ -410,8 +467,8 @@
           "loglik": 628.8238893333765
         },
         {
-          "q_scale": 1e-05,
-          "loglik": 444.984597346301
+          "q_scale": 9.999999999999999e-06,
+          "loglik": 444.98459734630103
         },
         {
           "q_scale": 3.1622776601683795e-05,
@@ -446,47 +503,47 @@
       "profile": [
         {
           "q_scale": 1e-07,
-          "loglik": -14470.366237733135
+          "loglik": -14470.356332473004
         },
         {
           "q_scale": 3.162277660168379e-07,
-          "loglik": -14290.561586595053
+          "loglik": -14290.615395216988
         },
         {
           "q_scale": 1e-06,
-          "loglik": -12890.664076805622
+          "loglik": -12890.66131984943
         },
         {
           "q_scale": 3.162277660168379e-06,
-          "loglik": -8817.679204319142
+          "loglik": -8817.683090620198
         },
         {
-          "q_scale": 1e-05,
-          "loglik": -4784.014204252011
+          "q_scale": 9.999999999999999e-06,
+          "loglik": -4784.014153680751
         },
         {
           "q_scale": 3.1622776601683795e-05,
-          "loglik": -1228.8797950403537
+          "loglik": -1228.8797995687341
         },
         {
           "q_scale": 0.0001,
-          "loglik": 365.8073845789887
+          "loglik": 365.8073846811421
         },
         {
           "q_scale": 0.00031622776601683794,
-          "loglik": 631.1602469045309
+          "loglik": 631.1602469036219
         },
         {
           "q_scale": 0.001,
-          "loglik": 484.96898498120925
+          "loglik": 484.96898498122755
         },
         {
           "q_scale": 0.0031622776601683794,
-          "loglik": 235.38611320446168
+          "loglik": 235.38611320446012
         },
         {
           "q_scale": 0.01,
-          "loglik": -31.968378864587795
+          "loglik": -31.96837886458768
         },
         {
           "q_scale": 0.03162277660168379,
@@ -499,7 +556,7 @@
       ],
       "argmax_index": 7,
       "q_scale": 0.00031622776601683794,
-      "loglik": 631.1602469045309,
+      "loglik": 631.1602469036219,
       "interior": true,
       "units": "m s^-1/2",
       "per_step": {
@@ -529,8 +586,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 88.09997234493494,
-          "latency_us_p99": 200.95901680178937
+          "latency_us_p50": 69.01950018800562,
+          "latency_us_p99": 140.09177017669552
         },
         "R x10": {
           "q_scale": 1e-06,
@@ -551,8 +608,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 82.84999057650566,
-          "latency_us_p99": 176.7319941427557
+          "latency_us_p50": 69.72999995014106,
+          "latency_us_p99": 132.88512984672695
         },
         "R x100": {
           "q_scale": 1e-06,
@@ -573,8 +630,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 80.80003317445517,
-          "latency_us_p99": 139.71594511531285
+          "latency_us_p50": 68.90050008223625,
+          "latency_us_p99": 174.25513002308418
         }
       },
       "held_out": {
@@ -597,8 +654,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 83.09993427246809,
-          "latency_us_p99": 190.40893646888424
+          "latency_us_p50": 68.97799994476372,
+          "latency_us_p99": 169.18504999921424
         },
         "R x10": {
           "q_scale": 1e-06,
@@ -619,8 +676,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 136.64999278262258,
-          "latency_us_p99": 720.27900139801
+          "latency_us_p50": 68.99649997649249,
+          "latency_us_p99": 190.04358970050765
         },
         "R x100": {
           "q_scale": 1e-06,
@@ -641,8 +698,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 144.5500529371202,
-          "latency_us_p99": 1359.756006859241
+          "latency_us_p50": 68.91050020385592,
+          "latency_us_p99": 185.85283992706505
         }
       }
     },
@@ -651,136 +708,136 @@
         "R x1": {
           "q_scale": 0.00031622776601683794,
           "r_scale": 1.0,
-          "loglik": 631.1602469045309,
+          "loglik": 631.1602469036219,
           "n_steps": 240,
           "n_observed": 240,
           "frac_missing": 0.0,
-          "z_mean": -0.09529011937951314,
-          "z_rms": 0.7594554445423541,
-          "z_lag1": 0.8553498411607159,
+          "z_mean": -0.09529011938339865,
+          "z_rms": 0.7594554445476231,
+          "z_lag1": 0.8553498411623252,
           "frac_abs_z_gt_1.96": 0.016666666666666666,
           "cusum_alarms": 1,
           "cusum_first_alarm": 109,
-          "r_share_mean": 0.19051533737560075,
+          "r_share_mean": 0.19051533737582266,
           "status_counts": {
             "skipped": 240
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 205.04998974502087,
-          "latency_us_p99": 330.2589734084898
+          "latency_us_p50": 117.12950004039158,
+          "latency_us_p99": 250.62252992029232
         },
         "R x10": {
           "q_scale": 0.00031622776601683794,
           "r_scale": 10.0,
-          "loglik": 504.91169732244435,
+          "loglik": 504.91169732246664,
           "n_steps": 240,
           "n_observed": 240,
           "frac_missing": 0.0,
-          "z_mean": -0.07885684016124207,
-          "z_rms": 0.6161394653114588,
-          "z_lag1": 0.9072811558785362,
+          "z_mean": -0.07885684016083974,
+          "z_rms": 0.6161394653115293,
+          "z_lag1": 0.9072811558780862,
           "frac_abs_z_gt_1.96": 0.0,
           "cusum_alarms": 1,
           "cusum_first_alarm": 114,
-          "r_share_mean": 0.4446519056622853,
+          "r_share_mean": 0.4446519056624272,
           "status_counts": {
             "skipped": 240
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 123.30000754445791,
-          "latency_us_p99": 214.19800119474527
+          "latency_us_p50": 119.25949979740835,
+          "latency_us_p99": 298.6471701251503
         },
         "R x100": {
           "q_scale": 0.00031622776601683794,
           "r_scale": 100.0,
-          "loglik": 308.177086206334,
+          "loglik": 308.17708620646357,
           "n_steps": 240,
           "n_observed": 240,
           "frac_missing": 0.0,
-          "z_mean": -0.026591980771889647,
-          "z_rms": 0.4316368821931858,
-          "z_lag1": 0.9386374066297395,
+          "z_mean": -0.026591980771643153,
+          "z_rms": 0.4316368821929167,
+          "z_lag1": 0.9386374066297345,
           "frac_abs_z_gt_1.96": 0.0,
           "cusum_alarms": 0,
           "cusum_first_alarm": null,
-          "r_share_mean": 0.6405042424252999,
+          "r_share_mean": 0.6405042424254764,
           "status_counts": {
             "skipped": 240
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 124.70001820474863,
-          "latency_us_p99": 289.3470367416739
+          "latency_us_p50": 116.41699984465959,
+          "latency_us_p99": 187.5127498533401
         }
       },
       "held_out": {
         "R x1": {
           "q_scale": 0.00031622776601683794,
           "r_scale": 1.0,
-          "loglik": 673.2636954737504,
+          "loglik": 673.2636954737792,
           "n_steps": 240,
           "n_observed": 240,
           "frac_missing": 0.0,
-          "z_mean": 0.020377214382710222,
-          "z_rms": 0.702743917359409,
-          "z_lag1": 0.7063089593201237,
+          "z_mean": 0.02037721437803815,
+          "z_rms": 0.7027439173595739,
+          "z_lag1": 0.706308959318638,
           "frac_abs_z_gt_1.96": 0.0125,
           "cusum_alarms": 0,
           "cusum_first_alarm": null,
-          "r_share_mean": 0.11975829181032914,
+          "r_share_mean": 0.11975829181034008,
           "status_counts": {
             "skipped": 240
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 123.60000982880592,
-          "latency_us_p99": 266.7620265856382
+          "latency_us_p50": 117.2854999822448,
+          "latency_us_p99": 213.58076992783015
         },
         "R x10": {
           "q_scale": 0.00031622776601683794,
           "r_scale": 10.0,
-          "loglik": 575.1093015922787,
+          "loglik": 575.1093015924139,
           "n_steps": 240,
           "n_observed": 240,
           "frac_missing": 0.0,
-          "z_mean": 0.013143683223577951,
-          "z_rms": 0.5910639154133154,
-          "z_lag1": 0.7222669819827149,
+          "z_mean": 0.013143683225532355,
+          "z_rms": 0.5910639154132808,
+          "z_lag1": 0.7222669819832822,
           "frac_abs_z_gt_1.96": 0.0125,
           "cusum_alarms": 0,
           "cusum_first_alarm": null,
-          "r_share_mean": 0.3630216446076781,
+          "r_share_mean": 0.36302164460811037,
           "status_counts": {
             "skipped": 240
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 126.10002886503935,
-          "latency_us_p99": 258.07103142142296
+          "latency_us_p50": 116.1899997441651,
+          "latency_us_p99": 198.09298995824062
         },
         "R x100": {
           "q_scale": 0.00031622776601683794,
           "r_scale": 100.0,
-          "loglik": 398.40135379369156,
+          "loglik": 398.4013537937913,
           "n_steps": 240,
           "n_observed": 240,
           "frac_missing": 0.0,
-          "z_mean": -0.006448051611602864,
-          "z_rms": 0.37919624026465315,
-          "z_lag1": 0.7464561993676719,
+          "z_mean": -0.0064480516116896865,
+          "z_rms": 0.37919624026479404,
+          "z_lag1": 0.7464561993672898,
           "frac_abs_z_gt_1.96": 0.0,
           "cusum_alarms": 0,
           "cusum_first_alarm": null,
-          "r_share_mean": 0.5990298599657389,
+          "r_share_mean": 0.5990298599661295,
           "status_counts": {
             "skipped": 240
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 121.59999459981918,
-          "latency_us_p99": 254.63200523518026
+          "latency_us_p50": 116.92749990288576,
+          "latency_us_p99": 197.39599002605246
         }
       }
     }
@@ -807,15 +864,15 @@
       "q_scale": 0.00031622776601683794,
       "state": "mean_level",
       "burn_in_steps": 20,
-      "max_abs_dz_after_burn_in": 0.006516369041790315,
+      "max_abs_dz_after_burn_in": 0.006516369041668857,
       "argmax_step_after_burn_in": 28,
       "max_abs_dz_all_steps": 0.09878990458072483,
       "abs_dz_at_step_0": 0.09878990458072483,
-      "max_abs_dz_from_step_1": 0.016927364891469926,
-      "offset_final": 1.063967604902699,
-      "offset_min_after_burn_in": 0.9826394310450435,
-      "offset_max_after_burn_in": 1.063967604902699,
-      "reported_level_offset_final": 1.063999801412803,
+      "max_abs_dz_from_step_1": 0.016927364891459407,
+      "offset_final": 1.0639676049027003,
+      "offset_min_after_burn_in": 0.9826394310450102,
+      "offset_max_after_burn_in": 1.0639676049027003,
+      "reported_level_offset_final": 1.0639998014128027,
       "data_offset_min": 1.0639999999999998,
       "data_offset_max": 1.0640000000000003,
       "stated_R_identical": true

@@ -14,6 +14,7 @@ import numpy as np
 import pytest
 
 from set_lcm.experiments import real_noaa
+from set_lcm.experiments.compare import reproduction_failure
 from set_lcm.experiments.provenance import REPO_ROOT
 from set_lcm.schema import Observation
 from set_lcm.testbed.estimators import ESTIMATORS, KFConfig
@@ -46,10 +47,14 @@ def fresh(tmp_path_factory):
             (out / "real_noaa.md").read_text(encoding="utf-8"))
 
 
-def test_real_noaa_report_reproduces_exactly(fresh):
+def test_real_noaa_report_reproduces(fresh):
     data, md = fresh
     assert set(data["provenance"]["generation"]) == set(COMMITTED["provenance"]["generation"])
-    assert _strip(data) == _strip(COMMITTED), "results/real_noaa.json does not match a fresh run of the source tree"
+    # the JSON: bitwise on the build that generated it, the declared cross-build tolerance
+    # elsewhere (set_lcm.experiments.compare says what was measured and why)
+    failure = reproduction_failure("real_noaa.json", data, COMMITTED)
+    assert failure is None, failure
+    # the report itself: every number it states, at the precision it states it, on every build
     assert _body(md) == _body(COMMITTED_MD), "results/real_noaa.md does not match a fresh run of the source tree"
     # what the provenance block must carry: DAF's commit, each day's bridge provenance, the source hash
     prov = COMMITTED["provenance"]
