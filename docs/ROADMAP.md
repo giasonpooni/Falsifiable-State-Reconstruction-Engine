@@ -5,8 +5,8 @@ reconciliation, static fault geometry, simulated fault experiments and real-reco
 consistency reports. Dependable field diagnosis and degradation magnitude remain development
 targets. [Methods](METHODS.md) states the assumptions behind these extensions.
 
-**Only the foundation stage is the scope of the current branch. Later stages are planned
-work.** The sequence is ordered by the evidence each stage adds.
+**The foundation stage is implemented on `main`. Later stages are planned work.**
+The sequence is ordered by the evidence each stage adds.
 
 ## Scope: fluid systems
 
@@ -19,7 +19,7 @@ Thermal measurements are a candidate source of a second conservation relation on
 cooling-loop pipes: mass and energy balances. This is an alternative planned experiment to
 the river reach, not an implemented temperature estimator or a generic-domain expansion.
 
-## 1. Foundation — current branch
+## 1. Foundation — implemented
 
 Repair balance feedback so the full state and covariance remain consistent; validate
 numerical inputs and soft-projection parameters; enforce consistent ingestion units; and

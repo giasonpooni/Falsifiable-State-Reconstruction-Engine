@@ -1,5 +1,9 @@
 # Contributor brief
 
+`main` is the canonical development version. Build, validate and publish changes directly
+there; do not maintain separate development branches unless the user requests one.
+See [AGENTS.md](../AGENTS.md) for the repository workflow.
+
 The Fluid State Reconstruction Engine (FSRE) is a research toolkit for testing agreement between estimated states and declared physical relationships while retaining the evidence and every correction. Its development target is measurement-system diagnostics in fluid networks, including instrument drift, rating-curve errors and storage-model errors. Current real-data experiments demonstrate consistency checking, not validated causal diagnosis or degradation magnitude.
 
 Start with the [README](../README.md) and [usage guide](USAGE.md). Read [Methods](METHODS.md) before interpreting scores or fault geometry, and [Roadmap](ROADMAP.md) before extending the scope. Current numerical claims belong in the generated [reports](../results/); [Results](RESULTS.md) preserves the research history.

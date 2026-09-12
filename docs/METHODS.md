@@ -63,6 +63,14 @@ simultaneous-fault recovery or an operational diagnostic decision rule. The scal
 discards direction: with `S=I`, `[3,0]` and `[0,3]` both produce `T=9`. Isolation based on
 different directions must retain and use the residual vector.
 
+Each `FaultPair` also exposes `orthogonal_fraction`, the sine of the angle between the
+whitened signatures, and `isolation_amplification`, its reciprocal. For a fraction of
+0.002, only about one five-hundredth of a signature lies outside the alternative fault
+line. This measures geometric separation; it does not set an alarm threshold or guarantee
+correct attribution. The values depend on covariance and do not change the structural
+labels. They are available on the Python objects; `as_dict()` retains the existing report
+schema. Pairs containing an invisible fault have undefined angular diagnostics.
+
 For a sensor-space fault dictionary `D` in `r=D e`, uniqueness of every explanation with
 at most `s` nonzeros requires no nonzero vector in `null(D)` with support at most `2s`.
 Otherwise it can be split into two competing sparse explanations. For an underdetermined
@@ -219,6 +227,11 @@ CUSUM detects persistent prediction disagreement. Its channel identifies where d
 is observed, not necessarily its cause. Mean-shift monitoring is not a universal detector
 of variance growth, lost response or timing errors. Physical bounds require justified
 quantity definitions; a violation alone does not prove failed hardware.
+
+The committed [simulation report](../results/summary.md) supplies a counterexample:
+`leak_stale_constraint` injects a process leak with no sensor bias, yet the ordinary KF's
+sensor-2 CUSUM alarms within 100 steps in all 20 seeds, with median delay 59.5 steps.
+Identifying the channel that disagrees is therefore insufficient to identify faulty hardware.
 
 Discharge often depends on a stage-rating relationship changed by erosion, deposition,
 vegetation, debris or ice while the stage sensor still functions.

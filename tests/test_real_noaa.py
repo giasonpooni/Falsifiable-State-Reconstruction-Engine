@@ -2,20 +2,23 @@
 
 The run is small -- two water-level filters, a 13-point q grid, three days of 240 readings,
 a few seconds -- so the fast suite regenerates it and compares it with the committed files
-value for value: the JSON with only the latency columns and the generation stamp (interpreter,
-platform, source hash, git HEAD) excluded, as tests/test_results_reproduce.py does for the
-grid, and the markdown with only its generation line excluded. It also pins that the q_scale
+value for value under the declared cross-build tolerances: the JSON with only the latency
+columns and the generation stamp excluded, as tests/test_results_reproduce.py does for the
+grid. Each Markdown file must exactly render its own JSON, including its saved generation
+header; permitted numeric roundoff can change the final displayed digit. It also pins that the q_scale
 search never saw the held-out day, that the datum-invariance numbers in the report are what an
 independent pass through run() computes, and what the water-level filters refuse.
 """
+import copy
 import json
 
 import numpy as np
 import pytest
 
 from set_lcm.experiments import real_noaa
+from set_lcm.experiments import compare as comparison
 from set_lcm.experiments.compare import reproduction_failure
-from set_lcm.experiments.provenance import REPO_ROOT
+from set_lcm.experiments.provenance import REPO_ROOT, header_line
 from set_lcm.schema import Observation
 from set_lcm.testbed.estimators import ESTIMATORS, KFConfig
 from set_lcm.testbed.estimators_water import LevelTrendConfig, TideConfig, TideKF, speed_rad_per_s
@@ -27,16 +30,25 @@ COMMITTED = json.loads((RESULTS / "real_noaa.json").read_text(encoding="utf-8"))
 COMMITTED_MD = (RESULTS / "real_noaa.md").read_text(encoding="utf-8")
 
 
-def _strip(o):
-    if isinstance(o, dict):
-        return {k: _strip(v) for k, v in o.items() if k != "generation" and not k.startswith("latency_us")}
-    if isinstance(o, list):
-        return [_strip(v) for v in o]
-    return o
+def _rendered_report(data: dict) -> str:
+    """Render saved data without recomputing it or substituting this machine's provenance."""
+    stamp = header_line(data["provenance"]["generation"])
+    return real_noaa.render(data).replace("\n\n", "\n\n" + stamp + "\n\n", 1)
 
 
-def _body(md: str) -> list[str]:
-    return [ln for ln in md.splitlines() if not ln.startswith("Generated with ")]
+def _assert_report_matches_data(data: dict, md: str):
+    assert md == _rendered_report(data), "Markdown does not match the exact rendering of its JSON"
+
+
+def _assert_reproduction(data: dict, md: str):
+    assert set(data["provenance"]["generation"]) == set(COMMITTED["provenance"]["generation"])
+    # The numeric comparator still owns the existing build-dependent tolerances and
+    # exact checks on counts, decisions and claims. Markdown cannot tighten those
+    # tolerances implicitly when a permitted difference crosses a rounding boundary.
+    failure = reproduction_failure("real_noaa.json", data, COMMITTED)
+    assert failure is None, failure
+    _assert_report_matches_data(COMMITTED, COMMITTED_MD)
+    _assert_report_matches_data(data, md)
 
 
 @pytest.fixture(scope="module")
@@ -49,13 +61,7 @@ def fresh(tmp_path_factory):
 
 def test_real_noaa_report_reproduces(fresh):
     data, md = fresh
-    assert set(data["provenance"]["generation"]) == set(COMMITTED["provenance"]["generation"])
-    # the JSON: bitwise on the build that generated it, the declared cross-build tolerance
-    # elsewhere (set_lcm.experiments.compare says what was measured and why)
-    failure = reproduction_failure("real_noaa.json", data, COMMITTED)
-    assert failure is None, failure
-    # the report itself: every number it states, at the precision it states it, on every build
-    assert _body(md) == _body(COMMITTED_MD), "results/real_noaa.md does not match a fresh run of the source tree"
+    _assert_reproduction(data, md)
     # what the provenance block must carry: DAF's commit, each day's bridge provenance, the source hash
     prov = COMMITTED["provenance"]
     assert prov["daf_commit"] == json.loads((REPO_ROOT / "data" / "daf" / "manifest.json").read_text())["daf_commit"]
@@ -65,6 +71,55 @@ def test_real_noaa_report_reproduces(fresh):
         assert (b["n_records_in"], b["n_used"], b["n_in_conflict"]) == (240, 240, 0)
     assert len(prov["generation"]["source_sha256"]) == 64
     assert all(COMMITTED["claims"].values())
+
+
+def test_noaa_renderer_uses_saved_data_without_mutating_it():
+    data = copy.deepcopy(COMMITTED)
+    before = copy.deepcopy(data)
+    assert _rendered_report(data) == COMMITTED_MD
+    assert data == before
+
+
+@pytest.mark.parametrize("change", ["prose", "profile_cell", "generation_header"])
+def test_noaa_markdown_cannot_disagree_with_its_json(change):
+    if change == "prose":
+        original, altered = "Truth-free: nobody knows", "Validated: everybody knows"
+    elif change == "profile_cell":
+        cell = COMMITTED["fit"]["tide_kf"]["profile"][0]["loglik"]
+        original, altered = f"{cell:.1f}", f"{cell + 0.2:.1f}"
+    else:
+        original, altered = "Generated with Python", "Generated with unrecorded Python"
+    tampered = COMMITTED_MD.replace(original, altered, 1)
+    assert tampered != COMMITTED_MD
+    with pytest.raises(AssertionError, match="Markdown does not match"):
+        _assert_report_matches_data(COMMITTED, tampered)
+
+
+def test_permitted_profile_roundoff_may_change_a_displayed_digit(monkeypatch):
+    monkeypatch.setattr(comparison, "same_build", lambda generation: False)
+    data = copy.deepcopy(COMMITTED)
+    assert data["fit"]["tide_kf"]["argmax_index"] != 0
+    data["fit"]["tide_kf"]["profile"][0]["loglik"] += 0.2
+    md = _rendered_report(data)
+    assert md != COMMITTED_MD
+    _assert_reproduction(data, md)
+    # A report containing the committed cell is still wrong for this new JSON.
+    with pytest.raises(AssertionError, match="Markdown does not match"):
+        _assert_report_matches_data(data, COMMITTED_MD)
+
+
+@pytest.mark.parametrize("change", ["profile_beyond_tolerance", "argmax", "reading_count"])
+def test_consistent_markdown_cannot_hide_a_numeric_or_decision_regression(monkeypatch, change):
+    monkeypatch.setattr(comparison, "same_build", lambda generation: False)
+    data = copy.deepcopy(COMMITTED)
+    if change == "profile_beyond_tolerance":
+        data["fit"]["tide_kf"]["profile"][0]["loglik"] *= 1.001
+    elif change == "argmax":
+        data["fit"]["tide_kf"]["argmax_index"] += 1
+    else:
+        data["days"]["fit"]["n_grid"] += 1
+    with pytest.raises(AssertionError):
+        _assert_reproduction(data, _rendered_report(data))
 
 
 def test_the_q_search_never_sees_the_held_out_day(monkeypatch):

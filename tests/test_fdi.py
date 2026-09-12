@@ -1,10 +1,13 @@
 """Static single-fault residual-vector geometry, distinct from scalar detection power."""
+import json
+from pathlib import Path
+
 import numpy as np
 import pytest
 
 from set_lcm.experiments import real_water_balance as wb
 from set_lcm.fdi import (
-    COLLINEAR_COS, VISIBLE_D, isolability, residual_covariance, whitened_signature,
+    COLLINEAR_COS, VISIBLE_D, FaultPair, isolability, residual_covariance, whitened_signature,
 )
 from set_lcm.lcm import detectability
 from set_lcm.schema import ConstraintSet
@@ -41,6 +44,7 @@ def test_the_null_direction_is_invisible_and_confusable_with_nothing():
     pair = r.pairs[0]
     assert not pair.distinguishable and "invisible" in pair.why
     assert np.isnan(pair.cos)
+    assert np.isnan(pair.orthogonal_fraction) and np.isnan(pair.isolation_amplification)
 
 
 def test_rank_one_makes_every_visible_pair_confusable():
@@ -58,6 +62,7 @@ def test_rank_one_makes_every_visible_pair_confusable():
             if p.a in r.visible and p.b in r.visible:
                 assert abs(p.cos) >= COLLINEAR_COS, (p.a, p.b, p.cos)
                 assert not p.distinguishable
+                assert p.orthogonal_fraction == 0.0 and np.isinf(p.isolation_amplification)
 
 
 def test_rank_two_can_isolate_when_the_signatures_are_not_collinear():
@@ -84,6 +89,42 @@ def test_a_rank_two_residual_does_not_by_itself_buy_isolation():
     r = isolability({"f": [1.0, 1.0], "g": [2.0, 2.0]}, np.eye(2), cs)
     assert r.residual_rank == 2 and r.isolable == []
     assert "not collinear" in r.note or "not merely a residual" in r.note
+
+
+def test_near_collinear_diagnostics_do_not_withdraw_structural_distinguishability():
+    cs = ConstraintSet("identity", np.eye(2), np.zeros(2), "two independent rows")
+    epsilon = 2e-3
+    result = isolability({"f": [1.0, 0.0], "g": [1.0, epsilon]}, np.eye(2), cs)
+    pair = result.pairs[0]
+    assert pair.distinguishable and result.isolable == ["f", "g"]
+    expected = epsilon / np.sqrt(1.0 + epsilon ** 2)
+    assert pair.orthogonal_fraction == pytest.approx(expected, rel=1e-12)
+    assert pair.isolation_amplification == pytest.approx(1.0 / expected, rel=1e-12)
+    # The diagnostic is a geometric ratio of about 500, not a claim about a classifier.
+    assert pair.isolation_amplification > 500.0
+
+
+def test_angular_diagnostic_retains_small_separation_when_cosine_rounds_to_one():
+    cs = ConstraintSet("identity", np.eye(2), np.zeros(2), "two independent rows")
+    pair = isolability({"f": [1.0, 0.0], "g": [1.0, 1e-10]}, np.eye(2), cs).pairs[0]
+    assert pair.cos == 1.0
+    assert pair.orthogonal_fraction == pytest.approx(1e-10, rel=1e-12, abs=0.0)
+    assert pair.isolation_amplification == pytest.approx(1e10, rel=1e-12)
+    # Structural comparison still uses its declared numerical collinearity tolerance.
+    assert not pair.distinguishable
+
+
+def test_angular_diagnostics_preserve_pair_construction_and_archived_dictionary_schema():
+    original = FaultPair("a", "b", 0.0, True, "original interface")
+    assert np.isnan(original.orthogonal_fraction) and np.isnan(original.isolation_amplification)
+    cs = ConstraintSet("identity", np.eye(2), np.zeros(2), "two independent rows")
+    result = isolability({"a": [1.0, 0.0], "b": [0.0, 1.0]}, np.eye(2), cs)
+    assert result.pairs[0].orthogonal_fraction == 1.0
+    assert result.pairs[0].isolation_amplification == 1.0
+    assert result.as_dict()["pairs"] == [{
+        "a": "a", "b": "b", "cos": result.pairs[0].cos, "distinguishable": True,
+        "why": result.pairs[0].why,
+    }]
 
 
 # ---------------------------------------------------------------------------
@@ -153,6 +194,9 @@ def test_covariance_can_reduce_angular_separation_without_changing_structural_co
     assert ordinary.pairs[0].distinguishable and stretched.pairs[0].distinguishable
     # Reported cos is whitened geometry: practical separation can become very poor.
     assert abs(stretched.pairs[0].cos) > COLLINEAR_COS
+    assert ordinary.pairs[0].orthogonal_fraction == pytest.approx(1.0)
+    assert stretched.pairs[0].orthogonal_fraction == pytest.approx(2e-5, rel=1e-8)
+    assert stretched.pairs[0].isolation_amplification > 49_999.0
 
 
 def test_vector_isolation_does_not_imply_scalar_statistic_isolation():
@@ -180,6 +224,18 @@ def test_static_rank_one_result_does_not_rule_out_known_temporal_signatures():
     histories = np.column_stack([np.ones(4), np.arange(1.0, 5.0)])
     assert np.linalg.matrix_rank(histories) == 2
     assert "Known temporal fault profiles" in r.note and "not analyzed here" in r.note
+
+
+def test_committed_process_leak_can_alarm_a_sensor_channel_without_sensor_bias():
+    """An evidence-backed counterexample to treating the channel alarm as attribution."""
+    summary = json.loads((Path(__file__).resolve().parents[1] / "results" / "summary.json")
+                         .read_text(encoding="utf-8"))
+    leak = summary["scenarios"]["leak_stale_constraint"]
+    assert leak["meta"]["deg"]["bias"] is None
+    channels = leak["aggregate"]["kf"]["cusum"]
+    assert channels["s2"]["detection"]["detected_within"] == 20
+    assert channels["s2"]["detection"]["median_delay"] == 59.5
+    assert channels["s1"]["detection"]["detected_within"] == 0
 
 
 def test_one_visible_candidate_does_not_get_a_contradictory_rank_one_note():

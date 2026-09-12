@@ -17,6 +17,12 @@ model; finite-noise classification is a separate problem. All visible pairs at r
 are collinear. This is not a theorem about every time record: known temporal fault profiles,
 dynamic models, sign or amplitude restrictions, or changing residual maps may add information.
 
+FaultPair also exposes the whitened orthogonal fraction sin(theta) and its reciprocal.
+The reciprocal compares total signature length with the component an alternative fault
+line cannot explain. It is a geometric ratio, not a calibrated ratio of operational
+isolation and detection thresholds. These diagnostics depend on covariance and never
+change the structural labels. They are undefined for pairs containing an invisible fault.
+
 The scalar global statistic T = r^T S^-1 r discards vector direction. Even at rank 2,
 isolation established here requires retaining r, not T alone. No simultaneous-fault or
 operational diagnosis guarantee is made. A per-sensor innovation channel such as
@@ -99,13 +105,31 @@ def _cosine(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.clip(a @ b, -1.0, 1.0))
 
 
+def _orthogonal_fraction(a: np.ndarray, b: np.ndarray) -> float:
+    """Whitened angular separation, avoiding cancellation in sqrt(1 - cos(theta)^2)."""
+    a, b = _unit_direction(a, a.size), _unit_direction(b, b.size)
+    # The denominator retains the true floating-point norm: projecting an identical
+    # vector onto itself should leave exactly zero, not its normalization roundoff.
+    orthogonal = a - b * float((a @ b) / (b @ b))
+    return float(np.clip(np.linalg.norm(orthogonal) / np.linalg.norm(a), 0.0, 1.0))
+
+
 @dataclass(frozen=True)
 class FaultPair:
+    """Static structural comparison, with optional whitened conditioning diagnostics.
+
+    orthogonal_fraction is sin(theta); isolation_amplification is its reciprocal,
+    a geometric length ratio rather than an operational fault-size threshold. Exact
+    collinearity gives 0 and infinity. Both are NaN when either fault is invisible,
+    or when a caller constructs a pair using the original five-argument interface.
+    """
     a: str
     b: str
     cos: float                  # cosine between the two whitened signatures
     distinguishable: bool       # static row-space lines differ; not a finite-noise guarantee
     why: str
+    orthogonal_fraction: float = float("nan")
+    isolation_amplification: float = float("nan")
 
 
 @dataclass(frozen=True)
@@ -125,6 +149,7 @@ class Isolability:
     note: str
 
     def as_dict(self) -> dict:
+        """Preserve the archived report schema; object-only angular diagnostics are omitted."""
         return {
             "residual_rank": self.residual_rank,
             "d": dict(self.d),
@@ -180,12 +205,15 @@ def isolability(directions: dict, P: np.ndarray, cs: ConstraintSet) -> Isolabili
                 continue
             c = _cosine(unit_sig[a], unit_sig[b])
             same = abs(_cosine(geometry[a], geometry[b])) >= COLLINEAR_COS
+            orthogonal_fraction = _orthogonal_fraction(unit_sig[a], unit_sig[b])
+            amplification = float("inf") if orthogonal_fraction == 0.0 else 1.0 / orthogonal_fraction
             pairs.append(FaultPair(
                 a, b, c, not same,
                 ("the static residual signatures are numerically collinear: with unrestricted signed "
                  "unknown amplitude, either single fault can explain the same residual shift") if same else
                 "the static residual vector has non-collinear fault signatures under the single-fault "
-                "model; this does not imply separation by scalar T or reliable finite-noise diagnosis"))
+                "model; this does not imply separation by scalar T or reliable finite-noise diagnosis",
+                orthogonal_fraction=orthogonal_fraction, isolation_amplification=amplification))
 
     isolable = [n for n in visible
                 if all(p.distinguishable for p in pairs if n in (p.a, p.b) and p.a in visible and p.b in visible)]

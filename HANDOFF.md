@@ -1,5 +1,9 @@
 # Handoff — 2026-09-12
 
+> Historical handoff, retained for context. Current development is consolidated on `main`.
+> Start with the [contributor brief](docs/COLLABORATOR_BRIEF.md),
+> [roadmap](docs/ROADMAP.md) and [repository workflow](AGENTS.md).
+
 The build moves from the local session that wrote this repository to the cloud
 session "FSRE assembly and build". This file is for a session starting cold. README.md
 is the map of what exists and what each result does and does not show; this file says

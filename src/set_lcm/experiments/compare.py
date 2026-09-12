@@ -29,11 +29,13 @@ and is the one interesting result of the exercise: every one of real_noaa's larg
 deviations is a `tide_kf` log-likelihood at a q FAR FROM the fitted one, where the
 nine-state filter is so confident that S is tiny and nu^2/S is a large cancelling sum --
 -14290.5616 against -14290.6154 at q = 3.16e-7. At the fitted q the same quantity agrees to
-2.8e-10, the argmax is identical on both builds, and `results/real_noaa.md` -- every number
-the report actually states, at the precision it states it -- is byte-identical apart from
-its own provenance header. So the ill-conditioning is real, it is confined to the profile
-skirts, and it changes no reported number and no decision. The tolerances below say exactly
-that: a tight one per file, and one declared exception naming the skirts.
+2.8e-10 and the argmax is identical on both builds. The report also prints the non-winning
+profile cells: later Windows and Linux CI runs showed that permitted differences can change
+their final displayed digit (for example -14470.4 versus -14470.2 or -14470.3). This does not
+change the fitted q or relax any decision check. Markdown is therefore checked exactly
+against the renderer of its own JSON and saved generation header, while this comparator
+checks numerical reproduction across builds. The tolerances remain a tight one per file
+and one declared exception for profile log-likelihoods.
 
 A deviation beyond the declared tolerance is a failure on every build. These numbers leave
 two to three orders of magnitude of headroom over what was measured, so a real regression
@@ -95,7 +97,8 @@ EXCEPTIONS: dict[str, tuple[ToleranceException, ...]] = {
             rel_tol=1e-4,        # measured 3.765e-06
             why="the log-likelihood at a q far from the fitted one: S is tiny there and the sum of "
                 "nu^2 / S cancels heavily, so the last significant figures are the LAPACK build's. "
-                "The argmax, the fitted q_scale and every number the report prints are unaffected.",
+                "The argmax and fitted q_scale remain checked; non-winning profile cells may "
+                "round differently in the report, which must render its own JSON exactly.",
         ),
     ),
 }
