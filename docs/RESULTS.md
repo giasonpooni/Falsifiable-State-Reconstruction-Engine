@@ -43,6 +43,7 @@ P4, the first real observations (NOAA tide gauge); and P4b, the first real conse
 | `tools/export_daf_fixtures.py`, `data/daf/` | Runs DAF's own per-measurement NOAA binding on DAF's committed fixtures (replayed, no network) and writes what DAF admitted with DAF's `observation_to_dict`; `data/daf/PROVENANCE.md` and `manifest.json` record the pins, fixture hashes, binding parameters and command, and count per fixture NOAA's revision flag `q` and QC flag vector `f` as the raw bytes carry them — fields DAF keeps out of `Observation.content`, recorded as provenance and read by nothing on the bridging path. |
 | `src/set_lcm/experiments/phase1.py` | Where hidden truth is read and routed: `run_spec` hands the runner `PublicInputs.from_truth(truth)` and, through `oracle_inputs_for`, the hidden (u_actual, leak) to the oracle kind and to nothing else; the grid, the sweep and the calibration all run through it. The scenario grid with its per-scenario constraint builder (`ExactTotal` for the first six scenarios, `UncertainTotal` for `closed_uncertain_total`), the eleven estimator specs, multi-seed aggregation and report writer; `run_experiments.py` is a thin CLI over it. |
 | `src/set_lcm/experiments/real_noaa.py` | P4: the three committed NOAA days through the bridge (each file checked against `data/daf/manifest.json`; UTC, 360 s, replay with latency 0, refuse conflicts), both water-level filters through `run()`, `q_scale` fitted by innovation log-likelihood on a declared 13-point grid on 2024-01-15 MLLW only, evaluated on the held-out 2026-08-23 preliminary day and in-sample, R × 10 and × 100 sensitivity, the MLLW / STND datum check, a model-free second-difference check, the manifest's raw `q` / `f` counts per day (reported, never used), and `results/real_noaa.{md,json}` with a provenance block (DAF commit, each day's bridge provenance, source hash). Every qualitative sentence of the report that depends on the data is a computed condition (`claims`); if one stops holding the report is not written. |
+| `src/set_lcm/experiments/real_noaa_month.py` | P4c: the committed month of NOAA six-minute readings (2024-01, MLLW, 7,440 steps, none missing) through the same bridge, with the RECORD LENGTH as the declared axis. `resolvable()` gives the Rayleigh pair table for each window's own length, so a window cannot be described as separating a pair it does not: 31 days separate S2, N2 and O1 where 24 hours separate none of them, and the 15-day fit window separates S2 and O1 but not N2. `q_scale` is fitted by innovation log-likelihood on the first 15 days only, on the day report's own grids, and the disjoint second half is scored twice -- `fresh` from the declared prior and `continued` from one filter over the whole month -- so "held out" is a statement about state as well as about q. NOAA's stated per-reading sigma is described by its median, its extremes and their count, because one reading states 2.002 m against a median of 0.007 m and dominates every second moment of it. `results/real_noaa_month.{md,json}`. |
 | `src/set_lcm/experiments/provenance.py` | The provenance block every results file carries: interpreter and numpy versions, platform, source-tree SHA-256, git HEAD and a dirty flag. |
 | `src/set_lcm/experiments/calibration.py` | In-loop null of the consistency statistic (mean, tail quantiles, empirical vs nominal exceedance, autocorrelation time), a threshold × debounce sweep of the guard, and the null of the CUSUM channel over the same windows for h ∈ {4, 6, 8, 10}. |
 | `src/set_lcm/experiments/sweep.py` | Fault-magnitude sweep on four axes (declared-total error, sensor bias, leak rate, uncertain declared total with soft λ = 1/σ_b²); `kf_aug` runs on the first and third, `kf_closedq` and `kf+hard+fb+guard` on the first. Two axes also hand the same `b` to specs whose `ConstraintSet` declares `b_var`: `kf+hard(b_var)` and its guard on the uncertain total (b_var = σ_b²), `kf+hard(b_var=0.25)` and its guard on the declared-total error. |
@@ -953,3 +954,82 @@ consumer-declared with its citation; that U is *the* ungauged inflow rather than
 balance cannot close; or anything about an equal bias on an inflow and the outflow gauge, which
 cancels inside `(q_in1 + q_in2 − q_out)` before it reaches any state and is therefore invisible to
 the balance *and* outside what `d(f)` can score.
+
+## P4c: a month, and what record length buys
+
+NOAA 8454000 again, but 2024-01-01 to 2024-01-31 on MLLW: 7,440 six-minute readings, **none
+missing**, acquired live through DAF's own adapter over 30 recorded responses and committed as the
+observations they replay into. The 7,440 readings carry **21,360** admitted evidence ids between
+them: DAF's adapter re-requests a trailing safety window, so most readings were admitted more than
+once and the bridge deduplicates them on the way to one reading per grid point. Every number below is
+from `results/real_noaa_month.md`, which the fast suite regenerates and compares value for value.
+
+The day report's axis was the declared R (× 1, × 10, × 100). This report's axis is the **length of
+the record**, and the point is that length is not a free parameter.
+
+**What 31 days separate that 24 hours cannot.** Two tidal constituents need a record at least
+1/|n₁ − n₂| long to be told apart. Over a day that excludes S2 from M2 (14.8 days), N2 from M2
+(27.6 days) and O1 from K1 (13.7 days), which is why `tide_kf` carries M2, K1, O1, M4 and absorbs
+the rest. Over 31.0 days all three separations are inside the criterion, so `tide_month` carries six
+constituents. `resolvable()` computes the pair table from each window's own length, so no window can
+be described as separating a pair it does not.
+
+**And the split is not free — the fit window is too short for one of them.** Fitting on days 1–15
+and scoring days 16–31 leaves each half 15.0 and 16.0 days. 15.0 days separates S2 and O1 but
+**not N2**, which needs 27.6 and is reached only by the whole month. So `tide_month` declares six
+constituents on the strength of the month while the q it is scored with was fitted on a window where
+one of its own declared pairs is unresolved. There is no split of one month that avoids this; the
+report states it, prints the unresolved pair per window, and also reports the whole month in-sample.
+P1 is separable from K1 only over 182.6 days, so it is modelled nowhere and absorbed into K1 — and
+no K1 number in the repository is clean of it.
+
+**"Held out" is made a statement about state, not only about q.** The fit and held-out windows share
+no step, no calendar day and no evidence id (10,080 and 11,280 ids, no intersection; the check runs
+before any filter does). Each fitted q is then scored two ways on the same held-out readings:
+`fresh`, a filter started at the beginning of the held-out window from the declared prior, and
+`continued`, one filter over the whole month scored on the held-out steps only.
+
+| estimator | q (fit window) | z RMS fresh | z RMS continued | ratio |
+|---|---:|---:|---:|---:|
+| `level_trend` | 1e-06 m s^-3/2 | 0.797 | 0.797 | 0.9995 |
+| `tide_kf` | 3.16e-04 m s^-1/2 | 0.656 | 0.657 | 0.9984 |
+| `tide_month` | 3.16e-04 m s^-1/2 | 0.566 | 0.567 | 0.9973 |
+
+**The burn-in buys nothing measurable, and that is the result.** A filter started cold reaches the
+same z RMS over 3,840 steps as one carrying fifteen days of state. What that measures is the
+transient's length against the window's — not that carried state does not matter, which a shorter
+window would show differently.
+
+**One reading decides every second moment of the stated uncertainty.** R throughout is NOAA's own
+stated σ² per reading, carried by the bridge and never edited. Its median over the month is
+**0.0070 m**; one reading, at 2024-01-19T22:18 (step 4,543), states **2.002 m** — 286 times the
+median. That single statement raises the month's RMS stated σ from 0.0091 m to 0.0249 m, and it
+lands in the held-out half, which is why that half's RMS is the larger one. A second reading states
+0.088 m. Every quantity that is a second moment of the stated σ is therefore a statement about one
+reading as much as about the month, and the report prints the median beside each of them. Separately,
+37 readings state σ = 0.000 m, which the bridge carries as R = 0 exactly — the filter is asked to
+treat them as exact. Counted, never adjusted.
+
+**The model-free bound gets sharper, and it disagrees with the stated σ in a direction worth
+stating.** With no filter: if each reading's error were white with variance σ_e² and independent of
+the water level, the expected mean square of the series' second differences would be at least 6σ_e²,
+so σ_e ≤ rms(d²y)/√6 in expectation. The month has 7,438 second differences against a day's 238.
+
+| window | second differences | σ_e bound | median stated σ | median σ / bound | null rel. sd of the mean square |
+|---|---:|---:|---:|---:|---:|
+| `fit` | 3,598 | 0.0043 m | 0.0070 m | 1.64 | 8.01% |
+| `held_out` | 3,838 | 0.0028 m | 0.0070 m | 2.47 | 133.34% |
+| `month` | 7,438 | 0.0036 m | 0.0070 m | 1.95 | 122.45% |
+
+The stated σ exceeds the bound on the median reading in **every** window, so the direction of that
+finding does not come from the 2.002 m statement — though its size in any RMS column does, and the
+null relative scatter above 100% is that one reading showing up as the dominant term of an expected
+mean square. This is the same fact the filters report as a z RMS below 1: a declared R larger than
+the innovations it predicts.
+
+What it does **not** show: that NOAA's stated σ is wrong. The bound assumes a white error
+independent of the water level, and a published accuracy statement can carry a time-correlated part
+that no second difference bounds. What the comparison supports is that this record is smoother than
+the declared R treats it as being — a statement about the pair, not about either alone. Nor does
+anything here score an estimate against the water level, which nobody knows; nor does one month at
+one station on one datum generalise to another season.

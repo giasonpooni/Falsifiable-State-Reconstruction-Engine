@@ -147,6 +147,10 @@ Start from the relevant working integration:
 
 - [`real_noaa.py`](../src/set_lcm/experiments/real_noaa.py): one gauge, water-level filters,
   no conservation constraint, training and evaluation on separate days.
+- [`real_noaa_month.py`](../src/set_lcm/experiments/real_noaa_month.py): the same gauge over a
+  month, with the record length as the declared axis: the Rayleigh pair table per window, a
+  q fitted on the first half and scored on the disjoint second half both cold and continued,
+  and NOAA's stated per-reading sigma described by its median as well as its second moments.
 - [`real_water_balance.py`](../src/set_lcm/experiments/real_water_balance.py): storage and
   three flow series, explicit unit conversion and uncertainty assumptions.
 - [`phase1.py`](../src/set_lcm/experiments/phase1.py): simulated measurements and known faults,
@@ -171,6 +175,7 @@ uv run --frozen --python 3.13 python run_experiments.py
 uv run --frozen --python 3.13 python -m set_lcm.experiments.calibration
 uv run --frozen --python 3.13 python -m set_lcm.experiments.sweep
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_noaa
+uv run --frozen --python 3.13 python -m set_lcm.experiments.real_noaa_month --quiet
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_water_balance
 uv run --frozen --python 3.13 python -m set_lcm.experiments.fluid_baseline --quiet
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_fluid_baseline --quiet

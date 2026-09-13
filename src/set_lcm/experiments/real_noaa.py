@@ -257,6 +257,12 @@ def series_extremes(bs: BridgedSeries) -> dict:
 
 
 def series_check(bs: BridgedSeries) -> dict:
+    """series_check_arrays over one bridged day; see it for what the numbers mean."""
+    return series_check_arrays(np.array([o.y[0] for o in bs.observations]),
+                               np.array([float(o.R[0, 0]) for o in bs.observations]))
+
+
+def series_check_arrays(y: np.ndarray, var: np.ndarray) -> dict:
     """Model-free: if the error of each six-minute value were white with variance sigma_e^2
     and independent of the water level, the EXPECTED mean square of the series' second
     differences would be at least 6 sigma_e^2 (the water's own second differences add to it),
@@ -265,20 +271,32 @@ def series_check(bs: BridgedSeries) -> dict:
     Gaussian errors of the stated sigma_j, the error part d2 e = D e has covariance
     C = D diag(sigma_j^2) D^T, and its mean square has expectation tr(C)/N and relative sd
     sqrt(2 tr(C C)) / tr(C) (a Gaussian quadratic form; the water-error cross term, zero in
-    mean, adds scatter this does not count). A time-correlated error is not bounded by this."""
-    y = np.array([o.y[0] for o in bs.observations])
-    var = np.array([float(o.R[0, 0]) for o in bs.observations])
+    mean, adds scatter this does not count). A time-correlated error is not bounded by this.
+
+    Takes the readings and their stated variances as arrays so one derivation serves both
+    the day report and the month report, which scores calendar windows of one record."""
+    y = np.asarray(y, dtype=float)
+    var = np.asarray(var, dtype=float)
+    if y.ndim != 1 or var.shape != y.shape or y.size < 3:
+        raise ValueError("series_check needs matching 1-D readings and variances, at least three")
     if not np.all(np.isfinite(y)):
-        raise ValueError("series_check needs a complete day")
+        raise ValueError("series_check needs a complete record")
     d2 = np.diff(y, 2)
     rms_d2 = float(np.sqrt(np.mean(d2 ** 2)))
     bound = rms_d2 / math.sqrt(6.0)
     rms_sigma = float(np.sqrt(np.mean(var)))
+    # C = D diag(var) D^T with D the second-difference operator. Formed banded rather than
+    # from a dense (n-2, n) D: over a month's 7,440 steps the dense intermediate is 440 MB,
+    # and the result is the same numbers. C is symmetric and pentadiagonal, rows [1, -2, 1].
     n = y.size
-    D = np.zeros((n - 2, n))
-    for i in range(n - 2):
-        D[i, i:i + 3] = (1.0, -2.0, 1.0)
-    C = D @ np.diag(var) @ D.T
+    w = np.array([1.0, -2.0, 1.0])
+    C = np.zeros((n - 2, n - 2))
+    for offset in range(3):                  # |i - j| > 2 rows share no reading, so C is zero there
+        overlap = w[: 3 - offset] * w[offset:]
+        for i in range(n - 2 - offset):
+            value = float(overlap @ var[i + offset:i + 3])
+            C[i, i + offset] = value
+            C[i + offset, i] = value
     tr = float(np.trace(C))
     return {
         "n_second_differences": int(d2.size),

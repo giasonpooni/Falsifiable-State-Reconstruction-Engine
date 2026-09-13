@@ -120,6 +120,7 @@ operational workflow.
 | Ridgway measurement baseline | Matching daily intervals and full residual covariance, under declared timing/model and uncertainty assumptions. | [Measurement replay](results/real_fluid_baseline.md) |
 | Two-reservoir simulation | Noise, missing readings, biased sensors and stale balances, scored against hidden simulated truth. | [Simulation results](results/summary.md) |
 | NOAA tide gauge | Measurement replay, water-level filters and checks that do not require known truth. | [Water-level results](results/real_noaa.md) |
+| NOAA tide gauge, one month | What record length changes: which tidal constituents 31 days separate and 15 do not, a q fitted on the first half and scored on the second, and the stated per-reading uncertainty against a model-free bound. | [Month results](results/real_noaa_month.md) |
 | Ridgway filter study | Historical estimator comparison, retaining its documented daily-mean/reference approximation. | [Water-balance results](results/real_water_balance.md) |
 
 To run the default test suite:

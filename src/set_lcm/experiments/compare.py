@@ -81,6 +81,7 @@ TOLERANCE: dict[str, float] = {
     "sweep.json": 1e-11,         # measured 1.191e-13
     "calibration.json": 1e-12,   # measured 4.828e-16
     "real_noaa.json": 1e-8,      # measured 2.3e-10 outside the exception below
+    "real_noaa_month.json": 1e-8,
     "real_water_balance.json": 1e-8,
     "fluid_baseline.json": 1e-8,
     "real_fluid_baseline.json": 1e-8,
@@ -102,6 +103,20 @@ EXCEPTIONS: dict[str, tuple[ToleranceException, ...]] = {
             contains=(".blind.d.null_space (S + G)",), rel_tol=1e-8, abs_tol=1e-30,
             why="a structurally null direction computed by SVD: measured 0 versus 1.37e-37 "
                 "across builds; use the same absolute bound as the analytic null-direction test",
+        ),
+    ),
+    "real_noaa_month.json": (
+        ToleranceException(
+            contains=(".loglik",),
+            rel_tol=1e-4,
+            why="an innovation log-likelihood summed over 3,600 to 7,440 steps: a large sum of "
+                "-1/2 (log(2 pi S) + nu^2 / S) terms that cancel heavily, so its last significant "
+                "figures are the LAPACK build's. This allowance is INHERITED from real_noaa.json's "
+                "measured 3.765e-06 on the same quantity over one day, not measured on this file: "
+                "this repository has only ever generated it on one build. A month has 15 to 31 "
+                "times a day's terms, so the allowance is the right order but its headroom is "
+                "declared rather than known. Every fitted q_scale, argmax index, grid-interior "
+                "flag, count and label remains checked exactly.",
         ),
     ),
     "real_noaa.json": (

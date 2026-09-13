@@ -22,6 +22,7 @@ from set_lcm.experiments.provenance import REPO_ROOT
 RESULTS = REPO_ROOT / "results"
 WB = json.loads((RESULTS / "real_water_balance.json").read_text(encoding="utf-8"))
 FLUID = json.loads((RESULTS / "real_fluid_baseline.json").read_text(encoding="utf-8"))
+NOAA_MONTH = json.loads((RESULTS / "real_noaa_month.json").read_text(encoding="utf-8"))
 
 
 def _prose(path):
@@ -142,3 +143,44 @@ def test_every_declared_citation_reaches_the_report_a_reader_reads():
 
         walk(data)
     assert not unrendered, f"declared citations stored but never rendered: {unrendered}"
+
+
+def test_the_month_narrative_quotes_the_month_artifact():
+    """P4c's numbers in docs/RESULTS.md, each formatted from the artifact it came from."""
+    windows, fits, scored = NOAA_MONTH["windows"], NOAA_MONTH["fits"], NOAA_MONTH["scored"]
+    assert f"{windows['month']['n_steps']:,}" in DOC
+    for key in ("fit", "held_out", "month"):
+        assert f"{windows[key]['n_evidence_ids']:,}" in DOC, key
+        check = windows[key]["series_check"]
+        assert f"{check['n_second_differences']:,}" in DOC, key
+        assert f"{check['white_error_sigma_bound']:.4f}" in DOC, key
+        assert f"{check['null_rel_sd_mean_square'] * 100:.2f}%" in DOC, key
+        assert f"{windows[key]['stated_sigma_over_white_bound']['median']:.2f}" in DOC, key
+        assert f"{windows[key]['resolution']['record_days']:.1f}" in DOC, key
+
+    sigma = windows["month"]["stated_sigma"]
+    assert f"{sigma['median']:.4f}" in DOC
+    assert f"{sigma['max']:.3f}" in DOC
+    worst = sigma["extreme"][0]
+    assert worst["time"][:16] in DOC
+    assert f"{worst['step_in_record']:,}" in DOC
+    assert f"{worst['over_median']:.0f} times" in DOC
+    assert f"{sigma['rms_without_extreme']:.4f}" in DOC and f"{sigma['rms']:.4f}" in DOC
+    assert f"{sigma['n_stated_zero']} readings state" in DOC
+
+    for kind, entry in scored.items():
+        held = entry["held_out"]
+        assert f"{held['fresh']['z_rms']:.3f}" in DOC, kind
+        assert f"{held['z_rms_fresh_over_continued']:.4f}" in DOC, kind
+        q_scale = fits[kind]["q_scale"]
+        assert f"{q_scale:.2e}" in DOC or f"{q_scale:g}" in DOC, kind
+
+    # the claim that carries the most weight, and its assumption
+    assert "exceeds the bound on the median reading in **every** window" in DOC
+    assert "that NOAA's stated" in DOC and "is wrong" in DOC
+    assert "smoother than the declared R" in DOC
+    # and the split's cost, which is the reason the month report exists
+    unresolved = windows["fit"]["resolution"]["unresolved_among_modelled"]
+    assert unresolved, "the narrative claims the fit window leaves a pair unresolved"
+    for row in unresolved:
+        assert f"{row['rayleigh_days']:.1f}" in DOC, row
