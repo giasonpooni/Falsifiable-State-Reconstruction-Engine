@@ -1,6 +1,6 @@
 # Synthetic camera/gauge level baseline
 
-Generated with Python 3.13.12, numpy 2.5.3 on Windows-11-10.0.26200-SP0; source sha256 34b785c656ca, git 2fa740771b. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 442812000c72, git a188c97403. Latency columns are wall-clock on this machine and are not a claim.
 
 **Rendered synthetic frames; no field validation or automatic source isolation.**
 
