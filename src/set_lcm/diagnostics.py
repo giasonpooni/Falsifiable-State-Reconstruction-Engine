@@ -12,6 +12,15 @@ residual norms have chi-square distributions with their remaining residual degre
 freedom. Thresholds use a converged incomplete-gamma calculation, not an asymptotic
 quantile approximation. Existing reconciliation-kernel arithmetic is unchanged.
 
+A PERFORMANCE NOTE, measured rather than inferred, for a caller with a long residual. The
+whitening solves one right-hand side per candidate, and numpy's `solve` takes a markedly
+slower path for a 1-D right-hand side above roughly 128 rows on this build: a 160-row system
+costs about 15 ms per vector, while the same eight vectors solved as one matrix cost 0.3 ms in
+total. Batching them is not done here because it is NOT bitwise identical -- measured at up to
+1.3e-10 across random shapes -- and `results/` is reproduced bitwise on its generating build.
+A caller stacking many intervals into one residual should expect that cost and shorten the
+record or split it rather than assume the call is cheap.
+
 An adequate candidate is not an actionable one: another candidate may explain the record
 equally well. Every observable candidate therefore reports its separation from the nearest
 other one in these whitened coordinates, and its reciprocal -- how much larger an amplitude

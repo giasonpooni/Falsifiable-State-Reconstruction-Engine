@@ -105,6 +105,7 @@ TOLERANCE: dict[str, float] = {
     "real_water_balance.json": 1e-8,
     "second_balance.json": 1e-8,   # a design study: linear algebra on declared matrices
     "errors_in_variables.json": 1e-8,   # seeded Monte Carlo; the seed is declared in the report
+    "muskingum_reach.json": 1e-8,       # seeded synthetic records; seeds declared in the report
     "fluid_baseline.json": 1e-8,      # measured 3.145e-12
     "real_fluid_baseline.json": 1e-8,
     "invariant_layer.json": 1e-8,     # measured 0: bitwise across Windows and Linux

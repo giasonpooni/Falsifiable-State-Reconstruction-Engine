@@ -186,6 +186,9 @@ public inputs; do not treat missing units or unknown uncertainty as zero.
 
 Start from the relevant working integration:
 
+- [`muskingum_reach.py`](../src/set_lcm/experiments/muskingum_reach.py): two river reaches with
+  continuity and Muskingum routing, the first topology here whose residual is not a scalar, with
+  fault recovery scored against known injected truth.
 - [`real_noaa.py`](../src/set_lcm/experiments/real_noaa.py): one gauge, water-level filters,
   no conservation constraint, training and evaluation on separate days.
 - [`real_noaa_month.py`](../src/set_lcm/experiments/real_noaa_month.py): the same gauge over a
@@ -216,6 +219,7 @@ uv run --frozen --python 3.13 python run_experiments.py
 uv run --frozen --python 3.13 python -m set_lcm.experiments.calibration
 uv run --frozen --python 3.13 python -m set_lcm.experiments.sweep
 uv run --frozen --python 3.13 python -m set_lcm.experiments.second_balance --quiet
+uv run --frozen --python 3.13 python -m set_lcm.experiments.muskingum_reach --quiet
 uv run --frozen --python 3.13 python -m set_lcm.experiments.errors_in_variables --quiet
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_noaa
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_noaa_month --quiet

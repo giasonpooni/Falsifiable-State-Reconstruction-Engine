@@ -98,7 +98,35 @@ Perspective, rotation and moving-camera 3-D pose need a separate experiment and 
 model before extending the registration or claiming odometry support. No FluidNexus code
 or generated-view measurements are imported into this prototype.
 
-## 3. A second independent balance — designed, not yet built
+## 3. A second independent balance — built
+
+**Delivered: [`results/muskingum_reach.md`](../results/muskingum_reach.md)**, on the design the
+study below selected. The rule is the residual vector and its joint covariance through
+`diagnose()`, not a rank calculation and not a scalar threshold. Against the stage's own
+acceptance criteria, on 64 evaluation seeds disjoint from 16 development seeds:
+
+- **Each nonzero single-gauge persistent bias is recovered** at the strong declared magnitude:
+  6 of 6 declared instrument faults identified correctly in 100% of records with routing.
+  Continuity alone recovers 0% of the two storage biases and 0% of a common flow drift,
+  because it cannot see them at any magnitude.
+- **A common offset invisible to the balance** is named rather than hoped for: a coordinated
+  offset of both storage sensors by K times a common offset on all three flow gauges produces
+  exactly zero residual. That is the topology's blind spot, stated.
+- **Ambiguity when a nuisance mimics a fault** is delivered by the catalogue, not the topology.
+  An ungauged lateral inflow produces the same residual direction as an inflow-gauge bias, so
+  with only instrument candidates declared the rule confidently names an instrument in 100% of
+  records. Declaring the physical explanation converts that to 100% ambiguous with the correct
+  explanation among them. A catalogue of only instrument faults will blame an instrument for a
+  river.
+- **Parameter error is not a fault.** With the true reach at K = 1.15, x = 0.28 while the rows
+  declare K = 1.0, x = 0.2, a healthy river raises a false alarm in 100% of records with A
+  treated as exact, and 0% once the parameter uncertainty is declared (stage 3b).
+
+Remaining for this stage: correlated observations beyond the shared storage reading the design
+already carries, interval semantics other than the declared trapezoidal mean, and an onset that
+is searched rather than supplied.
+
+## 3a. The design study that chose it
 
 **The design study is committed: [`results/second_balance.md`](../results/second_balance.md).**
 It runs `fdi.isolability()` on both candidates before either is built, because a second
