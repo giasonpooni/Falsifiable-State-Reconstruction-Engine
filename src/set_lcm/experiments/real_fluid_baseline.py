@@ -184,8 +184,8 @@ def build_report(*, window_days: int = WINDOW_DAYS,
             "untested_adjacent_pairs": len(bs.observations) - 1 - sum(w["n_residuals"] for w in windows),
             "rejected_windows": sum(w["status"] != "consistent" for w in windows),
         })
-    return {
-        "schema_version": "fsre-real-fluid-baseline-v2",
+    out = {
+        "schema_version": "fsre-real-fluid-baseline-v3",
         "scope": "Real-record conditional consistency; no known fault labels or ground truth.",
         "declared": {
             "window_days": window_days, "window_policy": "nonoverlapping, anchored at first source day",
@@ -215,9 +215,53 @@ def build_report(*, window_days: int = WINDOW_DAYS,
             "Legacy wb_open/wb_aug/wb_closed filters retain their documented approximation; this path works directly on measurements.",
         ],
     }
+    out["claims"] = claims(out)
+    return out
+
+
+def claims(report: dict) -> dict:
+    """Every qualitative sentence render() prints, as a computed condition.
+
+    If one fails the report is not written: the text would no longer be true of the numbers.
+    The sentences that need it are the ones about the WINDOW AXIS -- that a longer window
+    rejects more often on the same measurements, and that the axis moves the rate at least as
+    far as the declared sigma does. Both are properties of this record.
+    """
+    cells = {(c["storage_sigma_acre_ft"], c["window_days"]): c for c in report["window_sensitivity"]}
+    sigmas = sorted({sigma for sigma, _ in cells})
+    lengths = sorted({length for _, length in cells})
+    medians_rise = all(
+        [cells[(sigma, length)]["statistic_over_threshold"]["median"] for length in lengths]
+        == sorted(cells[(sigma, length)]["statistic_over_threshold"]["median"] for length in lengths)
+        for sigma in sigmas)
+    window_spread = max(cells[(sigmas[0], length)]["rejected_fraction"] for length in lengths) - \
+        min(cells[(sigmas[0], length)]["rejected_fraction"] for length in lengths)
+    sigma_spread = max(cells[(sigma, report["declared"]["window_days"])]["rejected_fraction"]
+                       for sigma in sigmas) - \
+        min(cells[(sigma, report["declared"]["window_days"])]["rejected_fraction"] for sigma in sigmas)
+    return {
+        "the_declared_window_is_one_point_of_the_swept_axis":
+            report["declared"]["window_days"] in lengths,
+        "a_longer_window_raises_the_median_statistic_over_its_threshold": medians_rise,
+        "the_window_axis_moves_the_rate_at_least_as_far_as_the_sigma_axis":
+            window_spread >= sigma_spread,
+        "a_wider_declared_sigma_never_rejects_more": all(
+            (lambda rates: rates == sorted(rates, reverse=True))(
+                [cells[(sigma, length)]["rejected_fraction"] for sigma in sigmas])
+            for length in lengths),
+        "every_cell_reports_how_close_its_median_window_was": all(
+            c["statistic_over_threshold"]["median"] is not None for c in cells.values()),
+        "the_declared_cell_agrees_with_the_detailed_sweep": all(
+            cells[(sweep["storage_sigma_acre_ft"], report["declared"]["window_days"])]["rejected_windows"]
+            == sweep["rejected_windows"] for sweep in report["sweeps"]),
+    }
 
 
 def render(report: dict) -> str:
+    failed = [name for name, held in report.get("claims", {}).items() if not held]
+    if failed:
+        raise RuntimeError(f"report text no longer true of the numbers: {failed}; "
+                           f"revise render() before writing")
     lines = ["# Real fluid-measurement baseline — Ridgway", "",
              header_line(report["provenance"]["generation"]), "", report["scope"], "",
              "Storage and flow are interpreted as matching UTC daily means under the inherited consumer",

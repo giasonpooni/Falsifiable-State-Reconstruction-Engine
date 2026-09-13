@@ -242,3 +242,49 @@ def test_the_report_says_what_it_cannot_validate(report):
                    "The split is not free", "absorbed into the K1 coefficients"):
         assert phrase in text, phrase
     assert report["windows"]["month"]["role"].endswith("in-sample for every fitted q")
+
+
+# ---------------------------------------------------------------------------
+# the report is not written when its own sentences stop being true
+# ---------------------------------------------------------------------------
+
+def test_every_qualitative_sentence_is_a_computed_condition(report):
+    assert report["claims"], "the report declares no claims"
+    assert all(report["claims"].values()), [k for k, v in report["claims"].items() if not v]
+
+
+def test_a_failed_claim_refuses_to_write_the_report(report):
+    """The guard exists because a sentence behind `if computable` is not a sentence behind
+    `if true`: the first draft printed "a z RMS below 1" when 11 of 12 scorings were."""
+    broken = dict(report)
+    broken["claims"] = dict(report["claims"], no_missing_readings=False)
+    with pytest.raises(RuntimeError, match="no longer true of the numbers"):
+        month.render(broken)
+
+
+def test_the_z_rms_sentence_counts_the_scorings_rather_than_asserting_all_of_them(report):
+    scorings = [entry[key]["z_rms"] for entry in report["scored"].values()
+                for key in ("in_sample_fit_window", "whole_month_in_sample")]
+    scorings += [entry["held_out"][key]["z_rms"] for entry in report["scored"].values()
+                 for key in ("fresh", "continued")]
+    below = sum(1 for value in scorings if value < 1.0)
+    assert 0 < below < len(scorings), "the scoping only matters while not every scoring is below 1"
+    assert f"which {below} of the {len(scorings)} scorings above are" in month.render(report)
+
+
+def test_the_claims_cover_the_sentences_that_assert_something_about_the_data(report):
+    """A spot check that the guard is not decorative: each of these is a sentence in the text."""
+    expected = {
+        "month_separates_every_modelled_pair",
+        "fit_window_leaves_a_modelled_pair_unresolved",
+        "fit_window_separates_S2_and_O1",
+        "P1_unresolved_in_every_window",
+        "P1_modelled_nowhere",
+        "fit_and_held_out_share_no_evidence",
+        "burn_in_changes_z_rms_by_under_five_percent",
+        "continued_alarm_steps_convert_to_the_fresh_window",
+        "one_reading_dominates_the_stated_sigma_rms",
+        "the_largest_stated_sigma_is_in_the_held_out_half",
+        "stated_sigma_exceeds_the_white_bound_in_every_window",
+    }
+    assert expected <= set(report["claims"]), expected - set(report["claims"])

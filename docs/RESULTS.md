@@ -1024,8 +1024,9 @@ so σ_e ≤ rms(d²y)/√6 in expectation. The month has 7,438 second difference
 The stated σ exceeds the bound on the median reading in **every** window, so the direction of that
 finding does not come from the 2.002 m statement — though its size in any RMS column does, and the
 null relative scatter above 100% is that one reading showing up as the dominant term of an expected
-mean square. This is the same fact the filters report as a z RMS below 1: a declared R larger than
-the innovations it predicts.
+mean square. It is the same fact the filters report as a z RMS below 1, which **11 of the 12**
+scorings in the report are — `level_trend` on the fit window reads 1.002 and is the exception: a
+declared R larger than the innovations it predicts.
 
 What it does **not** show: that NOAA's stated σ is wrong. The bound assumes a white error
 independent of the water level, and a published accuracy statement can carry a time-correlated part

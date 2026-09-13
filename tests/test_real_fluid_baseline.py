@@ -193,3 +193,15 @@ def test_the_report_says_the_rate_is_not_a_property_of_the_gauges(report):
     assert "*(declared)*" in md
     for phrase in ("median stat/threshold", "consumer choice"):
         assert phrase in md, phrase
+
+
+def test_every_qualitative_sentence_of_the_report_is_a_computed_condition(report):
+    """The window-axis sentences assert something about this record, so they are claims."""
+    assert report["claims"] and all(report["claims"].values()), \
+        [k for k, v in report["claims"].items() if not v]
+    for name in ("a_longer_window_raises_the_median_statistic_over_its_threshold",
+                 "the_window_axis_moves_the_rate_at_least_as_far_as_the_sigma_axis"):
+        assert name in report["claims"], name
+    broken = dict(report, claims=dict(report["claims"], a_wider_declared_sigma_never_rejects_more=False))
+    with pytest.raises(RuntimeError, match="no longer true of the numbers"):
+        baseline.render(broken)

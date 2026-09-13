@@ -466,7 +466,7 @@ def compute() -> dict:
             per_spec[spec.name] = entry
         sweep[f"{sigma:g}"] = {"storage_sigma": sigma, "specs": per_spec}
 
-    return {
+    out = {
         "site": {
             "reservoir": "Ridgway Reservoir, Uncompahgre River, Colorado",
             "series": {role: {"monitoring_location_id": SITES[role][0], "parameter_code": SITES[role][1],
@@ -502,6 +502,45 @@ def compute() -> dict:
         "blind": blind_directions(s0, STORAGE_SIGMA_BASE ** 2),
         "sweep": sweep,
         "provenance": {"bridge": base.provenance, "daf_commit": base.provenance["daf_commit"]},
+    }
+    out["claims"] = claims(out)
+    return out
+
+
+def claims(r: dict) -> dict:
+    """Every qualitative sentence the report prints, as a computed condition.
+
+    If one fails the report is not written, because the text would no longer be true of the
+    numbers -- the guard real_noaa.claims() applies to the day report. The sentences that
+    need it here are the ones about DISTANCE FROM ZERO: the report says the three-year
+    cumulative is indistinguishable from zero and that the two routes agreeing near it is not
+    evidence of an imbalance. Both are properties of this record, not of the arithmetic, and a
+    record where they failed would make the text false rather than merely dull.
+    """
+    closure = r["closure_free"]
+    interval = closure["cumulative_ci95_ar1"]
+    augmented = [entry["ungauged_cumulative"] for cell in r["sweep"].values()
+                 for entry in cell["specs"].values() if entry.get("ungauged_cumulative")]
+    return {
+        "the_cumulative_interval_contains_zero": (
+            interval is not None and interval[0] < 0.0 < interval[1]),
+        "the_cumulative_is_under_two_standard_errors_from_zero": (
+            closure["cumulative_in_se_ar1"] is not None
+            and abs(closure["cumulative_in_se_ar1"]) < 1.96),
+        "a_positive_lag1_widens_the_standard_error": (
+            closure["lag1_autocorr"] > 0.0 and closure["cumulative_se_ar1"] > closure["cumulative_se"] > 0.0),
+        "the_daily_scatter_dwarfs_the_daily_mean": closure["sd"] > 10.0 * abs(closure["mean"]),
+        "every_augmented_run_reports_its_own_sd_ratio": all(
+            a["final_in_sd"] is not None for a in augmented),
+        "feedback_reports_the_largest_sd_ratio": all(
+            max(cell["specs"], key=lambda name: (
+                cell["specs"][name]["ungauged_cumulative"]["final_in_sd"]
+                if cell["specs"][name].get("ungauged_cumulative") else float("-inf"))
+            ) == "wb_aug+hard+feedback" for cell in r["sweep"].values()),
+        "a_wider_declared_sigma_never_rejects_more": (
+            lambda rates: rates == sorted(rates, reverse=True)
+        )([r["sweep"][f"{sigma:g}"]["specs"]["wb_open"]["consistency_stat"]["fraction_over_threshold"]
+           for sigma in sorted(STORAGE_SIGMA_SWEEP)]),
     }
 
 

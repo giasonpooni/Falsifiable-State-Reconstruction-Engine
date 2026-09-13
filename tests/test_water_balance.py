@@ -12,6 +12,7 @@ import pytest
 
 from set_lcm.experiments import real_water_balance as wb
 from set_lcm.experiments.compare import reproduction_failure
+from set_lcm.experiments.real_water_balance_report import render_report
 from set_lcm.experiments.provenance import REPO_ROOT
 from set_lcm.lcm import detectability
 from set_lcm.schema import Observation, Status
@@ -399,3 +400,21 @@ def test_the_augmented_route_reports_how_far_its_own_U_is_from_zero(fresh):
                   if e.get("ungauged_cumulative")}
         assert max(ratios, key=ratios.get) == "wb_aug+hard+feedback", ratios
     assert "shrinks the very sd that column divides by" in md
+
+
+def test_every_qualitative_sentence_of_the_report_is_a_computed_condition(fresh):
+    """The report's claims about distance from zero are properties of this record.
+
+    They are the sentences most likely to become false quietly if the evidence changed,
+    so render_report() refuses to write when one of them fails.
+    """
+    data, _ = fresh
+    assert data["claims"] and all(data["claims"].values()), \
+        [k for k, v in data["claims"].items() if not v]
+    for name in ("the_cumulative_interval_contains_zero",
+                 "the_cumulative_is_under_two_standard_errors_from_zero",
+                 "feedback_reports_the_largest_sd_ratio"):
+        assert name in data["claims"], name
+    broken = dict(data, claims=dict(data["claims"], the_cumulative_interval_contains_zero=False))
+    with pytest.raises(RuntimeError, match="no longer true of the numbers"):
+        render_report(broken)

@@ -562,6 +562,7 @@ def test_export_tool_reproduces_the_committed_fixture_files(tmp_path):
 
 
 @pytest.mark.slow
+@needs_daf
 def test_export_tool_reproduces_every_committed_file(tmp_path):
     """The whole of data/daf/, sessions included: byte for byte, with the manifest and
     PROVENANCE.md matching up to the Python version they record.
@@ -569,6 +570,10 @@ def test_export_tool_reproduces_every_committed_file(tmp_path):
     Slow because replaying the recorded NOAA month puts 21,360 observations through DAF's
     pool. That cost is the reason the fast test above is scoped, and it is stated here rather
     than hidden: the guarantee is not weaker, it is just not free.
+
+    Needs a DAF checkout, so it SKIPS wherever DAF_ROOT is unset -- including the
+    full-reproduction CI job, which has no DAF checkout. That job therefore does not check
+    the export; it runs pytest with -rs so the skip is printed rather than passing silently.
     """
     root = Path(os.environ["DAF_ROOT"])
     before = _daf_state(root)

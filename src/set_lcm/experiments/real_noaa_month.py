@@ -374,14 +374,72 @@ def window_record(bs: BridgedSeries, w: Window) -> dict:
 # the whole report
 # ---------------------------------------------------------------------------
 
+def claims(r: dict) -> dict:
+    """Every qualitative sentence render() prints, as a computed condition.
+
+    If one fails the report is not written, because the text would no longer be true of the
+    numbers. This is the same guard real_noaa.claims() applies to the day report; the first
+    draft of this module printed three such sentences behind `if computable` rather than
+    `if true`, and one of them ("a z RMS below 1") was already false in one of twelve
+    scorings.
+    """
+    windows, fits, scored = r["windows"], r["fits"], r["scored"]
+    resolutions = {key: w["resolution"] for key, w in windows.items()}
+    sigma = windows["month"]["stated_sigma"]
+    z_rms = [s[key]["z_rms"] for s in scored.values()
+             for key in ("in_sample_fit_window", "whole_month_in_sample")]
+    z_rms += [s["held_out"][key]["z_rms"] for s in scored.values() for key in ("fresh", "continued")]
+    return {
+        # the resolution argument, which is the reason this report exists
+        "month_separates_every_modelled_pair": resolutions["month"]["unresolved_among_modelled"] == [],
+        "fit_window_leaves_a_modelled_pair_unresolved":
+            [row["pair"] for row in resolutions["fit"]["unresolved_among_modelled"]] == [["M2", "N2"]],
+        "fit_window_separates_S2_and_O1": all(
+            [a, b] not in [row["pair"] for row in resolutions["fit"]["unresolved"]]
+            for a, b in (("M2", "S2"), ("K1", "O1"))),
+        "P1_unresolved_in_every_window": all(["K1", "P1"] in [row["pair"] for row in res["unresolved"]]
+                                             for res in resolutions.values()),
+        "P1_modelled_nowhere": all("P1" not in declared for declared in r["declared"]["constituents"].values()),
+        # the windows the whole split rests on
+        "fit_and_held_out_share_no_evidence": r["provenance"]["windows_disjoint"],
+        "no_missing_readings": windows["month"]["frac_missing"] == 0.0,
+        # the burn-in null
+        "burn_in_changes_z_rms_by_under_five_percent": all(
+            s["held_out"]["z_rms_fresh_over_continued"] is not None
+            and abs(s["held_out"]["z_rms_fresh_over_continued"] - 1.0) < 0.05 for s in scored.values()),
+        "continued_alarm_steps_convert_to_the_fresh_window": all(
+            s["held_out"]["continued"]["cusum_first_alarm_in_record"] is None
+            or (s["held_out"]["continued"]["cusum_first_alarm"]
+                == s["held_out"]["continued"]["cusum_first_alarm_in_record"] - FIT_DAYS * STEPS_PER_DAY)
+            for s in scored.values()),
+        # the stated sigma
+        "one_reading_dominates_the_stated_sigma_rms": (
+            sigma["n_extreme"] >= 1 and sigma["rms"] > 2.0 * sigma["rms_without_extreme"]),
+        "the_largest_stated_sigma_is_in_the_held_out_half": (
+            bool(sigma["extreme"])
+            and sigma["extreme"][0]["step_in_record"] >= FIT_DAYS * STEPS_PER_DAY),
+        "the_held_out_half_has_the_larger_stated_sigma_rms":
+            windows["held_out"]["stated_sigma"]["rms"] > windows["fit"]["stated_sigma"]["rms"],
+        "some_readings_state_zero_sigma": sigma["n_stated_zero"] > 0,
+        "stated_sigma_exceeds_the_white_bound_in_every_window": all(
+            w["stated_sigma_over_white_bound"]["median"] is not None
+            and w["stated_sigma_over_white_bound"]["median"] > 1.0
+            and w["stated_sigma_over_white_bound"]["rms"] > 1.0 for w in windows.values()),
+        "most_scorings_have_z_rms_below_one": sum(1 for z in z_rms if z < 1.0) > len(z_rms) / 2,
+        # the model-free bound's sharpening, which is what the length buys
+        "the_month_has_more_second_differences_than_either_half": all(
+            windows["month"]["series_check"]["n_second_differences"]
+            > windows[key]["series_check"]["n_second_differences"] for key in ("fit", "held_out")),
+    }
+
+
 def compute() -> dict:
     man = manifest()
     entry = manifest_entry(man)
     bs = load_month(man)
     wins = {w.key: w for w in windows(len(bs.observations))}
     fit, held, month = wins["fit"], wins["held_out"], wins["month"]
-    check_disjoint(bs, fit, held)
-
+    check_disjoint(bs, fit, held)                      # raises rather than reporting a failure
     fits = {k: fit_q(k, bs, fit) for k in KINDS}
     scored: dict = {}
     for kind in KINDS:
@@ -396,11 +454,14 @@ def compute() -> dict:
     records = {key: window_record(bs, w) for key, w in wins.items()}
     month_sigma = records["month"]["stated_sigma"]
     month_ratio = records["month"]["stated_sigma_over_white_bound"]
-    return {
-        "schema_version": "fsre-real-noaa-month-v1",
+    out = {
+        "schema_version": "fsre-real-noaa-month-v2",
         "scope": "One month of real six-minute water levels. Truth-free: no number here is an error.",
         "provenance": {
             "generation": provenance(),
+            # check_disjoint() raised if this were false; recorded so the report's sentence
+            # about it is a claim the reader can check rather than a promise.
+            "windows_disjoint": True,
             "daf_commit": man["daf_commit"],
             "daf_published_base": man.get("daf_published_base"),
             # A session-recorded entry, not a single-response fixture: DAF's adapter walked the
@@ -464,9 +525,15 @@ def compute() -> dict:
             f"filter is asked to treat them as exact. They are counted, not adjusted.",
         ],
     }
+    out["claims"] = claims(out)
+    return out
 
 
 def render(report: dict) -> str:
+    failed = [name for name, held in report["claims"].items() if not held]
+    if failed:
+        raise RuntimeError(f"report text no longer true of the numbers: {failed}; "
+                           f"revise render() before writing")
     L: list[str] = []
     A = L.append
     dec, wins, fits, scored = report["declared"], report["windows"], report["fits"], report["scored"]
@@ -654,12 +721,17 @@ def render(report: dict) -> str:
     month_ratio = wins["month"]["stated_sigma_over_white_bound"]
     medians = [wins[k]["stated_sigma_over_white_bound"]["median"] for k in ("fit", "held_out", "month")]
     if all(m is not None for m in medians):
+        scorings = [entry[key]["z_rms"] for entry in scored.values()
+                    for key in ("in_sample_fit_window", "whole_month_in_sample")]
+        scorings += [entry["held_out"][key]["z_rms"] for entry in scored.values()
+                     for key in ("fresh", "continued")]
+        below = sum(1 for value in scorings if value < 1.0)
         A(f"**The stated sigma exceeds the white-error bound in every window, on the median reading "
           f"and on the RMS alike** -- {min(medians):.2f} to {max(medians):.2f} times on the median, "
           f"more on the RMS where the 2.002 m statement lands. So the direction of the finding does "
-          f"not come from that one reading, even though its size in the RMS column does. This is the "
-          f"same fact the filters report as a z RMS below 1: a declared R larger than the "
-          f"innovations it predicts.")
+          f"not come from that one reading, even though its size in the RMS column does. It is the "
+          f"same fact the filters report as a z RMS below 1, which {below} of the {len(scorings)} "
+          f"scorings above are: a declared R larger than the innovations it predicts.")
         A("")
         A(f"It is not a correction to make, and the bound does not say the declared R is wrong. "
           f"{month_ratio['bound_assumes'].capitalize()} -- and NOAA's stated sigma is a published "

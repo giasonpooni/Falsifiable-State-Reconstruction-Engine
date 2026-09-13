@@ -19,6 +19,10 @@ def _ci(interval, n=0):
 
 
 def render_report(r: dict) -> str:
+    failed = [name for name, held in r.get("claims", {}).items() if not held]
+    if failed:
+        raise RuntimeError(f"report text no longer true of the numbers: {failed}; "
+                           f"revise render_report() before writing")
     site, dec, rec = r["site"], r["declared"], r["record"]
     c, al, blind = r["closure_free"], r["alignment"], r["blind"]
     L: list[str] = []
