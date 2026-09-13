@@ -68,8 +68,20 @@ whitened signatures, and `isolation_amplification`, its reciprocal. For a fracti
 0.002, only about one five-hundredth of a signature lies outside the alternative fault
 line. This measures geometric separation; it does not set an alarm threshold or guarantee
 correct attribution. The values depend on covariance and do not change the structural
-labels. They are available on the Python objects; `as_dict()` retains the existing report
-schema. Pairs containing an invisible fault have undefined angular diagnostics.
+labels. `as_dict()` archives them beside `cos` for every pair, because archiving
+`distinguishable` without the separation behind it records a yes/no that reads stronger than
+the geometry supports. Pairs containing an invisible fault have undefined angular
+diagnostics, which serialize as non-finite values a caller must map itself.
+
+`diagnostics.diagnose()` reports the same thing for a finite record rather than a static
+structure. Each observable candidate carries its nearest rival in the whitened post-nuisance
+coordinates the test used — the cosine, the fraction of its own signature that rival cannot
+explain, and the reciprocal of that fraction — and `DiagnosticResult.min_separation` is the
+tightest such pair in the catalogue. Every verdict states it, `identified` included: an
+identification drawn from a catalogue whose closest pair is barely separated is not the claim
+it appears to be. An exactly collinear pair reports separation `0.0` and no amplification,
+because no amplitude separates it; the committed camera baseline is that case, and its
+declared gauge-drift and camera-drift candidates differ only in sign.
 
 For a sensor-space fault dictionary `D` in `r=D e`, uniqueness of every explanation with
 at most `s` nonzeros requires no nonzero vector in `null(D)` with support at most `2s`.

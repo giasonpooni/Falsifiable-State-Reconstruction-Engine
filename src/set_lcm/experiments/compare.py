@@ -13,19 +13,38 @@ always put cross-platform bitwise determinism out of scope. Asserting exact equa
 would be a claim the repository does not make and cannot keep -- so the reproduction tests
 assert a DECLARED tolerance instead, and the declaration is a measurement, not a taste.
 
-Measured 2026-09-12 by regenerating every results file on Linux-6.18 x86_64 (Python 3.12.3,
-numpy 2.5.3, gcc 14.2.1) and comparing value by value against the committed files, which
-were generated on Windows-11 AMD64 (Python 3.13.5, numpy 2.5.3), excluding the latency
-columns and the provenance stamp:
+Measured 2026-09-13 by regenerating every results file on Linux-6.18 x86_64 (Python 3.13.12,
+numpy 2.5.3) and comparing value by value against the then-committed files, which had been
+generated on Windows-11 AMD64 (Python 3.13.5, numpy 2.5.3), excluding the latency columns
+and the provenance stamp. This repeats the 2026-09-12 exercise over every Windows-generated
+file, including the three it did not cover, and its numbers for the first three reproduce
+that measurement exactly:
 
-    file               leaves   differ   worst relative difference
-    summary.json       75716      4166   5.878e-15
-    sweep.json          8918       359   1.191e-13
-    calibration.json     330         3   4.828e-16
-    real_noaa.json       446        53   3.765e-06
+    file                   leaves   differ   worst relative difference
+    summary.json            79112     4166   5.878e-15
+    sweep.json               9382      359   1.191e-13
+    calibration.json          338        3   4.828e-16
+    fluid_baseline.json    119119    51109   3.145e-12
+    invariant_layer.json    23951        0   0           (bitwise across the two builds)
+    real_noaa.json            617       53   3.765e-06   (2.293e-10 outside the exception below)
 
-The first three are floating-point noise at the scale of the arithmetic. The fourth is not,
-and is the one interesting result of the exercise: every one of real_noaa's larger
+fluid_baseline.json and invariant_layer.json are the two whose tolerance was a declared
+engineering allowance "pending broader cross-build measurements"; they are now measured, and
+1e-8 leaves four orders of headroom over the larger of them. invariant_layer.json crossed the
+two builds bitwise, which its declared near-zero absolute allowances did not assume and do
+not now claim in general.
+
+THE COMMITTED FILES ARE NOW LINUX-GENERATED, all ten at one source hash. So on Linux the
+comparison is the bitwise one and on Windows it is the declared tolerance -- the reverse of
+the arrangement these numbers were measured under. CI runs both (ubuntu-latest and
+windows-latest, Python 3.12 and 3.13), and a runner's platform string differs from any
+developer's, so in practice CI exercises the tolerance path on both legs. The comparator
+itself is covered by tests/test_result_comparison.py, which does not depend on which build
+generated the artifacts.
+
+The first three files above are floating-point noise at the scale of the arithmetic.
+real_noaa.json is not, and is the one interesting result of the exercise: every one of its
+larger
 deviations is a `tide_kf` log-likelihood at a q FAR FROM the fitted one, where the
 nine-state filter is so confident that S is tiny and nu^2/S is a large cancelling sum --
 -14290.5616 against -14290.6154 at q = 3.16e-7. At the fitted q the same quantity agrees to
@@ -73,19 +92,20 @@ class ToleranceException:
 
 
 # Per file: the relative tolerance a fresh run must meet on a build other than the one that
-# generated the file. Historical measured allowances are described above. The new fluid
-# baselines use a declared engineering allowance pending broader cross-build measurements;
-# labels, counts and structure must still match exactly.
+# generated the file. The measured Windows/Linux spreads are in the module docstring; labels,
+# counts and structure must match exactly whatever the tolerance. Where a file has never been
+# generated on two builds -- real_noaa_month.json today -- the allowance says so in its own
+# exception rather than implying a measurement.
 TOLERANCE: dict[str, float] = {
     "summary.json": 1e-12,       # measured 5.878e-15
     "sweep.json": 1e-11,         # measured 1.191e-13
     "calibration.json": 1e-12,   # measured 4.828e-16
-    "real_noaa.json": 1e-8,      # measured 2.3e-10 outside the exception below
-    "real_noaa_month.json": 1e-8,
+    "real_noaa.json": 1e-8,      # measured 2.293e-10 outside the exception below
+    "real_noaa_month.json": 1e-8,   # never generated on a second build; see its exception
     "real_water_balance.json": 1e-8,
-    "fluid_baseline.json": 1e-8,
+    "fluid_baseline.json": 1e-8,      # measured 3.145e-12
     "real_fluid_baseline.json": 1e-8,
-    "invariant_layer.json": 1e-8,
+    "invariant_layer.json": 1e-8,     # measured 0: bitwise across Windows and Linux
     "camera_baseline.json": 1e-8,
 }
 

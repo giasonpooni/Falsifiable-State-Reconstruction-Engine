@@ -45,7 +45,9 @@ declared nuisance effects. It returns ambiguous and insufficient-evidence outcom
 
 Boundary measurements support exact interval balances; mean storage requires an explicit
 constant-net-flow assumption. The new Ridgway measurement replay uses that assumption and
-an uncertainty sweep. The historical estimator study retains its documented approximation.
+sweeps both of its consumer choices: the declared storage uncertainty and the window length,
+which moves the rejection rate further than the uncertainty does. The historical estimator
+study retains its documented approximation.
 
 Analytical tests and the synthetic report cover identifiable cases, collinear signatures,
 step/ramp ambiguity, common-mode cancellation, nuisance confounding and conditional amplitude

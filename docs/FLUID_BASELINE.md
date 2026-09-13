@@ -168,7 +168,12 @@ record's rejection rate.
 Both reports have JSON companions, generator provenance and default-suite reproduction
 checks. Same-build numerical reproduction is exact; cross-build values use a declared
 relative allowance of `1e-8`, while statuses, counts and structure must match exactly.
-The allowance is an engineering tolerance, not a measurement of universal platform error.
+That allowance is now measured rather than assumed for both: regenerating the synthetic
+baseline on Linux against a Windows-generated copy moved 51,109 of 119,119 values by at most
+**3.145e-12**, and the invariant layer's 23,951 values crossed the two builds **bitwise**.
+The allowance therefore keeps about four orders of headroom over the larger of them, and it
+remains a declared tolerance for two specific builds rather than a measurement of universal
+platform error.
 
 The historical `wb_open`, `wb_aug` and `wb_closed` filter experiment retains its documented
 interval/reference approximation. The new baseline is a separate measurement calculation;
