@@ -31,7 +31,8 @@ it does not, by itself, identify a broken sensor.**
 | Do the estimates agree with the declared balance? | A consistency score and the residual before correction. |
 | What changed during reconciliation? | The original estimate, corrected estimate, correction and resulting uncertainty. |
 | Which measurement channels need investigation? | Per-channel checks for persistent disagreement with their predictions. |
-| Could this arrangement distinguish the suspected faults? | An analysis of visible, invisible and confusable fault directions under a declared model. |
+| Could this arrangement distinguish the suspected faults? | An analysis of visible, invisible and confusable fault directions under a declared model, with how much larger a fault must be to name than to detect. |
+| Is the relation itself uncertain? | Declared uncertainty on the constraint matrix, not only its right-hand side, so a measured coefficient does not read as a fault. |
 | Can several fault explanations fit the same record? | A fixed-record comparison that returns explicit ambiguous or insufficient-evidence outcomes. |
 | Can I estimate fluid states in consistent units and coordinates? | An additive invariant filter with full covariance propagation and tested coordinate transformations. |
 | Can a camera provide a second level measurement? | A synthetic camera-and-gauge baseline with frame admission, calibration, vertical-marker compensation and correlated uncertainty. |
@@ -136,6 +137,8 @@ operational workflow.
 | NOAA tide gauge | Measurement replay, water-level filters and checks that do not require known truth. | [Water-level results](results/real_noaa.md) |
 | NOAA tide gauge, one month | What record length changes: which tidal constituents 31 days separate and 15 do not, a q fitted on the first half and scored on the second, and the stated per-reading uncertainty against a model-free bound. | [Month results](results/real_noaa_month.md) |
 | Ridgway filter study | Historical estimator comparison, retaining its documented daily-mean/reference approximation. | [Water-balance results](results/real_water_balance.md) |
+| Second-balance design study | Which proposed topology could actually isolate a fault, computed before either is built: conservation alone reaches 1 of 7, the constitutive relation reaches 5 of 7. | [Design study](results/second_balance.md) |
+| Uncertain relations | What treating a measured coefficient as exact costs, against a null that is true by construction: 26 to 30 times the nominal false-alarm rate. | [Calibration](results/errors_in_variables.md) |
 
 To run the default test suite:
 
