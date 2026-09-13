@@ -1,7 +1,8 @@
-# Fluid-Sensor Reconstruction Testbed (WIP).
+# Fluid-Sensor Reconstruction Testbed (WIP)
 
 **Check whether measurements in a fluid system agree with its physical relationships.**
 
+Short name **FSRE**, which is what the code, the docs and the module namespace use.
 FSRE is a Python research toolkit for engineers and researchers working with water levels,
 flow gauges and storage measurements. It estimates the state of a system, checks the estimate
 against a declared balance, and keeps a record of the disagreement and any correction.
