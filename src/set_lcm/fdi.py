@@ -145,11 +145,28 @@ class Isolability:
     visible: list[str]
     invisible: list[str]
     pairs: list[FaultPair]
-    isolable: list[str]         # directions distinguishable from EVERY other visible one
+    # STRUCTURALLY distinguishable from every other visible candidate -- a statement about
+    # row-space geometry, NOT about whether two faults could be told apart at any noise level.
+    # A pair can be structurally distinguishable and still nearly useless to separate: at an
+    # orthogonal fraction of 0.002 the component that DIFFERS between the two signatures is
+    # 1/500th of the component they share, so telling them apart works with 500x less signal
+    # than merely seeing that something is wrong. Read `isolable` together with each pair's
+    # orthogonal_fraction and isolation_amplification, which as_dict() archives beside cos for
+    # exactly this reason; do not act on membership of this list alone.
+    isolable: list[str]
     note: str
 
     def as_dict(self) -> dict:
-        """Preserve the archived report schema; object-only angular diagnostics are omitted."""
+        """Archive the whole comparison, including the angular diagnostics.
+
+        `distinguishable` and `isolable` are structural; orthogonal_fraction and
+        isolation_amplification are what say whether the structural separation is
+        large enough to act on. Archiving the first without the second would record
+        a yes/no that reads stronger than the geometry behind it, so both travel
+        with every pair. They serialize as floats and may be NaN or infinite (an
+        invisible member, or exact collinearity), which JSON renders as a literal;
+        readers that need strict JSON must map the non-finite values themselves.
+        """
         return {
             "residual_rank": self.residual_rank,
             "d": dict(self.d),
@@ -158,7 +175,9 @@ class Isolability:
             "invisible": list(self.invisible),
             "isolable": list(self.isolable),
             "pairs": [{"a": p.a, "b": p.b, "cos": p.cos, "distinguishable": p.distinguishable,
-                       "why": p.why} for p in self.pairs],
+                       "why": p.why, "orthogonal_fraction": p.orthogonal_fraction,
+                       "isolation_amplification": p.isolation_amplification}
+                      for p in self.pairs],
             "note": self.note,
         }
 

@@ -10,6 +10,14 @@ def _f(x, n=2):
     return "n/a" if x is None else f"{x:,.{n}f}"
 
 
+def _ci(interval, n=0):
+    """A two-element interval, or "n/a" when the result dict reports none."""
+    if interval is None:
+        return "n/a"
+    lo, hi = interval
+    return f"[{_f(lo, n)}, {_f(hi, n)}]"
+
+
 def render_report(r: dict) -> str:
     site, dec, rec = r["site"], r["declared"], r["record"]
     c, al, blind = r["closure_free"], r["alignment"], r["blind"]
@@ -67,12 +75,24 @@ def render_report(r: dict) -> str:
     A("")
     A(f"As a flow: mean **{c['mean_as_cfs']:+.3f} ft³/s**, sd {_f(c['sd_as_cfs'])} ft³/s, against a mean "
       f"gauged inflow of {_f(c['mean_throughput_cfs'], 1)} ft³/s. Over the whole record the imbalance "
-      f"accumulates to **{_f(c['cumulative'], 0)} acre-ft**, "
+      f"accumulates to {_f(c['cumulative'], 0)} acre-ft, "
       f"{c['cumulative_as_fraction_of_gauged_inflow'] * 100:+.2f}% of the "
       f"{_f(c['gauged_inflow_volume'], 0)} acre-ft that flowed in.")
     A("")
-    A("So the gauges very nearly close, on average, over three years — and miss by tens of acre-feet "
-      "on a typical day.")
+    A("**That cumulative is not evidence of a net imbalance, and must not be read as one.** It is a "
+      f"sum of {c['n_days']:,} daily residuals, so it grows as sqrt(n) even when the gauges close "
+      "exactly. Against its own standard error it is indistinguishable from zero:")
+    A("")
+    A("| the cumulative | standard error of the sum | in standard errors | 95% interval |")
+    A("|---|---|---|---|")
+    A(f"| {_f(c['cumulative'], 0)} acre-ft | {_f(c['cumulative_se'], 0)} independent, "
+      f"{_f(c['cumulative_se_ar1'], 0)} under AR(1) | {_f(c['cumulative_in_se'])} independent, "
+      f"{_f(c['cumulative_in_se_ar1'])} under AR(1) | {_ci(c['cumulative_ci95_ar1'])} |")
+    A("")
+    A(f"The interval contains zero, so **the three-year total is consistent with the gauges closing "
+      f"exactly**; the AR(1) column uses the measured lag-1 of {c['lag1_autocorr']:+.3f} and is a model, "
+      "not a measurement. What the record does show is a **daily** disagreement of tens of acre-feet, "
+      "which is a different statement and the one the sections below test.")
     A("")
 
     A("### Which day's flow the storage change belongs with")
@@ -148,11 +168,12 @@ def render_report(r: dict) -> str:
             A("")
             A("Cumulative ungauged net inflow U, acre-ft:")
             A("")
-            A("| run | final | sd | min | max | as % of gauged inflow |")
-            A("|---|---|---|---|---|---|")
+            A("| run | final | sd | in sd | min | max | as % of gauged inflow |")
+            A("|---|---|---|---|---|---|---|")
             for n, a in augs:
-                A(f"| `{n}` | {_f(a['final'], 0)} | {_f(a['final_sd'], 0)} | {_f(a['min'], 0)} | "
-                  f"{_f(a['max'], 0)} | {a['final_as_fraction_of_gauged_inflow'] * 100:+.2f}% |")
+                A(f"| `{n}` | {_f(a['final'], 0)} | {_f(a['final_sd'], 0)} | {_f(a['final_in_sd'])} | "
+                  f"{_f(a['min'], 0)} | {_f(a['max'], 0)} | "
+                  f"{a['final_as_fraction_of_gauged_inflow'] * 100:+.2f}% |")
             A("")
             A("**U is observed by nothing except the constraint.** In `wb_aug`, with no projection, it "
               "stays at its prior of 0 for the whole record while its sd grows — the augmented state is "
@@ -160,8 +181,11 @@ def render_report(r: dict) -> str:
               "is identified through the dynamics. `+hard` moves the REPORTED U; only `+feedback` puts "
               "the projection back into the full filter state and covariance. A constraint fed back "
               "is absorbed as if it were fresh evidence; subsequent agreement is therefore not "
-              "independent validation. The finite prior and process variance on U still permit "
-              "rejection of sufficiently large disagreements on other records.")
+              "independent validation. That is also why `+feedback` carries the largest `in sd` "
+              "above: feeding the constraint back shrinks the very sd that column divides by, so "
+              "its apparent separation from zero is the least trustworthy of the three, not the "
+              "most. The finite prior and process variance on U still permit rejection of "
+              "sufficiently large disagreements on other records.")
             mid = dict(augs).get("wb_aug+hard")
             if mid is not None:
                 A("")
@@ -173,6 +197,13 @@ def render_report(r: dict) -> str:
                   "measurements: a filter under declared noise, and a sum under a time-pairing assumption. "
                   "They are not required to agree: the filter's U is a smoothed quantity under a "
                   "declared random walk, and the arithmetic is not.")
+                A("")
+                A("**And their agreement is not evidence of an imbalance.** The filter reports its own "
+                  f"sd of {_f(mid['final_sd'], 0)} acre-ft on that {_f(mid['final'], 0)} — "
+                  f"{_f(mid['final_in_sd'])} sd from zero — and the arithmetic total is "
+                  f"{_f(c['cumulative_in_se_ar1'])} standard errors from zero, an interval that "
+                  "contains zero. Two numbers this uncertain landing near each other is agreement "
+                  "between two uncertain numbers, not corroboration of a net imbalance.")
         A("")
 
     A("## What these numbers do not show")

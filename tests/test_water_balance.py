@@ -313,3 +313,89 @@ def test_the_sweep_reports_every_conclusion_at_every_declared_storage_sigma(fres
     # Finite U uncertainty does not guarantee acceptance for another record or q_U.
     for key in data["sweep"]:
         assert data["sweep"][key]["specs"]["wb_aug"]["consistency_stat"]["fraction_over_threshold"] == 0.0
+
+
+# ---------------------------------------------------------------------------
+# the cumulative is a sum of 1,095 noisy days, and must never be presented alone
+# ---------------------------------------------------------------------------
+
+def test_the_cumulative_carries_its_own_standard_error(bridged):
+    """Recomputed here from the observations, independently of experiments code.
+
+    The sum of n residuals of sd s has standard error s*sqrt(n) under independence
+    -- so it grows with the record length even when the gauges close exactly. The
+    AR(1) variance of the sum uses the measured lag-1 exactly for finite n.
+    """
+    Y = np.array([o.y for o in bridged.observations], dtype=float)
+    r = np.diff(Y[:, 0]) - CFS_DAY_TO_ACRE_FT * (Y[:-1, 2] + Y[:-1, 3] - Y[:-1, 1])
+    n = int(r.size)
+    se = float(r.std(ddof=1)) * np.sqrt(n)
+    c = wb.closure_residual(bridged)
+    assert c["cumulative_se"] == pytest.approx(se, rel=1e-12)
+    assert c["cumulative_in_se"] == pytest.approx(c["cumulative"] / se, rel=1e-12)
+
+    rho = c["lag1_autocorr"]
+    k = np.arange(1, n, dtype=float)
+    factor = n + 2.0 * float(np.sum((n - k) * rho ** k))
+    assert c["cumulative_se_ar1"] == pytest.approx(float(r.std(ddof=1)) * np.sqrt(factor), rel=1e-12)
+    assert c["cumulative_se_ar1"] > c["cumulative_se"] > 0.0      # a positive lag-1 widens it
+    lo, hi = c["cumulative_ci95_ar1"]
+    assert lo == pytest.approx(c["cumulative"] - 1.96 * c["cumulative_se_ar1"], rel=1e-12)
+    assert hi == pytest.approx(c["cumulative"] + 1.96 * c["cumulative_se_ar1"], rel=1e-12)
+    # The measured record: the three-year total is NOT separated from zero.
+    assert lo < 0.0 < hi
+    assert abs(c["cumulative_in_se_ar1"]) < 1.96
+
+
+def test_a_short_or_degenerate_record_reports_no_standard_error_rather_than_nan():
+    """The result dict is serialized with allow_nan=False, so None is the only option."""
+    for args in ((1.0, 1.0, 1, 0.0), (1.0, 0.0, 10, 0.0), (float("nan"), 1.0, 10, 0.0)):
+        assert set(wb._cumulative_uncertainty(*args).values()) == {None}
+    partial = wb._cumulative_uncertainty(1.0, 1.0, 10, float("nan"))
+    assert partial["cumulative_se"] is not None          # independence needs no lag-1
+    assert partial["cumulative_se_ar1"] is None          # the AR(1) model does
+    assert partial["cumulative_ci95_ar1"] is None
+
+
+def test_the_report_never_presents_the_cumulative_without_its_uncertainty(fresh):
+    """The guard that matters: the artifact readers actually read.
+
+    A three-year total of +1,526 acre-ft reads like a finding. It is 0.60 standard
+    errors from zero. Whatever else the report says, the standard error must appear
+    with it, the interval must be printed, and the magnitude must not be the
+    emphasised number.
+    """
+    data, md = fresh
+    c = data["closure_free"]
+    cum = f"{c['cumulative']:,.0f}"
+    assert f"**{cum} acre-ft**" not in md, "the cumulative is emphasised as if it were a finding"
+    assert "not evidence of a net imbalance" in md
+    for shown in (f"{c['cumulative_se']:,.0f}", f"{c['cumulative_se_ar1']:,.0f}",
+                  f"{c['cumulative_in_se']:,.2f}", f"{c['cumulative_in_se_ar1']:,.2f}",
+                  f"{c['cumulative_ci95_ar1'][0]:,.0f}", f"{c['cumulative_ci95_ar1'][1]:,.0f}"):
+        assert shown in md, shown
+    # and the daily statistic, which does reject, is kept distinct from the total
+    assert "consistent with the gauges closing" in md
+    assert "**daily** disagreement" in md
+
+
+def test_the_augmented_route_reports_how_far_its_own_U_is_from_zero(fresh):
+    """Two routes agreeing near zero is not corroboration of an imbalance."""
+    data, md = fresh
+    for key, cell in data["sweep"].items():
+        for name, entry in cell["specs"].items():
+            aug = entry.get("ungauged_cumulative")
+            if aug is None:
+                continue
+            if aug["final_sd"] > 0.0:
+                assert aug["final_in_sd"] == pytest.approx(aug["final"] / aug["final_sd"], rel=1e-12)
+                assert f"{aug['final_in_sd']:,.2f}" in md, (key, name)
+    assert "their agreement is not evidence of an imbalance" in md
+    # The run whose ratio is largest is the one whose covariance absorbed the constraint,
+    # and the report must say that where it prints it.
+    per_sigma = [cell["specs"] for cell in data["sweep"].values()]
+    for specs in per_sigma:
+        ratios = {n: e["ungauged_cumulative"]["final_in_sd"] for n, e in specs.items()
+                  if e.get("ungauged_cumulative")}
+        assert max(ratios, key=ratios.get) == "wb_aug+hard+feedback", ratios
+    assert "shrinks the very sd that column divides by" in md

@@ -48,6 +48,7 @@ declared daily-mean time pairing, and it is the number to read first.
 from __future__ import annotations
 
 import json
+import math
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -211,6 +212,7 @@ def closure_residual(bs: BridgedSeries) -> dict:
         "sd_as_cfs": float(np.nanstd(r, ddof=1) / CFS_DAY_TO_ACRE_FT),
         "mean_throughput_cfs": float(np.nanmean(qin1 + qin2)),
         "lag1_autocorr": _lag1(r[finite]),
+        **_cumulative_uncertainty(cum, float(np.nanstd(r, ddof=1)), int(finite.sum()), _lag1(r[finite])),
         "series": r.tolist(),
     }
 
@@ -248,6 +250,52 @@ def alignment_comparison(bs: BridgedSeries) -> dict:
     out["note"] = ("the centred pairing also averages two flow readings, which reduces the flow's own "
                    "noise contribution by sqrt(2) whether or not the alignment is right; a smaller sd "
                    "there is therefore not by itself evidence of the alignment")
+    return out
+
+
+def _cumulative_uncertainty(cum: float, sd: float, n: int, lag1: float) -> dict:
+    """How far the cumulative residual is from zero, in its own standard errors.
+
+    The cumulative is a SUM of n daily residuals, so its scale grows as sqrt(n) even
+    when the gauges close exactly: a large-looking total is what independent daily
+    scatter produces on its own. Under independence the sum's standard error is
+    sd * sqrt(n). The daily residuals here are not independent, so the sum's variance
+    is also reported under an AR(1) model with the measured lag-1 rho, exactly for
+    finite n rather than by the large-n limit (1 + rho) / (1 - rho):
+
+        Var(sum) = sd^2 * (n + 2 * sum_{k=1}^{n-1} (n - k) rho^k)
+
+    That is a model, not a measurement: AR(1) is the simplest correlation structure
+    consistent with a single reported lag-1, and a longer-memory process would widen
+    the interval further. Both are reported so neither is taken on faith. Nothing here
+    is a test of the water balance -- it says only whether the cumulative is
+    distinguishable from zero, which is the reading its magnitude invites.
+
+    Returns None for every field when n < 2 or the inputs are not finite, rather than
+    NaN, because the result dict is serialized with allow_nan=False.
+    """
+    none = {"cumulative_se": None, "cumulative_se_ar1": None, "cumulative_in_se": None,
+            "cumulative_in_se_ar1": None, "cumulative_ci95_ar1": None}
+    if n < 2 or not (np.isfinite(cum) and np.isfinite(sd)) or sd <= 0.0:
+        return none
+    se = sd * math.sqrt(n)
+    if np.isfinite(lag1) and abs(lag1) < 1.0:
+        k = np.arange(1, n, dtype=float)
+        factor = float(n + 2.0 * np.sum((n - k) * lag1 ** k))
+        se_ar1 = sd * math.sqrt(factor) if factor > 0.0 else None
+    else:
+        se_ar1 = None
+    out = {"cumulative_se": float(se), "cumulative_in_se": float(cum / se)}
+    if se_ar1 is None:
+        out.update({"cumulative_se_ar1": None, "cumulative_in_se_ar1": None,
+                    "cumulative_ci95_ar1": None})
+    else:
+        out.update({
+            "cumulative_se_ar1": float(se_ar1),
+            "cumulative_in_se_ar1": float(cum / se_ar1),
+            # 1.96 is the normal quantile: a sum of ~1,000 terms, not a t interval.
+            "cumulative_ci95_ar1": [float(cum - 1.96 * se_ar1), float(cum + 1.96 * se_ar1)],
+        })
     return out
 
 
@@ -404,9 +452,13 @@ def compute() -> dict:
                                           "units": "acre-ft"}
             if spec.kind == "wb_aug":
                 U = r.x[:, 2]      # the REPORTED U: post-projection where a mode was applied
+                final_sd = float(np.sqrt(r.P[-1, 2, 2]))
                 entry["ungauged_cumulative"] = {
                     "final": float(U[-1]), "min": float(U.min()), "max": float(U.max()),
-                    "final_sd": float(np.sqrt(r.P[-1, 2, 2])),
+                    "final_sd": final_sd,
+                    # The filter's own sd on its own final U: how far that U is from zero on
+                    # the filter's own terms. Reported so the magnitude is never read alone.
+                    "final_in_sd": float(U[-1] / final_sd) if final_sd > 0.0 else None,
                     "final_as_fraction_of_gauged_inflow":
                         float(U[-1] / closure["gauged_inflow_volume"]),
                     "units": "acre-ft",

@@ -114,7 +114,7 @@ def test_angular_diagnostic_retains_small_separation_when_cosine_rounds_to_one()
     assert not pair.distinguishable
 
 
-def test_angular_diagnostics_preserve_pair_construction_and_archived_dictionary_schema():
+def test_angular_diagnostics_preserve_pair_construction_and_are_archived():
     original = FaultPair("a", "b", 0.0, True, "original interface")
     assert np.isnan(original.orthogonal_fraction) and np.isnan(original.isolation_amplification)
     cs = ConstraintSet("identity", np.eye(2), np.zeros(2), "two independent rows")
@@ -123,8 +123,29 @@ def test_angular_diagnostics_preserve_pair_construction_and_archived_dictionary_
     assert result.pairs[0].isolation_amplification == 1.0
     assert result.as_dict()["pairs"] == [{
         "a": "a", "b": "b", "cos": result.pairs[0].cos, "distinguishable": True,
-        "why": result.pairs[0].why,
+        "why": result.pairs[0].why, "orthogonal_fraction": 1.0,
+        "isolation_amplification": 1.0,
     }]
+
+
+def test_the_archive_never_records_distinguishable_without_how_far_apart():
+    """A near-collinear pair is the case where the two halves disagree in practice.
+
+    `distinguishable` is True and `isolable` names both directions, while the
+    separation is 1/500th of the shared component. If as_dict() carried only the
+    structural half, a reader of the archive would see an unqualified yes.
+    """
+    cs = ConstraintSet("identity", np.eye(2), np.zeros(2), "two independent rows")
+    result = isolability({"f": [1.0, 0.0], "g": [1.0, 2e-3]}, np.eye(2), cs)
+    archived = result.as_dict()
+    assert archived["isolable"] == ["f", "g"]
+    pair = archived["pairs"][0]
+    assert pair["distinguishable"] is True
+    assert pair["orthogonal_fraction"] == pytest.approx(2e-3, rel=1e-5)
+    assert pair["isolation_amplification"] > 500.0
+    # Every archived pair carries both halves, whatever its structural verdict.
+    for entry in archived["pairs"]:
+        assert {"orthogonal_fraction", "isolation_amplification"} <= set(entry)
 
 
 # ---------------------------------------------------------------------------

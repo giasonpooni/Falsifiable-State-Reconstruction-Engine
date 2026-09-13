@@ -890,9 +890,18 @@ differences, `r_k = (S_{k+1} − S_k) − c (q_in1 + q_in2 − q_out)_k`:
 
 | mean | sd | as a flow | 3-year cumulative |
 |---|---|---|---|
-| +1.39 acre-ft/day | 64.1 acre-ft/day | **+0.703 ft³/s** against 169.5 ft³/s of mean gauged inflow | **+1,526 acre-ft, +0.41%** of the 368,576 that flowed in |
+| +1.39 acre-ft/day | 64.1 acre-ft/day | **+0.703 ft³/s** against 169.5 ft³/s of mean gauged inflow | +1,526 acre-ft, +0.41% of the 368,576 that flowed in |
 
-The gauges very nearly close over three years and miss by tens of acre-feet on a typical day.
+**The cumulative is not the finding, and must not be read as one.** It is a sum of 1,095 daily
+residuals of sd 64.12, so it grows as √n even when the gauges close exactly: its standard error is
+64.12·√1095 = **2,122 acre-ft**, which the measured lag-1 of +0.173 widens to **2,527** under an
+AR(1) model. Either way +1,526 is **0.72 (or 0.60) standard errors from zero**, and the AR(1) 95%
+interval of **[−3,426, +6,478]** contains zero — the three-year total is consistent with the gauges
+closing exactly. The report computes all four numbers and prints them beside the cumulative, so the
+magnitude cannot be read alone. What *does* reject is the **daily** statistic — at the middle
+declared σ (the table below), mean 9.69 against a per-day χ²(1) threshold of 10.83, exceeded on
+38.6% of days, where the declared hypothesis gives mean 1 — and that is a statement about
+day-to-day disagreement, not about a net imbalance.
 
 **Which day's flow a storage change belongs with is measured, not assumed.** Storage is a daily
 *mean*, so all three pairings are computed: centred has the smallest scatter at 20.6 ft³/s, against
@@ -921,8 +930,21 @@ Two things that were not anticipated:
   reported at every point, and the σ carries a citation whose first three words are "NOT a source
   statement."
 
-**A cross-check by two routes that share no code path:** `wb_aug+hard` puts the three-year imbalance
-at +2,068 acre-ft (+0.56% of gauged inflow), against +1,526 (+0.41%) from the model-free arithmetic.
+**A cross-check by two routes over the same measurements:** `wb_aug+hard` puts the three-year
+imbalance at +2,068 acre-ft (+0.56% of gauged inflow), against +1,526 (+0.41%) from the model-free
+arithmetic. They are **not independent**: both read the same committed observations through the same
+`load(σ)` bridge — a declared σ changes R, never a reading — and the percentage is computed by
+dividing by the arithmetic route's own denominator (in `real_water_balance.py` the augmented run's
+fraction is `U[-1] / closure["gauged_inflow_volume"]`).
+
+**And their agreement is not evidence of an imbalance**, because neither number is far from zero on
+its own terms: the filter reports its own sd of 1,074 acre-ft on that +2,068, so **1.93 sd**, and the
+arithmetic total is **0.60 standard errors** from zero with an interval containing it. The report
+prints both ratios. At this σ the only run above two sd — `wb_aug+hard+feedback` at +2,497 ± 1,031,
+**2.42 sd** — is also the one whose sd is least trustworthy, because feeding the projection back
+shrinks the covariance that ratio divides by; the report says so where it prints it. (The ratio is
+sensitive to the declared σ in the other direction too: at σ = 50 the `+hard` run reads 1.99 sd and
+at σ = 800 it reads 1.41.)
 
 What it does **not** show: which of the ungauged catchment, evaporation, the stage–capacity table or
 a gauge rating the rejection is (a global χ² test cannot localise a gross error — Crowe, 1985); that
