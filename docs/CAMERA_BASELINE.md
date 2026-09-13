@@ -26,8 +26,9 @@ The example creates and replays a labeled synthetic fixture. Its recording bundl
 keeps inference inputs in `observations.npz` and held-out reference observations
 and synthetic truth in `evaluation.npz`. A JSON manifest records the declarations
 and file checksums. The separate evaluation file is not an estimator input. This
-is an array-bundle workflow; it does not decode compressed video or import the
-recording-template CSV below.
+is an array-bundle workflow; it does not decode compressed video or import real
+recording tables. The separate preparation kit described below checks recording
+metadata and retained evidence without running this synthetic inference wrapper.
 
 `frame-preview.png` is an 8-bit display preview; inference reads the original
 floating-point arrays in the archive. The synthetic renderer declares a 1e-9
@@ -182,21 +183,35 @@ can be legitimate; spectral features alone do not identify a sensor fault.
 
 ## Plan a first real recording
 
-[`camera_recording_template.csv`](../examples/camera_recording_template.csv) is a
-header-only planning template. It is not an implemented CSV importer, and it
-contains no example measurements or claims of a recorded experiment. Plan a
-short controlled recording before extending the model:
+Start with the blank recording kit and [controlled tank protocol](TANK_RECORDING_PROTOCOL.md):
+
+```sh
+uv run --frozen --python 3.13 python -m set_lcm.recording init work/tank-recording
+uv run --frozen --python 3.13 python -m set_lcm.recording check work/tank-recording --out-report work/tank-preflight.json
+```
+
+Initialization creates a manifest, separate observation/evaluation tables and
+evidence folders, with equipment-dependent declarations left unknown. The empty
+kit is expected to return `incomplete` and exit code 2. Supply actual equipment,
+calibration, timing and uncertainty evidence; no measurements or uncertainties
+are supplied by the kit. The [usage guide](USAGE.md#prepare-a-controlled-tank-recording)
+explains the output modes and exit codes.
+
+Preflight checks metadata, file checksums and declared capture-clock differences.
+`ready_for_review` does not establish synchronization, calibration validity,
+sensor accuracy or real-data inference. Plan the controlled acquisition before
+extending the measurement model:
 
 1. Fix the camera in front of a tank with a clearly visible horizontal level
    edge, stable lighting, and a separate stationary fiducial. Record water and
    marker ROIs, polarity, exposure settings, and the physical calibration
    evidence. Keep the edge within the calibration range. Perspective, rotation,
    moving-camera operation, and changing lens geometry need additional models.
-2. Record original frame files or lossless arrays with acquisition frame counters,
-   UTC capture times, and a seconds axis tied to a named origin. Preserve drops,
-   repeats, hashes, and clock-synchronization evidence. Retrieval or file-write
-   time does not establish capture time. Distinguish externally declared missing
-   slots from measured captures.
+2. Retain original recordings and device clocks, available acquisition counters
+   with their declared source, decoded-frame indices and evidenced clock mappings.
+   Preserve drops, repeats and hashes. Follow the protocol's supported metadata
+   format without inventing capture times. Retrieval or file-write time does not
+   establish capture time; expected missing slots are not measured captures.
 3. Record the gauge and a separate evaluation reference with their own capture
    times, level units in metres, standard uncertainties, and uncertainty evidence.
    Establish synchronization and latency before claiming matching instants;
@@ -212,7 +227,8 @@ short controlled recording before extending the model:
    making a field-performance claim. Retain failures and source disagreement
    alongside the combined estimate.
 
-The template's frame hash field is the `frame_content_hash` digest of the decoded
-array, including dtype and shape; it is distinct from a file checksum. The
-manifest/checksum evidence and acquisition metadata provide traceability, not
-proof that a clock, calibration, or reference is correct.
+The older [`camera_recording_template.csv`](../examples/camera_recording_template.csv)
+remains a header-only planning aid and is not imported by the preflight checker.
+Its decoded-array hash field uses `frame_content_hash`, including dtype and shape.
+The kit's `frames.csv` instead declares a `frame_sha256` file checksum. Neither
+hash validates the physical clock, calibration, reference or image model.

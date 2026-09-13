@@ -41,6 +41,8 @@ jobs:
         run: uv run --frozen --python ${{ matrix.python }} python examples/invariant_fluid.py
       - name: Run camera and gauge example
         run: uv run --frozen --python ${{ matrix.python }} python examples/camera_baseline.py --out-dir work/camera-demo
+      - name: Prepare an empty recording kit
+        run: uv run --frozen --python ${{ matrix.python }} python -m set_lcm.recording init work/tank-recording
       - name: Build package
         run: uv build --python ${{ matrix.python }}
       - name: Run default suite

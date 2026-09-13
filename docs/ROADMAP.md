@@ -81,7 +81,13 @@ incorrectly declared clock. Metadata timing checks do not establish operational 
 detection rates. Static scenes can repeat legitimately, so duplicate-content refusal
 must be an explicit policy.
 
-The next gate is a controlled tank recording with a fixed, front-facing camera, a fixed
+Recording preparation is now available through a blank evidence kit and metadata/file/clock
+preflight. The [controlled recording protocol](TANK_RECORDING_PROTOCOL.md) specifies separate
+calibration, development and held-out sessions, original evidence and uncertainty declarations.
+The checker reports readiness for review; it does not validate equipment or run real-data
+inference. No real tank measurements or field-accuracy results have been obtained by this step.
+
+The next gate remains a controlled tank recording with a fixed, front-facing camera, a fixed
 fiducial, documented capture timing, and independently calibrated gauge/reference readings.
 Synthetic calibration treats anchor pixels as exact; uncertain real anchors need an
 errors-in-variables treatment or a validated alternative. Current covariance propagation
@@ -128,6 +134,10 @@ Include ambiguous/insufficient-evidence outcomes. Common-mode controls may alarm
 channels but must not acquire unsupported balance-based diagnoses.
 
 ## 5. Operational calibration and external validation — planned
+
+The recording protocol and preflight kit prepare evidence collection for a controlled pilot.
+Actual acquisition, justified real-image calibration, measurement alignment and held-out
+evaluation remain required before a field-validation claim.
 
 Define alarm episodes, resets and units such as alarms per sensor-month or network-month.
 Choose thresholds on designated development data and lock them before evaluation. Use a
