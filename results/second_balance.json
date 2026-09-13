@@ -1,0 +1,876 @@
+{
+  "schema_version": "fsre-second-balance-study-v1",
+  "scope": "A design study of PROPOSED constraint topologies. No instrument, record or estimate appears here; nothing below is a measurement.",
+  "provenance": {
+    "generation": {
+      "python": "3.13.12",
+      "numpy": "2.5.3",
+      "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+      "machine": "x86_64",
+      "source_sha256": "d780d4489e524bbb284df022c6d5ab5bebaa8703c693519baf8145e0c0fe54cd",
+      "git_head": "cc9aeaf6e6355b8b60e2fc9f2828c6680fd4c612",
+      "source_dirty": false,
+      "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
+    }
+  },
+  "declared": {
+    "muskingum": {
+      "K_days": 1.0,
+      "x": 0.2,
+      "status": "declared parameters of the routing relation; never fitted here",
+      "swept": [
+        [
+          0.5,
+          0.0
+        ],
+        [
+          0.5,
+          0.2
+        ],
+        [
+          0.5,
+          0.35
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          1.0,
+          0.0
+        ],
+        [
+          1.0,
+          0.2
+        ],
+        [
+          1.0,
+          0.35
+        ],
+        [
+          1.0,
+          0.5
+        ],
+        [
+          2.0,
+          0.0
+        ],
+        [
+          2.0,
+          0.2
+        ],
+        [
+          2.0,
+          0.35
+        ],
+        [
+          2.0,
+          0.5
+        ]
+      ]
+    },
+    "cooling_loop": {
+      "cp_J_per_kg_K": 4186.0,
+      "interval_s": 60.0,
+      "mdot_kg_per_s": 2.0,
+      "T_in_C": 35.0,
+      "T_out_C": 25.0,
+      "effectiveness": 0.7,
+      "c_min_W_per_K": 8000.0,
+      "status": "declared operating point; it enters the fault directions rather than A, and is not measured here",
+      "effectiveness_swept": [
+        0.3,
+        0.5,
+        0.7,
+        0.9
+      ]
+    },
+    "prior_sweep": [
+      0.01,
+      1.0,
+      100.0
+    ],
+    "prior_status": "unit variance on throughput states, the swept scale squared on stored states; structural isolability does not depend on it"
+  },
+  "topologies": [
+    {
+      "key": "ridgway_today",
+      "label": "Ridgway closure (every constraint in this repository today)",
+      "states": [
+        "stored volume",
+        "cumulative gauged net inflow"
+      ],
+      "note": "rank 1: a scalar residual, so no pair of visible faults can be separated.",
+      "faults": {
+        "storage gauge bias": [
+          1.0,
+          0.0
+        ],
+        "inflow gauge bias": [
+          0.0,
+          1.0
+        ],
+        "ungauged catchment inflow": [
+          0.0,
+          1.0
+        ],
+        "equal and opposite inflow/outflow bias": [
+          0.0,
+          0.0
+        ]
+      },
+      "variants": [
+        {
+          "variant": "one closure",
+          "declares": "the single storage closure",
+          "declared_rows": 1,
+          "residual_rank": 1,
+          "n_faults": 4,
+          "visible": [
+            "storage gauge bias",
+            "inflow gauge bias",
+            "ungauged catchment inflow"
+          ],
+          "invisible": [
+            "equal and opposite inflow/outflow bias"
+          ],
+          "isolable": [],
+          "n_isolable": 0,
+          "confounded_pairs": [
+            [
+              "storage gauge bias",
+              "inflow gauge bias"
+            ],
+            [
+              "storage gauge bias",
+              "ungauged catchment inflow"
+            ],
+            [
+              "inflow gauge bias",
+              "ungauged catchment inflow"
+            ]
+          ],
+          "by_prior": [
+            {
+              "prior_scale": 0.01,
+              "refused": false,
+              "refusal": null,
+              "isolable": [],
+              "tightest_separated_pair": null
+            },
+            {
+              "prior_scale": 1.0,
+              "refused": false,
+              "refusal": null,
+              "isolable": [],
+              "tightest_separated_pair": null
+            },
+            {
+              "prior_scale": 100.0,
+              "refused": false,
+              "refusal": null,
+              "isolable": [],
+              "tightest_separated_pair": null
+            }
+          ],
+          "n_priors_refused": 0,
+          "amplification_range": null
+        }
+      ]
+    },
+    {
+      "key": "muskingum_two_reach",
+      "label": "Two-reach Muskingum river",
+      "states": [
+        "stored volume, reach 1",
+        "stored volume, reach 2",
+        "cumulative volume past the inflow gauge",
+        "cumulative volume past the middle gauge",
+        "cumulative volume past the outflow gauge"
+      ],
+      "note": "Cumulative volumes over one interval; continuity is exact on these states.",
+      "faults": {
+        "storage 1 bias": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "storage 2 bias": [
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "inflow gauge bias": [
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "middle gauge bias": [
+          0.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        "outflow gauge bias": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "common drift of all three flow gauges": [
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "ungauged lateral inflow to reach 1": [
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ]
+      },
+      "variants": [
+        {
+          "variant": "continuity only",
+          "declares": "two storage closures and nothing else",
+          "declared_rows": 2,
+          "residual_rank": 2,
+          "n_faults": 7,
+          "visible": [
+            "storage 1 bias",
+            "storage 2 bias",
+            "inflow gauge bias",
+            "middle gauge bias",
+            "outflow gauge bias",
+            "ungauged lateral inflow to reach 1"
+          ],
+          "invisible": [
+            "common drift of all three flow gauges"
+          ],
+          "isolable": [
+            "middle gauge bias"
+          ],
+          "n_isolable": 1,
+          "confounded_pairs": [
+            [
+              "storage 1 bias",
+              "inflow gauge bias"
+            ],
+            [
+              "storage 1 bias",
+              "ungauged lateral inflow to reach 1"
+            ],
+            [
+              "storage 2 bias",
+              "outflow gauge bias"
+            ],
+            [
+              "inflow gauge bias",
+              "ungauged lateral inflow to reach 1"
+            ]
+          ],
+          "by_prior": [
+            {
+              "prior_scale": 0.01,
+              "refused": false,
+              "refusal": null,
+              "isolable": [
+                "middle gauge bias"
+              ],
+              "tightest_separated_pair": {
+                "a": "storage 1 bias",
+                "b": "middle gauge bias",
+                "orthogonal_fraction": 0.8660181872368321,
+                "isolation_amplification": 1.1547101605229078
+              }
+            },
+            {
+              "prior_scale": 1.0,
+              "refused": false,
+              "refusal": null,
+              "isolable": [
+                "middle gauge bias"
+              ],
+              "tightest_separated_pair": {
+                "a": "middle gauge bias",
+                "b": "outflow gauge bias",
+                "orthogonal_fraction": 0.816496580927726,
+                "isolation_amplification": 1.224744871391589
+              }
+            },
+            {
+              "prior_scale": 100.0,
+              "refused": false,
+              "refusal": null,
+              "isolable": [
+                "middle gauge bias"
+              ],
+              "tightest_separated_pair": {
+                "a": "storage 1 bias",
+                "b": "middle gauge bias",
+                "orthogonal_fraction": 0.707142128572467,
+                "isolation_amplification": 1.4141428711350228
+              }
+            }
+          ],
+          "n_priors_refused": 0,
+          "amplification_range": [
+            1.1547101605229078,
+            1.4141428711350228
+          ]
+        },
+        {
+          "variant": "continuity + declared routing",
+          "declares": "Muskingum routing at declared K = 1 day, x = 0.2",
+          "declared_rows": 4,
+          "residual_rank": 4,
+          "n_faults": 7,
+          "visible": [
+            "storage 1 bias",
+            "storage 2 bias",
+            "inflow gauge bias",
+            "middle gauge bias",
+            "outflow gauge bias",
+            "common drift of all three flow gauges",
+            "ungauged lateral inflow to reach 1"
+          ],
+          "invisible": [],
+          "isolable": [
+            "storage 1 bias",
+            "storage 2 bias",
+            "middle gauge bias",
+            "outflow gauge bias",
+            "common drift of all three flow gauges"
+          ],
+          "n_isolable": 5,
+          "confounded_pairs": [
+            [
+              "inflow gauge bias",
+              "ungauged lateral inflow to reach 1"
+            ]
+          ],
+          "by_prior": [
+            {
+              "prior_scale": 0.01,
+              "refused": false,
+              "refusal": null,
+              "isolable": [
+                "storage 1 bias",
+                "storage 2 bias",
+                "middle gauge bias",
+                "outflow gauge bias",
+                "common drift of all three flow gauges"
+              ],
+              "tightest_separated_pair": {
+                "a": "storage 1 bias",
+                "b": "storage 2 bias",
+                "orthogonal_fraction": 0.04923225997215469,
+                "isolation_amplification": 20.311884942222655
+              }
+            },
+            {
+              "prior_scale": 1.0,
+              "refused": false,
+              "refusal": null,
+              "isolable": [
+                "storage 1 bias",
+                "storage 2 bias",
+                "middle gauge bias",
+                "outflow gauge bias",
+                "common drift of all three flow gauges"
+              ],
+              "tightest_separated_pair": {
+                "a": "outflow gauge bias",
+                "b": "common drift of all three flow gauges",
+                "orthogonal_fraction": 0.7113429746222258,
+                "isolation_amplification": 1.4057916303047369
+              }
+            },
+            {
+              "prior_scale": 100.0,
+              "refused": false,
+              "refusal": null,
+              "isolable": [
+                "storage 1 bias",
+                "storage 2 bias",
+                "middle gauge bias",
+                "outflow gauge bias",
+                "common drift of all three flow gauges"
+              ],
+              "tightest_separated_pair": {
+                "a": "middle gauge bias",
+                "b": "ungauged lateral inflow to reach 1",
+                "orthogonal_fraction": 0.44323970119206724,
+                "isolation_amplification": 2.256115590075886
+              }
+            }
+          ],
+          "n_priors_refused": 0,
+          "amplification_range": [
+            1.4057916303047369,
+            20.311884942222655
+          ]
+        }
+      ]
+    },
+    {
+      "key": "cooling_loop_mass_energy",
+      "label": "Cooling loop, mass and energy over the same pipes",
+      "states": [
+        "stored mass",
+        "stored energy",
+        "cumulative mass in",
+        "cumulative mass out",
+        "cumulative enthalpy in",
+        "cumulative enthalpy out",
+        "cumulative heat"
+      ],
+      "note": "Conservation rows are exact on these states; the operating point enters the fault directions, not A.",
+      "faults": {
+        "inlet flow-meter bias": [
+          0.0,
+          0.0,
+          60.0,
+          0.0,
+          8790600.0,
+          0.0,
+          0.0
+        ],
+        "outlet flow-meter bias": [
+          0.0,
+          0.0,
+          0.0,
+          60.0,
+          0.0,
+          6279000.0,
+          0.0
+        ],
+        "inlet temperature bias": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          502320.0,
+          0.0,
+          0.0
+        ],
+        "outlet temperature bias": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          502320.0,
+          0.0
+        ],
+        "stored-mass sensor bias": [
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "stored-energy sensor bias": [
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "heat-duty error": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      "variants": [
+        {
+          "variant": "mass + energy only",
+          "declares": "two conservation rows and nothing else",
+          "declared_rows": 2,
+          "residual_rank": 2,
+          "n_faults": 7,
+          "visible": [
+            "inlet flow-meter bias",
+            "outlet flow-meter bias",
+            "inlet temperature bias",
+            "outlet temperature bias",
+            "stored-mass sensor bias",
+            "stored-energy sensor bias",
+            "heat-duty error"
+          ],
+          "invisible": [],
+          "isolable": [
+            "stored-mass sensor bias"
+          ],
+          "n_isolable": 1,
+          "confounded_pairs": [
+            [
+              "inlet temperature bias",
+              "outlet temperature bias"
+            ],
+            [
+              "inlet temperature bias",
+              "stored-energy sensor bias"
+            ],
+            [
+              "inlet temperature bias",
+              "heat-duty error"
+            ],
+            [
+              "outlet temperature bias",
+              "stored-energy sensor bias"
+            ],
+            [
+              "outlet temperature bias",
+              "heat-duty error"
+            ],
+            [
+              "stored-energy sensor bias",
+              "heat-duty error"
+            ]
+          ],
+          "by_prior": [
+            {
+              "prior_scale": 0.01,
+              "refused": true,
+              "refusal": "P is not positive definite (eigenvalues [1.e-04 4.e+00 4.e+00 1.e+06 1.e+10 4.e+10 4.e+10])",
+              "isolable": null,
+              "tightest_separated_pair": null
+            },
+            {
+              "prior_scale": 1.0,
+              "refused": false,
+              "refusal": null,
+              "isolable": [
+                "stored-mass sensor bias"
+              ],
+              "tightest_separated_pair": {
+                "a": "inlet flow-meter bias",
+                "b": "outlet flow-meter bias",
+                "orthogonal_fraction": 0.16458774282733282,
+                "isolation_amplification": 6.075786585451196
+              }
+            },
+            {
+              "prior_scale": 100.0,
+              "refused": true,
+              "refusal": "P is not positive definite (eigenvalues [4.e+00 4.e+00 1.e+04 1.e+10 4.e+10 4.e+10 1.e+14])",
+              "isolable": null,
+              "tightest_separated_pair": null
+            }
+          ],
+          "n_priors_refused": 2,
+          "amplification_range": [
+            6.075786585451196,
+            6.075786585451196
+          ]
+        },
+        {
+          "variant": "mass + energy + declared duty",
+          "declares": "effectiveness-NTU duty at declared eps = 0.7, c_min = 8000 W/K",
+          "declared_rows": 3,
+          "residual_rank": 3,
+          "n_faults": 7,
+          "visible": [
+            "inlet flow-meter bias",
+            "outlet flow-meter bias",
+            "inlet temperature bias",
+            "outlet temperature bias",
+            "stored-mass sensor bias",
+            "stored-energy sensor bias",
+            "heat-duty error"
+          ],
+          "invisible": [],
+          "isolable": [
+            "stored-mass sensor bias",
+            "heat-duty error"
+          ],
+          "n_isolable": 2,
+          "confounded_pairs": [
+            [
+              "outlet temperature bias",
+              "stored-energy sensor bias"
+            ]
+          ],
+          "by_prior": [
+            {
+              "prior_scale": 0.01,
+              "refused": true,
+              "refusal": "P is not positive definite (eigenvalues [1.e-04 4.e+00 4.e+00 1.e+06 1.e+10 4.e+10 4.e+10])",
+              "isolable": null,
+              "tightest_separated_pair": null
+            },
+            {
+              "prior_scale": 1.0,
+              "refused": false,
+              "refusal": null,
+              "isolable": [
+                "stored-mass sensor bias",
+                "heat-duty error"
+              ],
+              "tightest_separated_pair": {
+                "a": "inlet flow-meter bias",
+                "b": "inlet temperature bias",
+                "orthogonal_fraction": 0.45327494383580164,
+                "isolation_amplification": 2.2061665079864836
+              }
+            },
+            {
+              "prior_scale": 100.0,
+              "refused": true,
+              "refusal": "P is not positive definite (eigenvalues [4.e+00 4.e+00 1.e+04 1.e+10 4.e+10 4.e+10 1.e+14])",
+              "isolable": null,
+              "tightest_separated_pair": null
+            }
+          ],
+          "n_priors_refused": 2,
+          "amplification_range": [
+            2.2061665079864836,
+            2.2061665079864836
+          ]
+        }
+      ]
+    }
+  ],
+  "parameter_sensitivity": {
+    "muskingum_routing": [
+      {
+        "K_days": 0.5,
+        "x": 0.0,
+        "n_isolable": 5,
+        "residual_rank": 4,
+        "isolable": [
+          "storage 1 bias",
+          "storage 2 bias",
+          "middle gauge bias",
+          "outflow gauge bias",
+          "common drift of all three flow gauges"
+        ]
+      },
+      {
+        "K_days": 0.5,
+        "x": 0.2,
+        "n_isolable": 5,
+        "residual_rank": 4,
+        "isolable": [
+          "storage 1 bias",
+          "storage 2 bias",
+          "middle gauge bias",
+          "outflow gauge bias",
+          "common drift of all three flow gauges"
+        ]
+      },
+      {
+        "K_days": 0.5,
+        "x": 0.35,
+        "n_isolable": 5,
+        "residual_rank": 4,
+        "isolable": [
+          "storage 1 bias",
+          "storage 2 bias",
+          "middle gauge bias",
+          "outflow gauge bias",
+          "common drift of all three flow gauges"
+        ]
+      },
+      {
+        "K_days": 0.5,
+        "x": 0.5,
+        "n_isolable": 5,
+        "residual_rank": 4,
+        "isolable": [
+          "storage 1 bias",
+          "storage 2 bias",
+          "middle gauge bias",
+          "outflow gauge bias",
+          "common drift of all three flow gauges"
+        ]
+      },
+      {
+        "K_days": 1.0,
+        "x": 0.0,
+        "n_isolable": 5,
+        "residual_rank": 4,
+        "isolable": [
+          "storage 1 bias",
+          "storage 2 bias",
+          "middle gauge bias",
+          "outflow gauge bias",
+          "common drift of all three flow gauges"
+        ]
+      },
+      {
+        "K_days": 1.0,
+        "x": 0.2,
+        "n_isolable": 5,
+        "residual_rank": 4,
+        "isolable": [
+          "storage 1 bias",
+          "storage 2 bias",
+          "middle gauge bias",
+          "outflow gauge bias",
+          "common drift of all three flow gauges"
+        ]
+      },
+      {
+        "K_days": 1.0,
+        "x": 0.35,
+        "n_isolable": 5,
+        "residual_rank": 4,
+        "isolable": [
+          "storage 1 bias",
+          "storage 2 bias",
+          "middle gauge bias",
+          "outflow gauge bias",
+          "common drift of all three flow gauges"
+        ]
+      },
+      {
+        "K_days": 1.0,
+        "x": 0.5,
+        "n_isolable": 5,
+        "residual_rank": 4,
+        "isolable": [
+          "storage 1 bias",
+          "storage 2 bias",
+          "middle gauge bias",
+          "outflow gauge bias",
+          "common drift of all three flow gauges"
+        ]
+      },
+      {
+        "K_days": 2.0,
+        "x": 0.0,
+        "n_isolable": 5,
+        "residual_rank": 4,
+        "isolable": [
+          "storage 1 bias",
+          "storage 2 bias",
+          "middle gauge bias",
+          "outflow gauge bias",
+          "common drift of all three flow gauges"
+        ]
+      },
+      {
+        "K_days": 2.0,
+        "x": 0.2,
+        "n_isolable": 5,
+        "residual_rank": 4,
+        "isolable": [
+          "storage 1 bias",
+          "storage 2 bias",
+          "middle gauge bias",
+          "outflow gauge bias",
+          "common drift of all three flow gauges"
+        ]
+      },
+      {
+        "K_days": 2.0,
+        "x": 0.35,
+        "n_isolable": 5,
+        "residual_rank": 4,
+        "isolable": [
+          "storage 1 bias",
+          "storage 2 bias",
+          "middle gauge bias",
+          "outflow gauge bias",
+          "common drift of all three flow gauges"
+        ]
+      },
+      {
+        "K_days": 2.0,
+        "x": 0.5,
+        "n_isolable": 4,
+        "residual_rank": 4,
+        "isolable": [
+          "storage 2 bias",
+          "middle gauge bias",
+          "outflow gauge bias",
+          "common drift of all three flow gauges"
+        ]
+      }
+    ],
+    "cooling_loop_duty": [
+      {
+        "effectiveness": 0.3,
+        "n_isolable": 2,
+        "residual_rank": 3,
+        "isolable": [
+          "stored-mass sensor bias",
+          "heat-duty error"
+        ]
+      },
+      {
+        "effectiveness": 0.5,
+        "n_isolable": 2,
+        "residual_rank": 3,
+        "isolable": [
+          "stored-mass sensor bias",
+          "heat-duty error"
+        ]
+      },
+      {
+        "effectiveness": 0.7,
+        "n_isolable": 2,
+        "residual_rank": 3,
+        "isolable": [
+          "stored-mass sensor bias",
+          "heat-duty error"
+        ]
+      },
+      {
+        "effectiveness": 0.9,
+        "n_isolable": 2,
+        "residual_rank": 3,
+        "isolable": [
+          "stored-mass sensor bias",
+          "heat-duty error"
+        ]
+      }
+    ],
+    "note": "Structural isolability does not depend on the prior, so only the declared constitutive parameters are swept here; the prior sweep varies the amplification instead."
+  },
+  "limitations": [
+    "No instrument, record or estimate appears in this study; nothing here is a measurement.",
+    "Isolability is structural. A topology that separates two faults here says the evidence could in principle name one, not that a real record would, at what magnitude, or how often.",
+    "Every fault carries one unrestricted signed amplitude, so a direction and its negation are the same line; a sign convention cannot separate a pair this study calls confounded.",
+    "Each constitutive row's coefficients are declared parameters. The kernel carries uncertainty on b through b_var and none on A, so the isolation a constitutive row buys is conditional on parameters whose uncertainty cannot yet be represented.",
+    "Simultaneous faults, temporal signatures and unknown onset are outside what fdi.isolability scores.",
+    "The cooling loop's states span seven orders of magnitude in natural units; a prior declared directly in those units can fail the kernel's positive-definiteness tolerance, which is a practical argument for nondimensionalising that design before building it."
+  ],
+  "claims": {
+    "the_repository_today_isolates_nothing": true,
+    "the_repository_today_has_a_scalar_residual": true,
+    "conservation_alone_isolates_almost_nothing": true,
+    "a_constitutive_row_isolates_strictly_more_than_conservation_alone": true,
+    "the_river_design_isolates_more_than_the_cooling_loop": true,
+    "the_rivers_remaining_confound_is_physical_not_instrumental": true,
+    "the_common_flow_drift_is_invisible_without_routing": true,
+    "structural_isolability_does_not_move_with_the_prior": true,
+    "every_separation_this_study_reports_is_actionable": true,
+    "the_cooling_loops_declared_units_are_refused_at_some_prior_scales": true,
+    "the_river_design_accepts_every_declared_prior": true,
+    "the_river_result_holds_across_the_declared_parameter_sweep": true,
+    "the_cooling_loop_result_holds_across_its_sweep": true
+  }
+}
