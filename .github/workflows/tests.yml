@@ -59,5 +59,7 @@ jobs:
           version: '0.10.10'
       # -rs prints the skip reasons: this job has no DAF checkout, so the export
       # reproduction check skips, and a silent skip in a job named full-reproduction
-      # would read as a pass.
+      # would read as a pass. The two tests that do run take about 33 minutes measured;
+      # the skipped one takes about 85 on its own, so giving this job a DAF checkout
+      # means raising timeout-minutes above that first.
       - run: uv run --frozen --python 3.13 --dev pytest -q -rs -m slow

@@ -568,12 +568,16 @@ def test_export_tool_reproduces_every_committed_file(tmp_path):
     PROVENANCE.md matching up to the Python version they record.
 
     Slow because replaying the recorded NOAA month puts 21,360 observations through DAF's
-    pool. That cost is the reason the fast test above is scoped, and it is stated here rather
-    than hidden: the guarantee is not weaker, it is just not free.
+    pool. Measured 2026-09-13 on Linux-6.18 x86_64: the export subprocess takes about 85
+    minutes, and the whole slow suite about 118. That cost is the reason the fast test above
+    is scoped, and it is stated here rather than hidden: the guarantee is not weaker, it is
+    just not free. The 4-hour subprocess timeout is that measurement with room, not a guess.
 
     Needs a DAF checkout, so it SKIPS wherever DAF_ROOT is unset -- including the
     full-reproduction CI job, which has no DAF checkout. That job therefore does not check
     the export; it runs pytest with -rs so the skip is printed rather than passing silently.
+    Its remaining two slow tests take about 33 minutes, inside that job's 60-minute cap;
+    wiring DAF_ROOT into it would need the cap raised past the 85 minutes above.
     """
     root = Path(os.environ["DAF_ROOT"])
     before = _daf_state(root)
