@@ -216,6 +216,7 @@ uv run --frozen --python 3.13 python run_experiments.py
 uv run --frozen --python 3.13 python -m set_lcm.experiments.calibration
 uv run --frozen --python 3.13 python -m set_lcm.experiments.sweep
 uv run --frozen --python 3.13 python -m set_lcm.experiments.second_balance --quiet
+uv run --frozen --python 3.13 python -m set_lcm.experiments.errors_in_variables --quiet
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_noaa
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_noaa_month --quiet
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_water_balance

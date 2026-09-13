@@ -74,6 +74,21 @@ class ConstraintSet:
     read-only float copy so it cannot drift after validation. The kernel (set_lcm.lcm)
     decides what it can do with a declared set; the schema only says what was declared.
 
+    A_var None (the default) declares the MATRIX exact: the relation itself is known, and only
+    b carries error. That is true of a conservation law written on declared states, and false
+    of any constitutive relation whose coefficients are measured or fitted -- a Muskingum
+    routing row carrying K and x, a heat-exchanger duty row carrying an effectiveness, a
+    stage-capacity slope. Otherwise A_var is the declared uncertainty of the DECLARED rows of
+    A, as either a (rows, n, n) stack giving row i's covariance over the states (declaring the
+    rows independent of each other) or a full (rows*n, rows*n) covariance of vec(A) in
+    row-major order, which is the form that can carry dependence between rows. Shape,
+    finiteness, symmetry and PSD-ness are validated here and a violation raises ValueError.
+
+    What it does NOT declare, and the kernel does not infer: any dependence between A's error
+    and b's, or between A's error and the state estimate. Shared evidence produces exactly
+    those dependencies -- a flow reading that enters both a coefficient and a measurement --
+    and an independently declared A_var does not represent them.
+
     row_units optionally declares the unit of each row of A x and b, in declared row
     order (including dependent rows). None leaves units undeclared for compatibility.
     Declarations are stored as an immutable tuple of non-empty strings. They are metadata:
@@ -86,9 +101,33 @@ class ConstraintSet:
     b: np.ndarray
     description: str
     b_var: np.ndarray | None = None   # declared variance of b: (rows,) or (rows, rows); None = exact
+    A_var: np.ndarray | None = None   # declared covariance of A: (rows, n, n) or (rows*n, rows*n)
     row_units: tuple[str, ...] | None = None  # one unit per declared row; metadata only
 
     def __post_init__(self):
+        if self.A_var is not None:
+            rows, n = self.dof, int(np.atleast_2d(self.A).shape[1])
+            v = np.array(self.A_var, dtype=float)
+            if v.shape == (rows, n, n):
+                full = np.zeros((rows * n, rows * n))
+                for i in range(rows):                       # declared independent across rows
+                    full[i * n:(i + 1) * n, i * n:(i + 1) * n] = v[i]
+                v = full
+            elif v.shape != (rows * n, rows * n):
+                raise ValueError(
+                    f"A_var must be a ({rows}, {n}, {n}) stack of per-row covariances or a "
+                    f"({rows * n}, {rows * n}) covariance of vec(A) in row-major order; "
+                    f"got shape {v.shape}")
+            if not np.all(np.isfinite(v)):
+                raise ValueError("A_var must be finite")
+            if not np.allclose(v, v.T, rtol=1e-10, atol=1e-12):
+                raise ValueError("A_var is not symmetric")
+            v = 0.5 * (v + v.T)
+            w = np.linalg.eigvalsh(v)
+            if w[0] < -_PSD_REL_TOL * float(np.abs(w).max() or 1.0):
+                raise ValueError(f"A_var is not positive semidefinite (eigenvalues {w})")
+            v.setflags(write=False)
+            object.__setattr__(self, "A_var", v)
         if self.row_units is not None:
             units = self.row_units
             if isinstance(units, (str, bytes)) or not isinstance(units, Sequence):
@@ -138,6 +177,18 @@ class ConstraintSet:
     def exact(self) -> bool:
         """True when b carries no declared uncertainty (b_var is None)."""
         return self.b_var is None
+
+    @property
+    def matrix_exact(self) -> bool:
+        """True when A carries no declared uncertainty (A_var is None)."""
+        return self.A_var is None
+
+    def A_block(self, i: int, j: int) -> np.ndarray:
+        """Cov(row i of A, row j of A) as an (n, n) matrix; raises when A is declared exact."""
+        if self.A_var is None:
+            raise ValueError("this constraint set declares A exact (A_var is None)")
+        n = int(np.atleast_2d(self.A).shape[1])
+        return np.array(self.A_var[i * n:(i + 1) * n, j * n:(j + 1) * n])
 
     @property
     def b_cov(self) -> np.ndarray | None:

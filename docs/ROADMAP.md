@@ -135,10 +135,28 @@ for nondimensionalising that design before building it. Before choosing it anywa
 candidate faults remain observable and have noncollinear signatures
 after heat exchange, energy storage and other nuisance terms are included. Temperature-
 derived enthalpy coefficients are measured quantities with uncertainty; shared flow and
-temperature evidence can correlate the rows. Use an explicit errors-in-variables treatment
-or a joint nonlinear state model where needed. An independently declared `A_var` by itself
-would not account for those correlations. Neither thermal modeling nor this alternative
-experiment is delivered in the foundation stage.
+temperature evidence can correlate the rows. `ConstraintSet.A_var` carries that uncertainty
+now (stage 3b); declare the full `vec(A)` covariance rather than per-row variances where the
+evidence is shared, because the per-row shortcut is measured to reject at 2.1x nominal there
+against a full declaration's 1.2x. A joint nonlinear state model remains an alternative and
+remains unimplemented. Neither thermal modeling nor this alternative experiment is delivered
+in the foundation stage.
+
+## 3b. Uncertainty on the relation itself — implemented for the test, not the projection
+
+Every constitutive row the stage above needs carries measured coefficients, and the kernel
+declared uncertainty only on `b`. `ConstraintSet.A_var` now declares it on `A`, as a per-row
+stack or a full `vec(A)` covariance, and the consistency statistic adds `Cov(E x)`.
+
+[`results/errors_in_variables.md`](../results/errors_in_variables.md) measures what that is
+worth against a null that is true by construction: treating an uncertain relation as exact
+rejects a healthy system at 26–30x the nominal rate. It is not a conservative simplification.
+
+What remains: the **projection** still solves against `A_bar` as though it were exact, so a
+reported correction is conditional on that; the correction is first order, with its residual
+measured; and no dependence between `A`'s error and `b`'s, or between `A`'s error and the
+state, is declared or inferred. A full errors-in-variables reconciliation is the next step
+here, and it is a harder problem than the test was.
 
 ## 4. Degradation benchmark — offset/drift/gain baseline implemented; expansion planned
 

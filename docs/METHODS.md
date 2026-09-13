@@ -236,10 +236,37 @@ observability are considered.
 
 If temperature-derived enthalpies are used as measured coefficients, their uncertainty
 creates an errors-in-variables problem. Shared measurements can correlate coefficient
-errors, flow errors and the mass/energy residuals. Independent coefficient variances alone
-do not represent this dependence. A joint nonlinear state model is another possible design.
-This alternative has not been implemented or validated; it does not extend the current
-kernel to uncertain coefficient matrices automatically.
+errors, flow errors and the mass/energy residuals. A joint nonlinear state model is another
+possible design, and remains unimplemented.
+
+`ConstraintSet.A_var` now declares that uncertainty, and the consistency statistic uses it.
+With `A = A_bar + E` the residual gains `E x`, so `S` gains
+
+    Cov(E x)_ij = x^T Sigma_ij x + tr(Sigma_ij P)
+
+where `Sigma_ij` is the declared covariance of rows `i` and `j` of `A`. Unlike `Sigma_b` this
+is a **quadratic form in the state**: the same constraint set has a different residual
+covariance at a different operating point, and `detectability` stops being a property of the
+set alone — it requires a state and raises without one.
+
+Omitting the term is not conservative, it is wrong in the rejecting direction, because the
+term belongs in the denominator. Measured on a null that is true by construction
+([`results/errors_in_variables.md`](../results/errors_in_variables.md)): treating an uncertain
+relation as exact rejects a healthy system at **26 to 30 times** the nominal rate, with the
+statistic's mean at 7.1–8.3 against a rank of 2. A full declaration is calibrated at 1.2x.
+
+Independent coefficient variances alone still do not represent dependence between rows, and
+the size of that shortcut is measured rather than asserted: where the rows share evidence, a
+per-row declaration rejects at 2.1x nominal against a full `vec(A)` declaration's 1.2x. That
+is much smaller than ignoring `A` altogether, which is an argument for the shortcut where
+evidence genuinely is not shared, not for using it everywhere.
+
+Two things the correction does not do. It is first order in the coefficient error — the
+residual miscalibration is measured shrinking from 1.24x to 0.98x as the declared variance
+falls a hundredfold, which is what a dropped second-order term does. And it corrects the
+consistency **test** only: reconciliation still solves against `A_bar` as though exact, so a
+reported correction stays conditional on that. Nothing declares dependence between `A`'s
+error and `b`'s, or between `A`'s error and the state estimate.
 The measurement model must represent significant uncertainty sources and their correlations;
 see [NIST's law of uncertainty propagation](https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-appendix-law-propagation-uncertainty).
 

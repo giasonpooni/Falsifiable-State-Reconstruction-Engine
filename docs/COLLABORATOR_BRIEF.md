@@ -15,7 +15,7 @@ Development remains focused on fluids. The camera prototype delivers fixed-marke
 | Location | Responsibility |
 |---|---|
 | `src/set_lcm/schema/` | Observation, estimate and constraint contracts. |
-| `src/set_lcm/lcm/` | Linear reconciliation, feasibility, residuals and consistency statistics. |
+| `src/set_lcm/lcm/` | Linear reconciliation, feasibility, residuals and consistency statistics, including declared uncertainty on `b` and on `A`. |
 | `src/set_lcm/fdi.py` | Static single-fault geometry of the residual vector. |
 | `src/set_lcm/measurement.py` | Explicit interval balances and joint measurement/reference covariance. |
 | `src/set_lcm/diagnostics.py` | Conditional fixed-horizon single-fault fits, nuisance projection and explicit ambiguity. |
@@ -32,6 +32,7 @@ Development remains focused on fluids. The camera prototype delivers fixed-marke
 ## Evidence and contribution rules
 
 - Preserve observations and unprojected estimates. Derived values and corrections must stay distinguishable from evidence. Refuse or report contradictory revisions; do not silently average them or select the latest one as truth.
+- Declare uncertainty on the relation, not only on its right-hand side. A row whose coefficients are measured or fitted needs `A_var`; treating it as exact rejects healthy systems at tens of times the nominal rate, and where rows share evidence the full `vec(A)` form is what carries that. A conservation law on declared states is genuinely exact and needs none.
 - Declare units, interval semantics, arrival policy and uncertainties. Carry citations where required by the bridge. If a source does not supply a quantity, identify the consumer's assumption and assess sensitivity; a citation does not validate an assumption it does not support.
 - Keep simulated hidden truth outside estimators. The labeled oracle is the explicit exception. Evaluate synthetic errors against truth and real-record consistency with the truth-free evaluator.
 - Keep camera inference inputs separate from held-out reference readings and synthetic truth. Preserve capture times and frame hashes; do not silently interpolate, repair frame rate or promote generated views to independent observations. Shared calibration uncertainty must remain correlated across frames and sources.
