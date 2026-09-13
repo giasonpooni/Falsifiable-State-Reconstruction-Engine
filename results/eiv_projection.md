@@ -1,6 +1,6 @@
 # What treating an uncertain relation as exact costs the estimate
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 5458eb05cd56, git 4d31ad0f0c (source dirty). Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 c2436dd517fa, git 25970ab2d5. Latency columns are wall-clock on this machine and are not a claim.
 
 A calibration measurement of the PROJECTION against a null that is true by construction. No real record appears; nothing here describes an instrument.
 
@@ -67,4 +67,5 @@ Worth reading the first column the other way round: `Cov(E x)` moves most betwee
 - Cov(E x) is first order in the coefficient error, and the projection inherits that approximation from the statistic unchanged.
 - Nothing here declares dependence between A's error and b's, or between A's error and the state estimate. Shared evidence produces exactly those.
 - One relation shape, one Gaussian coefficient error, one axis of operating point. A different relation could be more or less sensitive to each.
+- Only the CONSTRAINT relation carries declared uncertainty. The filters' observation model H is still declared exact wherever a Kalman gain is formed against it, and an uncertain H would need the same treatment in its own place; nothing here measures or claims it.
 - A calibrated projection is not a correct one: a well-declared A_var makes the estimate honest about what the relation can tell it, and where it can tell it little the honest answer is to leave the state near its prior.

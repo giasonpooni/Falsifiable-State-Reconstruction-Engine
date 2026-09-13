@@ -7,9 +7,9 @@
       "numpy": "2.5.3",
       "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
       "machine": "x86_64",
-      "source_sha256": "5458eb05cd564f5d4202265e26269fe7a8bc7209390991a81d3401412c02edc0",
-      "git_head": "4d31ad0f0cf23260e22e54552135543e127ee6b6",
-      "source_dirty": true,
+      "source_sha256": "c2436dd517fa637c89a350f8fd203e613881fea8d3bd7dc56b322c3b5f62112c",
+      "git_head": "25970ab2d5b61e415c036be6160908d84d7b0752",
+      "source_dirty": false,
       "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
     }
   },
@@ -398,6 +398,7 @@
     "Cov(E x) is first order in the coefficient error, and the projection inherits that approximation from the statistic unchanged.",
     "Nothing here declares dependence between A's error and b's, or between A's error and the state estimate. Shared evidence produces exactly those.",
     "One relation shape, one Gaussian coefficient error, one axis of operating point. A different relation could be more or less sensitive to each.",
+    "Only the CONSTRAINT relation carries declared uncertainty. The filters' observation model H is still declared exact wherever a Kalman gain is formed against it, and an uncertain H would need the same treatment in its own place; nothing here measures or claims it.",
     "A calibrated projection is not a correct one: a well-declared A_var makes the estimate honest about what the relation can tell it, and where it can tell it little the honest answer is to leave the state near its prior."
   ],
   "claims": {

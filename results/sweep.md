@@ -1,6 +1,6 @@
 # Fault-magnitude sweep
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 c16391f7b645, git 5eedb43dff. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 c2436dd517fa, git 25970ab2d5. Latency columns are wall-clock on this machine and are not a claim.
 
 20 seeds per point. Cells are (RMSE kg / cov95 / nz) over the fault window; det = seeds flagged within 100 steps of onset, or 'FA max / rate' (worst-seed count and mean per-step rate of flags) where the spec's hypothesis holds for the whole run; held = mean steps the guard reported model_inconsistent ('guard held' is kf+hard+guard's). nz = RMS normalised error (1.0 calibrated, >1 over-confident). Specs named (b_var…) are handed a ConstraintSet that declares that variance on b.
 

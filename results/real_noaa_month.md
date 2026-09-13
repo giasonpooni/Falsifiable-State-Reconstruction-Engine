@@ -1,6 +1,6 @@
 # P4c: a month of real water levels, and what a month buys over a day
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 c16391f7b645, git 5eedb43dff. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 c2436dd517fa, git 25970ab2d5. Latency columns are wall-clock on this machine and are not a claim.
 
 One month of real six-minute water levels. Truth-free: no number here is an error.
 
