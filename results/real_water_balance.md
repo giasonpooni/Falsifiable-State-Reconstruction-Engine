@@ -1,6 +1,6 @@
 # P4b: a real reservoir water balance through the reconciliation kernel
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 07a602e02564, git 26b23d6596. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 4b49249c49ac, git 995ff74d16. Latency columns are wall-clock on this machine and are not a claim.
 
 Ridgway Reservoir, Uncompahgre River, Colorado, 1096 days from 2022-10-01, four USGS daily-mean series admitted by DAF. Gauged drainage 246.2 of 265 sq mi = 0.929.
 
@@ -75,6 +75,7 @@ R is **consumer-declared** throughout: USGS states no per-value uncertainty anyw
 
 - Flows: σ = 5% of the reading, floored at 1.0 ft³/s. USGS rates a daily discharge record 'Good' when about 95% of daily values are within 10% of their true value (USGS surface-water accuracy classes, as published per site and period in the annual water-data reports). Read as a two-sided 95% normal interval, that is 2 sigma, so sigma = 5% of the reading. Two assumptions here are this consumer's and not USGS's: that this site and period are rated 'Good' (the rating itself was not acquired -- it is not in the daily-values API), and that the error is normal. Floored at 1.0 ft^3/s because a percentage states nothing at zero flow.
 - Storage: **swept**, not declared once — [50.0, 200.0, 800.0] acre-ft. NOT a source statement. Reservoir storage is derived from a measured lake elevation through a stage-capacity table whose uncertainty at this reservoir this repository has no source for. This value is one point of a declared sweep (STORAGE_SIGMA_SWEEP); every conclusion in the report is computed at each point, and the report says which survive the range.
+- The daily interval itself is an interpretation, not a source statement: The USGS Water Data OGC API defines a daily item's `time` only as the date the observation represents and states no time zone (measured: every value is a bare 'YYYY-MM-DD'). Legacy NWIS practice is the site's local standard-time day, which this API does not say. Read here as a UTC day anchored at its midpoint -- an assumption of this consumer, not a statement of the source. It shifts every series by the same amount, so it cannot change a same-day difference between them; it would matter to an alignment against a sub-daily series, and none is used.
 
 Process noise, declared and never fitted: q_storage = 500 acre-ft/√day, q_flow = 50 ft³/s/√day, q_ungauged = 200 acre-ft/√day (wb_aug only).
 

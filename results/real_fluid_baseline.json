@@ -10,7 +10,7 @@
       32,
       64
     ],
-    "window_days_status": "consumer choice; the declared length is one point of the swept axis below and is not privileged by the record",
+    "window_days_status": "consumer choice; the declared length is one point of the swept axis in this report and is not privileged by the record",
     "alpha": 0.01,
     "storage_support": "interval mean",
     "flow_support": "interval mean",
@@ -32,8 +32,8 @@
       "numpy": "2.5.3",
       "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
       "machine": "x86_64",
-      "source_sha256": "d4aa8a5c010b6fde4ff299b83e923d877a76f501527e5bcf9af8baa26f1f25f4",
-      "git_head": "6877c7dd3417e7a0f7566c627d080e93e256ea0f",
+      "source_sha256": "4b49249c49acdbf5481f69d63976df32d6995dd8451a9af9dbe6dedb033d5c24",
+      "git_head": "995ff74d167d39adccc1454de75e0761252eb292",
       "source_dirty": false,
       "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
     }

@@ -1,6 +1,6 @@
 # Real fluid-measurement baseline — Ridgway
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 d4aa8a5c010b, git 6877c7dd34. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 4b49249c49ac, git 995ff74d16. Latency columns are wall-clock on this machine and are not a claim.
 
 Real-record conditional consistency; no known fault labels or ground truth.
 
@@ -46,7 +46,14 @@ record's rejection rate reads a consumer choice as a property of the instruments
 
 ## Interpretation
 
-The USGS Water Data OGC API defines a daily item's `time` only as the date the observation represents and states no time zone (measured: every value is a bare 'YYYY-MM-DD'). Legacy NWIS practice is the site's local standard-time day, which this API does not say. Read here as a UTC day anchored at its midpoint -- an assumption of this consumer, not a statement of the source. It shifts every series by the same amount, so it cannot change a same-day difference between them; it would matter to an alignment against a sub-daily series, and none is used.
+**Every uncertainty and interval here is consumer-declared and carries its citation,
+printed where the numbers are read and not only stored in the JSON.**
+
+- Declared time interval: The USGS Water Data OGC API defines a daily item's `time` only as the date the observation represents and states no time zone (measured: every value is a bare 'YYYY-MM-DD'). Legacy NWIS practice is the site's local standard-time day, which this API does not say. Read here as a UTC day anchored at its midpoint -- an assumption of this consumer, not a statement of the source. It shifts every series by the same amount, so it cannot change a same-day difference between them; it would matter to an alignment against a sub-daily series, and none is used.
+- Declared flow sigma: USGS rates a daily discharge record 'Good' when about 95% of daily values are within 10% of their true value (USGS surface-water accuracy classes, as published per site and period in the annual water-data reports). Read as a two-sided 95% normal interval, that is 2 sigma, so sigma = 5% of the reading. Two assumptions here are this consumer's and not USGS's: that this site and period are rated 'Good' (the rating itself was not acquired -- it is not in the daily-values API), and that the error is normal. Floored at 1.0 ft^3/s because a percentage states nothing at zero flow.
+- Declared storage sigma: NOT a source statement. Reservoir storage is derived from a measured lake elevation through a stage-capacity table whose uncertainty at this reservoir this repository has no source for. This value is one point of a declared sweep (STORAGE_SIGMA_SWEEP); every conclusion in the report is computed at each point, and the report says which survive the range.
+- Within-interval model (`constant_net_flow`): consumer assumption; not established by daily means.
+- Window length (32 days, swept over [3, 8, 32, 64]): consumer choice; the declared length is one point of the swept axis in this report and is not privileged by the record.
 
 Uncertainty is the existing consumer-declared sensitivity sweep, not a field calibration.
 The JSON retains every window's joint statistic, threshold, final cumulative residual,
