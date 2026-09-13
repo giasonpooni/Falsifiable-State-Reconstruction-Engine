@@ -137,6 +137,8 @@ def render_report(r: dict) -> str:
       f"{dec['flow_sigma_floor']:.1f} ft³/s. {dec['flow_sigma_citation']}")
     A(f"- Storage: **swept**, not declared once — {dec['storage_sigma_sweep']} acre-ft. "
       f"{dec['storage_sigma_citation']}")
+    A(f"- The daily interval itself is an interpretation, not a source statement: "
+      f"{dec['day_zone_citation']}")
     A("")
     A("Process noise, declared and never fitted: q_storage = "
       f"{dec['config']['q_storage']:.0f} acre-ft/√day, q_flow = {dec['config']['q_flow']:.0f} ft³/s/√day, "

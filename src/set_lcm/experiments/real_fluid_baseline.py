@@ -191,7 +191,7 @@ def build_report(*, window_days: int = WINDOW_DAYS,
             "window_days": window_days, "window_policy": "nonoverlapping, anchored at first source day",
             "window_days_sensitivity": list(sorted(lengths)),
             "window_days_status": "consumer choice; the declared length is one point of the swept axis "
-                                  "below and is not privileged by the record",
+                                  "in this report and is not privileged by the record",
             "alpha": 0.01, "storage_support": "interval mean", "flow_support": "interval mean",
             "within_interval_model": "constant_net_flow",
             "within_interval_model_status": "consumer assumption; not established by daily means",
@@ -232,6 +232,7 @@ def render(report: dict) -> str:
     for sweep in report["sweeps"]:
         lines.append(f"| {sweep['storage_sigma_acre_ft']:g} | {len(sweep['windows'])} | "
                      f"{sweep['rejected_windows']} | {sweep['tested_adjacent_pairs']} | {sweep['untested_adjacent_pairs']} |")
+    dec = report["declared"]
     lines += ["", "## The window length decides the rate as much as the declared sigma does", "",
               "The window length is a consumer choice. A longer window accumulates more of a",
               "persistent misfit while its chi-square threshold grows more slowly, so the same",
@@ -254,7 +255,15 @@ def render(report: dict) -> str:
               "Neither axis is a measurement of the gauges alone. Reading any one cell as the",
               "record's rejection rate reads a consumer choice as a property of the instruments.", "",
               "## Interpretation", "",
-              report["declared"]["day_zone_citation"], "",
+              "**Every uncertainty and interval here is consumer-declared and carries its citation,",
+              "printed where the numbers are read and not only stored in the JSON.**", "",
+              f"- Declared time interval: {dec['day_zone_citation']}",
+              f"- Declared flow sigma: {dec['flow_sigma_citation']}",
+              f"- Declared storage sigma: {dec['storage_sigma_citation']}",
+              f"- Within-interval model (`{dec['within_interval_model']}`): "
+              f"{dec['within_interval_model_status']}.",
+              f"- Window length ({dec['window_days']} days, swept over "
+              f"{dec['window_days_sensitivity']}): {dec['window_days_status']}.", "",
               "Uncertainty is the existing consumer-declared sensitivity sweep, not a field calibration.",
               "The JSON retains every window's joint statistic, threshold, final cumulative residual,",
               "conditional standard deviation, shared-reference covariance and supporting evidence IDs.",

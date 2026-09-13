@@ -111,3 +111,34 @@ def test_the_fluid_doc_quotes_the_window_sweep_the_artifact_measured():
     for sigma, points in by_sigma.items():
         medians = [median for _, median in sorted(points)]
         assert medians == sorted(medians), (sigma, medians)
+
+
+def test_every_declared_citation_reaches_the_report_a_reader_reads():
+    """A citation stored only in JSON is not a citation a reader of the table sees.
+
+    Every sigma, interval and timing choice in this repository is consumer-declared,
+    and the rule is that the declaration travels with the number. This walks each
+    committed results JSON for any key naming a citation and requires the string in
+    the sibling markdown -- so a citation cannot be recorded and then not shown.
+    """
+    unrendered = []
+    for json_path in sorted(RESULTS.glob("*.json")):
+        md_path = json_path.with_suffix(".md")
+        if not md_path.exists():
+            continue
+        rendered = " ".join(md_path.read_text(encoding="utf-8").split())
+        data = json.loads(json_path.read_text(encoding="utf-8"))
+
+        def walk(node, path=""):
+            if isinstance(node, dict):
+                for key, value in node.items():
+                    walk(value, f"{path}.{key}")
+            elif isinstance(node, list):
+                for index, value in enumerate(node):
+                    walk(value, f"{path}[{index}]")
+            elif isinstance(node, str) and "citation" in path.rsplit(".", 1)[-1].lower():
+                if " ".join(node.split()) not in rendered:
+                    unrendered.append(f"{json_path.name}{path}")
+
+        walk(data)
+    assert not unrendered, f"declared citations stored but never rendered: {unrendered}"
