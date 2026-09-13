@@ -97,7 +97,15 @@
     "mean_as_cfs": 0.7027762557077624,
     "sd_as_cfs": 32.32685503742939,
     "mean_throughput_cfs": 169.5470894160584,
-    "lag1_autocorr": 0.17301789498840128
+    "lag1_autocorr": 0.1730178949884013,
+    "cumulative_se": 2121.760630236488,
+    "cumulative_in_se": 0.7193838498211679,
+    "cumulative_se_ar1": 2526.5616435930215,
+    "cumulative_in_se_ar1": 0.6041255056844274,
+    "cumulative_ci95_ar1": [
+      -3425.70049086381,
+      6478.421152020834
+    ]
   },
   "alignment": {
     "same_day": {
@@ -105,7 +113,7 @@
       "sd": 64.11938189242193,
       "mean_as_cfs": 0.7027762557077624,
       "sd_as_cfs": 32.32685503742939,
-      "lag1_autocorr": 0.17301789498840128
+      "lag1_autocorr": 0.1730178949884013
     },
     "centred": {
       "mean": 1.4389493943167675,
@@ -1243,7 +1251,7 @@
       "storage_only": 1.1111111111111112e-05,
       "cumulative_inflow_only": 1.1111111111111112e-05,
       "row_space (S - G)": 2.2222222222222213e-05,
-      "null_space (S + G)": 0.0
+      "null_space (S + G)": 1.3695501826753678e-37
     },
     "row_space_basis": [
       [
@@ -1254,13 +1262,13 @@
     "null_space_basis": [
       [
         0.7071067811865475,
-        0.7071067811865475
+        0.7071067811865476
       ]
     ],
     "structurally_invisible": {
       "direction": [
         0.7071067811865475,
-        0.7071067811865475
+        0.7071067811865476
       ],
       "meaning": "storage and cumulative gauged inflow rising together by the same volume. d(f) = 0 exactly: no covariance makes this visible to the constraint."
     },
@@ -1285,8 +1293,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 1010.8500136993825,
-            "latency_us_p99": 1836.1449940130092,
+            "latency_us_p50": 647.9630010289839,
+            "latency_us_p99": 1000.610898881859,
             "windows": {
               "all": {
                 "range": [
@@ -1386,8 +1394,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 1031.5500549040735,
-            "latency_us_p99": 2215.1649638544736,
+            "latency_us_p50": 989.5370003505377,
+            "latency_us_p99": 1309.5600979795558,
             "windows": {
               "all": {
                 "range": [
@@ -1499,8 +1507,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 931.2999900430441,
-            "latency_us_p99": 1917.570043588057,
+            "latency_us_p50": 771.4825005677994,
+            "latency_us_p99": 1284.934800605697,
             "windows": {
               "all": {
                 "range": [
@@ -1612,8 +1620,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 660.400022752583,
-            "latency_us_p99": 1271.9400227069852,
+            "latency_us_p50": 705.763501173351,
+            "latency_us_p99": 891.1304494176874,
             "windows": {
               "all": {
                 "range": [
@@ -1704,6 +1712,7 @@
             "min": 0.0,
             "max": 0.0,
             "final_sd": 6618.156918659454,
+            "final_in_sd": 0.0,
             "final_as_fraction_of_gauged_inflow": 0.0,
             "units": "acre-ft"
           }
@@ -1721,8 +1730,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 1030.1499860361218,
-            "latency_us_p99": 1984.199974685907,
+            "latency_us_p50": 1068.1054991437122,
+            "latency_us_p99": 1310.8488490615855,
             "windows": {
               "all": {
                 "range": [
@@ -1824,6 +1833,7 @@
             "min": -2705.1529127554513,
             "max": 5029.170940672757,
             "final_sd": 1042.9609979882955,
+            "final_in_sd": 1.9928014699491832,
             "final_as_fraction_of_gauged_inflow": 0.005639042122544327,
             "units": "acre-ft"
           }
@@ -1841,8 +1851,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 1263.5000748559833,
-            "latency_us_p99": 2415.4699931386854,
+            "latency_us_p50": 1280.074999158387,
+            "latency_us_p99": 1551.0257029745837,
             "windows": {
               "all": {
                 "range": [
@@ -1855,9 +1865,9 @@
                     "n_observed": 1096,
                     "frac_missing": 0.0,
                     "n_z": 1096,
-                    "z_mean": -0.0038039672819133526,
-                    "z_rms": 0.6142682808416234,
-                    "z_lag1": 0.9637641196446866,
+                    "z_mean": -0.003803967281913529,
+                    "z_rms": 0.6142682808416233,
+                    "z_lag1": 0.9637641196446869,
                     "frac_abs_z_gt_1.96": 0.01824817518248175,
                     "cusum_alarms": 13,
                     "cusum_first_alarm": 207
@@ -1867,9 +1877,9 @@
                     "n_observed": 1096,
                     "frac_missing": 0.0,
                     "n_z": 1096,
-                    "z_mean": 0.0030178434409101,
+                    "z_mean": 0.003017843440910104,
                     "z_rms": 0.4237627856342421,
-                    "z_lag1": 0.5665166996290405,
+                    "z_lag1": 0.5665166996290406,
                     "frac_abs_z_gt_1.96": 0.010036496350364963,
                     "cusum_alarms": 1,
                     "cusum_first_alarm": 630
@@ -1879,7 +1889,7 @@
                     "n_observed": 1096,
                     "frac_missing": 0.0,
                     "n_z": 1096,
-                    "z_mean": 0.005099346078595547,
+                    "z_mean": 0.005099346078595543,
                     "z_rms": 0.5209872153774148,
                     "z_lag1": 0.28080467961997496,
                     "frac_abs_z_gt_1.96": 0.012773722627737226,
@@ -1891,9 +1901,9 @@
                     "n_observed": 1096,
                     "frac_missing": 0.0,
                     "n_z": 1096,
-                    "z_mean": -1.0271319592698572e-06,
+                    "z_mean": -1.0271319592702625e-06,
                     "z_rms": 0.2119743654443784,
-                    "z_lag1": 0.10661251442017583,
+                    "z_lag1": 0.10661251442017586,
                     "frac_abs_z_gt_1.96": 0.0018248175182481751,
                     "cusum_alarms": 0,
                     "cusum_first_alarm": null
@@ -1902,7 +1912,7 @@
                 "constraint": {
                   "flag_steps": 0,
                   "first_flag_step": null,
-                  "stat_mean": 0.07456848134119677,
+                  "stat_mean": 0.0745684813411967,
                   "frac_stat_above_threshold": 0.0,
                   "status_counts": {
                     "ok": 1096
@@ -1914,37 +1924,38 @@
             }
           },
           "consistency_stat": {
-            "mean": 0.07456848134119677,
-            "median": 0.007127039316187064,
+            "mean": 0.0745684813411967,
+            "median": 0.007127039316187111,
             "max": 6.553472728268811,
             "threshold": 10.828,
             "fraction_over_threshold": 0.0
           },
           "residual_pre": {
             "mean": 2.240078418993592,
-            "sd": 62.069901008541336,
+            "sd": 62.06990100854131,
             "min": -424.43887914212974,
             "max": 589.3364451797752,
             "final": 8.017668058040726,
             "units": "acre-ft"
           },
           "correction_norm": {
-            "mean": 31.53128628062589,
-            "max": 486.18456617264366,
+            "mean": 31.531286280625842,
+            "max": 486.18456617264343,
             "n_applied": 1096,
             "units": "acre-ft"
           },
           "residual_post": {
-            "mean_abs": 1.7845141631001273,
-            "max_abs": 27.800218287324242,
+            "mean_abs": 1.7845141631003199,
+            "max_abs": 27.800218287331518,
             "units": "acre-ft"
           },
           "ungauged_cumulative": {
-            "final": 2567.699463402819,
+            "final": 2567.6994634028224,
             "min": -2530.3456027673283,
-            "max": 5354.733607294441,
+            "max": 5354.733607294436,
             "final_sd": 1013.1063477684071,
-            "final_as_fraction_of_gauged_inflow": 0.006966544668169927,
+            "final_in_sd": 2.5344816652849462,
+            "final_as_fraction_of_gauged_inflow": 0.006966544668169936,
             "units": "acre-ft"
           }
         },
@@ -1961,8 +1972,8 @@
             "cusum_applicable": true,
             "constraint_declared": false,
             "threshold": null,
-            "latency_us_p50": 318.4000379405916,
-            "latency_us_p99": 687.689991900697,
+            "latency_us_p50": 276.1255000223173,
+            "latency_us_p99": 423.2925983160384,
             "windows": {
               "all": {
                 "range": [
@@ -2044,8 +2055,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 679.3000502511859,
-            "latency_us_p99": 1429.025048855692,
+            "latency_us_p50": 609.4659984228201,
+            "latency_us_p99": 786.5763980589688,
             "windows": {
               "all": {
                 "range": [
@@ -2145,8 +2156,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 1043.9500329084694,
-            "latency_us_p99": 2389.6300292108203,
+            "latency_us_p50": 922.6779984601308,
+            "latency_us_p99": 1142.2869503803668,
             "windows": {
               "all": {
                 "range": [
@@ -2258,8 +2269,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 985.549995675683,
-            "latency_us_p99": 10737.640003208067,
+            "latency_us_p50": 911.283499590354,
+            "latency_us_p99": 1514.50345019839,
             "windows": {
               "all": {
                 "range": [
@@ -2371,8 +2382,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 660.8499679714441,
-            "latency_us_p99": 1325.0199612230058,
+            "latency_us_p50": 713.9115004974883,
+            "latency_us_p99": 1044.3357499752883,
             "windows": {
               "all": {
                 "range": [
@@ -2463,6 +2474,7 @@
             "min": 0.0,
             "max": 0.0,
             "final_sd": 6618.156918659454,
+            "final_in_sd": 0.0,
             "final_as_fraction_of_gauged_inflow": 0.0,
             "units": "acre-ft"
           }
@@ -2480,8 +2492,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 1020.2500270679593,
-            "latency_us_p99": 1941.549987532197,
+            "latency_us_p50": 1196.517498101457,
+            "latency_us_p99": 1614.3057473527713,
             "windows": {
               "all": {
                 "range": [
@@ -2583,6 +2595,7 @@
             "min": -2642.4315927816992,
             "max": 4997.7766790799915,
             "final_sd": 1074.3964045876216,
+            "final_in_sd": 1.9250929776936574,
             "final_as_fraction_of_gauged_inflow": 0.00561163598957824,
             "units": "acre-ft"
           }
@@ -2600,8 +2613,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 1276.8000015057623,
-            "latency_us_p99": 2465.6900262925765,
+            "latency_us_p50": 1313.9264992787503,
+            "latency_us_p99": 1663.9784496874197,
             "windows": {
               "all": {
                 "range": [
@@ -2614,9 +2627,9 @@
                     "n_observed": 1096,
                     "frac_missing": 0.0,
                     "n_z": 1096,
-                    "z_mean": -0.0021373550605647243,
-                    "z_rms": 0.5951468617016121,
-                    "z_lag1": 0.9664966864429744,
+                    "z_mean": -0.002137355060564726,
+                    "z_rms": 0.5951468617016122,
+                    "z_lag1": 0.9664966864429742,
                     "frac_abs_z_gt_1.96": 0.016423357664233577,
                     "cusum_alarms": 12,
                     "cusum_first_alarm": 208
@@ -2661,7 +2674,7 @@
                 "constraint": {
                   "flag_steps": 0,
                   "first_flag_step": null,
-                  "stat_mean": 0.06195333824107567,
+                  "stat_mean": 0.0619533382410757,
                   "frac_stat_above_threshold": 0.0,
                   "status_counts": {
                     "ok": 1096
@@ -2673,29 +2686,29 @@
             }
           },
           "consistency_stat": {
-            "mean": 0.06195333824107567,
+            "mean": 0.0619533382410757,
             "median": 0.007031185110051203,
-            "max": 1.7347355605656631,
+            "max": 1.734735560565712,
             "threshold": 10.828,
             "fraction_over_threshold": 0.0
           },
           "residual_pre": {
             "mean": 4.192485711135922,
-            "sd": 96.8806841411195,
+            "sd": 96.88068414111952,
             "min": -428.4224655506623,
-            "max": 516.402930667864,
+            "max": 516.4029306678713,
             "final": 26.82157358056429,
             "units": "acre-ft"
           },
           "correction_norm": {
-            "mean": 32.60582512854282,
-            "max": 266.8625415325168,
+            "mean": 32.60582512854283,
+            "max": 266.86254153252605,
             "n_applied": 1096,
             "units": "acre-ft"
           },
           "residual_post": {
-            "mean_abs": 16.010874599741808,
-            "max_abs": 134.37069834768045,
+            "mean_abs": 16.010874599741793,
+            "max_abs": 134.37069834767317,
             "units": "acre-ft"
           },
           "ungauged_cumulative": {
@@ -2703,6 +2716,7 @@
             "min": -2472.9858991033852,
             "max": 5249.949201147272,
             "final_sd": 1030.8316029794225,
+            "final_in_sd": 2.4219889242738235,
             "final_as_fraction_of_gauged_inflow": 0.006773811594548335,
             "units": "acre-ft"
           }
@@ -2720,8 +2734,8 @@
             "cusum_applicable": true,
             "constraint_declared": false,
             "threshold": null,
-            "latency_us_p50": 328.8999432697892,
-            "latency_us_p99": 656.919996254146,
+            "latency_us_p50": 288.5624999180436,
+            "latency_us_p99": 439.48485053988395,
             "windows": {
               "all": {
                 "range": [
@@ -2803,8 +2817,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 654.8999808728695,
-            "latency_us_p99": 1398.7500220537152,
+            "latency_us_p50": 606.988000072306,
+            "latency_us_p99": 742.3205503073402,
             "windows": {
               "all": {
                 "range": [
@@ -2904,8 +2918,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 1045.24998459965,
-            "latency_us_p99": 2361.8950508534904,
+            "latency_us_p50": 949.1020009591011,
+            "latency_us_p99": 1160.5375002545768,
             "windows": {
               "all": {
                 "range": [
@@ -3017,8 +3031,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 1162.6000050455332,
-            "latency_us_p99": 2539.7550023626527,
+            "latency_us_p50": 915.6050000456162,
+            "latency_us_p99": 1097.6866013152176,
             "windows": {
               "all": {
                 "range": [
@@ -3130,8 +3144,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 1135.0500280968845,
-            "latency_us_p99": 2306.6000896506007,
+            "latency_us_p50": 716.9469990913058,
+            "latency_us_p99": 895.0574510890873,
             "windows": {
               "all": {
                 "range": [
@@ -3222,6 +3236,7 @@
             "min": 0.0,
             "max": 0.0,
             "final_sd": 6618.156918659454,
+            "final_in_sd": 0.0,
             "final_as_fraction_of_gauged_inflow": 0.0,
             "units": "acre-ft"
           }
@@ -3239,8 +3254,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 1087.700016796589,
-            "latency_us_p99": 2342.5000021234127,
+            "latency_us_p50": 1060.0925015751272,
+            "latency_us_p99": 1256.1820514747521,
             "windows": {
               "all": {
                 "range": [
@@ -3342,6 +3357,7 @@
             "min": -2450.061618103559,
             "max": 5047.851796650569,
             "final_sd": 1397.6364099164223,
+            "final_in_sd": 1.4062736550003778,
             "final_as_fraction_of_gauged_inflow": 0.005332578808803045,
             "units": "acre-ft"
           }
@@ -3359,8 +3375,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 1258.3999778144062,
-            "latency_us_p99": 2379.6400695573534,
+            "latency_us_p50": 1328.6185003380524,
+            "latency_us_p99": 2136.139302092486,
             "windows": {
               "all": {
                 "range": [
@@ -3462,6 +3478,7 @@
             "min": -2322.756059087931,
             "max": 5166.202646431437,
             "final_sd": 1109.4268450283985,
+            "final_in_sd": 2.1950849026632007,
             "final_as_fraction_of_gauged_inflow": 0.006607287871319283,
             "units": "acre-ft"
           }
@@ -3479,8 +3496,8 @@
             "cusum_applicable": true,
             "constraint_declared": false,
             "threshold": null,
-            "latency_us_p50": 331.39996230602264,
-            "latency_us_p99": 697.099952958524,
+            "latency_us_p50": 277.0769988273969,
+            "latency_us_p99": 422.711149440147,
             "windows": {
               "all": {
                 "range": [
@@ -3551,10 +3568,10 @@
     "generation": {
       "python": "3.13.12",
       "numpy": "2.5.3",
-      "platform": "Windows-11-10.0.26200-SP0",
-      "machine": "AMD64",
-      "source_sha256": "40f11398c225c06fa5891867a091bb3928221afffb2880d0f8d561424f3e85cf",
-      "git_head": "355021125eebf0d1cb43e18eb971d782879df524",
+      "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+      "machine": "x86_64",
+      "source_sha256": "07a602e025640c5960c5415aa3fc44589ba416097dd2f16d56a4c1491ed8de6c",
+      "git_head": "26b23d659658b0e60d0e0018e87319c3395707c3",
       "source_dirty": false,
       "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
     },

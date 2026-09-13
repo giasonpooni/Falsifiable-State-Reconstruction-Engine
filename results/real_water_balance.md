@@ -1,6 +1,6 @@
 # P4b: a real reservoir water balance through the reconciliation kernel
 
-Generated with Python 3.13.12, numpy 2.5.3 on Windows-11-10.0.26200-SP0; source sha256 40f11398c225, git 355021125e. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 07a602e02564, git 26b23d6596. Latency columns are wall-clock on this machine and are not a claim.
 
 Ridgway Reservoir, Uncompahgre River, Colorado, 1096 days from 2022-10-01, four USGS daily-mean series admitted by DAF. Gauged drainage 246.2 of 265 sq mi = 0.929.
 
@@ -31,9 +31,15 @@ over 1095 days, in acre-ft per day:
 |---|---|---|---|---|---|---|---|
 | 1.39 | 64.12 | 4.74 | -100.47 | 81.61 | -552.23 | 555.82 | +0.173 |
 
-As a flow: mean **+0.703 ft³/s**, sd 32.33 ft³/s, against a mean gauged inflow of 169.5 ft³/s. Over the whole record the imbalance accumulates to **1,526 acre-ft**, +0.41% of the 368,576 acre-ft that flowed in.
+As a flow: mean **+0.703 ft³/s**, sd 32.33 ft³/s, against a mean gauged inflow of 169.5 ft³/s. Over the whole record the imbalance accumulates to 1,526 acre-ft, +0.41% of the 368,576 acre-ft that flowed in.
 
-So the gauges very nearly close, on average, over three years — and miss by tens of acre-feet on a typical day.
+**That cumulative is not evidence of a net imbalance, and must not be read as one.** It is a sum of 1,095 daily residuals, so it grows as sqrt(n) even when the gauges close exactly. Against its own standard error it is indistinguishable from zero:
+
+| the cumulative | standard error of the sum | in standard errors | 95% interval |
+|---|---|---|---|
+| 1,526 acre-ft | 2,122 independent, 2,527 under AR(1) | 0.72 independent, 0.60 under AR(1) | [-3,426, 6,478] |
+
+The interval contains zero, so **the three-year total is consistent with the gauges closing exactly**; the AR(1) column uses the measured lag-1 of +0.173 and is a model, not a measurement. What the record does show is a **daily** disagreement of tens of acre-feet, which is a different statement and the one the sections below test.
 
 ### Which day's flow the storage change belongs with
 
@@ -88,15 +94,17 @@ Threshold χ²(1) at q = 0.999 is 10.828. Under the declared hypothesis the stat
 
 Cumulative ungauged net inflow U, acre-ft:
 
-| run | final | sd | min | max | as % of gauged inflow |
-|---|---|---|---|---|---|
-| `wb_aug` | 0 | 6,618 | 0 | 0 | +0.00% |
-| `wb_aug+hard` | 2,078 | 1,043 | -2,705 | 5,029 | +0.56% |
-| `wb_aug+hard+feedback` | 2,568 | 1,013 | -2,530 | 5,355 | +0.70% |
+| run | final | sd | in sd | min | max | as % of gauged inflow |
+|---|---|---|---|---|---|---|
+| `wb_aug` | 0 | 6,618 | 0.00 | 0 | 0 | +0.00% |
+| `wb_aug+hard` | 2,078 | 1,043 | 1.99 | -2,705 | 5,029 | +0.56% |
+| `wb_aug+hard+feedback` | 2,568 | 1,013 | 2.53 | -2,530 | 5,355 | +0.70% |
 
-**U is observed by nothing except the constraint.** In `wb_aug`, with no projection, it stays at its prior of 0 for the whole record while its sd grows — the augmented state is not identified by the data at all, unlike the simulated `kf_aug`, whose boundary flux L is identified through the dynamics. `+hard` moves the REPORTED U; only `+feedback` puts the projection back into the full filter state and covariance. A constraint fed back is absorbed as if it were fresh evidence; subsequent agreement is therefore not independent validation. The finite prior and process variance on U still permit rejection of sufficiently large disagreements on other records.
+**U is observed by nothing except the constraint.** In `wb_aug`, with no projection, it stays at its prior of 0 for the whole record while its sd grows — the augmented state is not identified by the data at all, unlike the simulated `kf_aug`, whose boundary flux L is identified through the dynamics. `+hard` moves the REPORTED U; only `+feedback` puts the projection back into the full filter state and covariance. A constraint fed back is absorbed as if it were fresh evidence; subsequent agreement is therefore not independent validation. That is also why `+feedback` carries the largest `in sd` above: feeding the constraint back shrinks the very sd that column divides by, so its apparent separation from zero is the least trustworthy of the three, not the most. The finite prior and process variance on U still permit rejection of sufficiently large disagreements on other records.
 
 Cross-check: `wb_aug+hard` puts the three-year imbalance at 2,078 acre-ft (+0.56% of gauged inflow), against 1,526 acre-ft (+0.41%) from the arithmetic at the top of this report. These are two calculations from the same measurements: a filter under declared noise, and a sum under a time-pairing assumption. They are not required to agree: the filter's U is a smoothed quantity under a declared random walk, and the arithmetic is not.
+
+**And their agreement is not evidence of an imbalance.** The filter reports its own sd of 1,043 acre-ft on that 2,078 — 1.99 sd from zero — and the arithmetic total is 0.60 standard errors from zero, an interval that contains zero. Two numbers this uncertain landing near each other is agreement between two uncertain numbers, not corroboration of a net imbalance.
 
 ### Storage σ = 200 acre-ft
 
@@ -114,15 +122,17 @@ Threshold χ²(1) at q = 0.999 is 10.828. Under the declared hypothesis the stat
 
 Cumulative ungauged net inflow U, acre-ft:
 
-| run | final | sd | min | max | as % of gauged inflow |
-|---|---|---|---|---|---|
-| `wb_aug` | 0 | 6,618 | 0 | 0 | +0.00% |
-| `wb_aug+hard` | 2,068 | 1,074 | -2,642 | 4,998 | +0.56% |
-| `wb_aug+hard+feedback` | 2,497 | 1,031 | -2,473 | 5,250 | +0.68% |
+| run | final | sd | in sd | min | max | as % of gauged inflow |
+|---|---|---|---|---|---|---|
+| `wb_aug` | 0 | 6,618 | 0.00 | 0 | 0 | +0.00% |
+| `wb_aug+hard` | 2,068 | 1,074 | 1.93 | -2,642 | 4,998 | +0.56% |
+| `wb_aug+hard+feedback` | 2,497 | 1,031 | 2.42 | -2,473 | 5,250 | +0.68% |
 
-**U is observed by nothing except the constraint.** In `wb_aug`, with no projection, it stays at its prior of 0 for the whole record while its sd grows — the augmented state is not identified by the data at all, unlike the simulated `kf_aug`, whose boundary flux L is identified through the dynamics. `+hard` moves the REPORTED U; only `+feedback` puts the projection back into the full filter state and covariance. A constraint fed back is absorbed as if it were fresh evidence; subsequent agreement is therefore not independent validation. The finite prior and process variance on U still permit rejection of sufficiently large disagreements on other records.
+**U is observed by nothing except the constraint.** In `wb_aug`, with no projection, it stays at its prior of 0 for the whole record while its sd grows — the augmented state is not identified by the data at all, unlike the simulated `kf_aug`, whose boundary flux L is identified through the dynamics. `+hard` moves the REPORTED U; only `+feedback` puts the projection back into the full filter state and covariance. A constraint fed back is absorbed as if it were fresh evidence; subsequent agreement is therefore not independent validation. That is also why `+feedback` carries the largest `in sd` above: feeding the constraint back shrinks the very sd that column divides by, so its apparent separation from zero is the least trustworthy of the three, not the most. The finite prior and process variance on U still permit rejection of sufficiently large disagreements on other records.
 
 Cross-check: `wb_aug+hard` puts the three-year imbalance at 2,068 acre-ft (+0.56% of gauged inflow), against 1,526 acre-ft (+0.41%) from the arithmetic at the top of this report. These are two calculations from the same measurements: a filter under declared noise, and a sum under a time-pairing assumption. They are not required to agree: the filter's U is a smoothed quantity under a declared random walk, and the arithmetic is not.
+
+**And their agreement is not evidence of an imbalance.** The filter reports its own sd of 1,074 acre-ft on that 2,068 — 1.93 sd from zero — and the arithmetic total is 0.60 standard errors from zero, an interval that contains zero. Two numbers this uncertain landing near each other is agreement between two uncertain numbers, not corroboration of a net imbalance.
 
 ### Storage σ = 800 acre-ft
 
@@ -140,15 +150,17 @@ Threshold χ²(1) at q = 0.999 is 10.828. Under the declared hypothesis the stat
 
 Cumulative ungauged net inflow U, acre-ft:
 
-| run | final | sd | min | max | as % of gauged inflow |
-|---|---|---|---|---|---|
-| `wb_aug` | 0 | 6,618 | 0 | 0 | +0.00% |
-| `wb_aug+hard` | 1,965 | 1,398 | -2,450 | 5,048 | +0.53% |
-| `wb_aug+hard+feedback` | 2,435 | 1,109 | -2,323 | 5,166 | +0.66% |
+| run | final | sd | in sd | min | max | as % of gauged inflow |
+|---|---|---|---|---|---|---|
+| `wb_aug` | 0 | 6,618 | 0.00 | 0 | 0 | +0.00% |
+| `wb_aug+hard` | 1,965 | 1,398 | 1.41 | -2,450 | 5,048 | +0.53% |
+| `wb_aug+hard+feedback` | 2,435 | 1,109 | 2.20 | -2,323 | 5,166 | +0.66% |
 
-**U is observed by nothing except the constraint.** In `wb_aug`, with no projection, it stays at its prior of 0 for the whole record while its sd grows — the augmented state is not identified by the data at all, unlike the simulated `kf_aug`, whose boundary flux L is identified through the dynamics. `+hard` moves the REPORTED U; only `+feedback` puts the projection back into the full filter state and covariance. A constraint fed back is absorbed as if it were fresh evidence; subsequent agreement is therefore not independent validation. The finite prior and process variance on U still permit rejection of sufficiently large disagreements on other records.
+**U is observed by nothing except the constraint.** In `wb_aug`, with no projection, it stays at its prior of 0 for the whole record while its sd grows — the augmented state is not identified by the data at all, unlike the simulated `kf_aug`, whose boundary flux L is identified through the dynamics. `+hard` moves the REPORTED U; only `+feedback` puts the projection back into the full filter state and covariance. A constraint fed back is absorbed as if it were fresh evidence; subsequent agreement is therefore not independent validation. That is also why `+feedback` carries the largest `in sd` above: feeding the constraint back shrinks the very sd that column divides by, so its apparent separation from zero is the least trustworthy of the three, not the most. The finite prior and process variance on U still permit rejection of sufficiently large disagreements on other records.
 
 Cross-check: `wb_aug+hard` puts the three-year imbalance at 1,965 acre-ft (+0.53% of gauged inflow), against 1,526 acre-ft (+0.41%) from the arithmetic at the top of this report. These are two calculations from the same measurements: a filter under declared noise, and a sum under a time-pairing assumption. They are not required to agree: the filter's U is a smoothed quantity under a declared random walk, and the arithmetic is not.
+
+**And their agreement is not evidence of an imbalance.** The filter reports its own sd of 1,398 acre-ft on that 1,965 — 1.41 sd from zero — and the arithmetic total is 0.60 standard errors from zero, an interval that contains zero. Two numbers this uncertain landing near each other is agreement between two uncertain numbers, not corroboration of a net imbalance.
 
 ## What these numbers do not show
 
