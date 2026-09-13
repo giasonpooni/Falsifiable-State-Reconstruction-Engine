@@ -326,6 +326,46 @@ def test_reference_cannot_reuse_gauge_instrument_identity(mocked_recording):
     assert_issue(check_recording(folder), "invalid", "instruments", "distinct")
 
 
+@pytest.mark.parametrize("borrower,lender", [("reference", "gauge"), ("gauge", "camera"),
+                                             ("camera", "reference")])
+def test_distinct_instruments_cannot_share_one_evidence_document(mocked_recording, borrower, lender):
+    """Distinct identities documented by one file are one document, whatever the identities say.
+
+    This catches only the crudest dependence -- literally the same bytes. Real dependence
+    between a gauge and the reference that evaluates it is physical and invisible to a
+    preflight; uncertainty.reference_dependence is where that gets declared.
+    """
+    folder, plan = mocked_recording
+    plan["instruments"][borrower]["instrument_evidence"] = plan["instruments"][lender]["instrument_evidence"]
+    save_plan(folder, plan)
+    assert_issue(check_recording(folder), "invalid", "instruments", "distinct instrument evidence")
+
+
+@pytest.mark.parametrize("source", ["gauge", "reference"])
+def test_a_declared_zero_uncertainty_is_surfaced_rather_than_accepted_in_silence(mocked_recording, source):
+    """Zero is the strongest uncertainty claim available and the kit should not pass it quietly.
+
+    It is not refused: a source may genuinely state it, and elsewhere this repository carries
+    NOAA's stated 0.000 as R = 0 by design. It is raised for review, as a decoder-numbered
+    frame counter is, so a reviewer sees the claim instead of inheriting it.
+    """
+    folder, _ = mocked_recording
+    edit_row(folder, source, 0, standard_uncertainty_m="0")
+    report = check_recording(folder)
+    assert report["status"] == "ready_for_review"
+    matches = [issue for issue in report["issues"]
+               if issue["kind"] == "review" and "standard_uncertainty_m" in issue["field"]]
+    assert matches, report["issues"]
+    assert "declares this reading exact" in matches[0]["message"]
+
+
+def test_an_ordinary_positive_uncertainty_raises_nothing(mocked_recording):
+    folder, _ = mocked_recording
+    edit_row(folder, "gauge", 0, standard_uncertainty_m="0.004")
+    report = check_recording(folder)
+    assert not [issue for issue in report["issues"] if "standard_uncertainty_m" in issue["field"]]
+
+
 @pytest.mark.parametrize("split_problem", ["calibration_is_heldout", "development_is_heldout", "duplicate", "overlap"])
 def test_whole_session_split_must_be_disjoint(mocked_recording, split_problem):
     folder, plan = mocked_recording

@@ -117,6 +117,12 @@ can reveal errors shared by the camera and gauge. If only a common standard is
 available, preserve its covariance and describe the weaker independence claim.
 Do not call the reference exact ground truth.
 
+Preflight refuses the crudest form of this only: three instruments whose declared
+evidence is literally the same file. That is a document check, not an independence
+finding — two genuinely separate documents can still describe one calibration chain,
+one datum survey or one clock. `uncertainty.reference_dependence` is where the real
+claim goes, and nothing in the kit can verify it.
+
 Start with a fixed, approximately front-parallel view, stable lighting and a
 visible horizontal water edge. Preserve the settings actually used, including
 any automatic processing that cannot be disabled. The current detector expects
@@ -240,7 +246,10 @@ and stated coverage must travel with its value; do not enter an expanded
 uncertainty directly as a one-standard-deviation input. NIST defines expanded
 uncertainty as a coverage factor times combined standard uncertainty in
 [TN 1297, section 6](https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-6-expanded-uncertainty).
-Unknown uncertainty is missing information, not zero. NIST distinguishes statistical (Type A) and
+Unknown uncertainty is missing information, not zero. Preflight keeps those apart:
+a blank standard uncertainty is `incomplete`, while a declared `0` is accepted and
+raised for review, because zero is a claim that the instrument is exact and the
+reviewer should see it made rather than inherit it. NIST distinguishes statistical (Type A) and
 other (Type B) evaluations and represents dependencies by covariance; these
 categories do not simply mean random versus systematic error, as explained in
 [NIST TN 1297, section 2](https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-2-classification-components-uncertainty).

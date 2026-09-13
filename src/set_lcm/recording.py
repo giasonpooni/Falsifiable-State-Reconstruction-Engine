@@ -224,15 +224,27 @@ def check_recording(directory: Path) -> dict:
         issue("review", "frame_counter_kind", "Acquisition gaps cannot be established from a missing hardware counter or decoder numbering alone.")
     asset(plan.get("frame_processing_evidence"), "frame_processing_evidence")
     instruments = object_field(plan.get("instruments"), "instruments")
-    instrument_ids = []
+    instrument_ids, instrument_evidence = [], {}
     for name in TABLES:
         spec = object_field(instruments.get(name), f"instruments.{name}")
         instrument_ids.append(text_field(spec.get("id"), f"instruments.{name}.id"))
         for field in ("timestamp_meaning", "observation_support"):
             text_field(spec.get(field), f"instruments.{name}.{field}")
-        asset(spec.get("instrument_evidence"), f"instruments.{name}.instrument_evidence")
+        checked = asset(spec.get("instrument_evidence"), f"instruments.{name}.instrument_evidence")
+        if checked is not None:
+            instrument_evidence[name] = checked[1]
     if any(identifier is not None and instrument_ids.count(identifier) > 1 for identifier in instrument_ids):
         issue("error", "instruments", "Camera, gauge and evaluation reference must have distinct instrument identities.")
+    # Distinct identities documented by one file are one document, whatever the identities say.
+    # This catches only the crudest dependence -- literally the same bytes. Real dependence
+    # between a gauge and the reference that evaluates it is physical, invisible here, and is
+    # what uncertainty.reference_dependence exists to declare.
+    shared_evidence = sorted({digest for digest in instrument_evidence.values()
+                              if list(instrument_evidence.values()).count(digest) > 1})
+    if shared_evidence:
+        issue("error", "instruments",
+              "Camera, gauge and evaluation reference must cite distinct instrument evidence; "
+              "one document cannot establish two independent instruments.")
     clock = object_field(plan.get("clock"), "clock")
     skew_limit = nonnegative(clock.get("max_pair_skew_seconds"), "clock.max_pair_skew_seconds")
     asset(clock.get("synchronization_evidence"), "clock.synchronization_evidence")
@@ -354,7 +366,16 @@ def check_recording(directory: Path) -> dict:
                 else:
                     clocks[name][identifier] = None
                 if present or row["standard_uncertainty_m"]:
-                    nonnegative(row["standard_uncertainty_m"], field + ".standard_uncertainty_m")
+                    uncertainty_m = nonnegative(row["standard_uncertainty_m"],
+                                                field + ".standard_uncertainty_m")
+                    if uncertainty_m == 0.0:
+                        # A stated zero is the strongest uncertainty claim available: it declares
+                        # the instrument exact and gives any later estimator no room to disagree
+                        # with this reading. It is a legitimate declaration and is not refused --
+                        # it is surfaced, as a decoder-numbered frame counter is.
+                        issue("review", field + ".standard_uncertainty_m",
+                              "A standard uncertainty of exactly zero declares this reading exact; "
+                              "confirm that is the instrument's evidence and not a placeholder.")
             start_key, end_key = (("exposure_start_utc", "exposure_end_utc") if name == "camera"
                                   else ("support_start_utc", "support_end_utc"))
             try:
