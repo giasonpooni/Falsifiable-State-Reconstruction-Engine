@@ -1,6 +1,6 @@
 # What treating an uncertain relation as exact costs
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 a68c716fc13d, git 501bbd3746. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 c16391f7b645, git 5eedb43dff. Latency columns are wall-clock on this machine and are not a claim.
 
 A calibration measurement against a null that is true by construction. No real record appears; nothing here describes an instrument.
 

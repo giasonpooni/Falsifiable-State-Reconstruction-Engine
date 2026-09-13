@@ -1293,8 +1293,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 292.5579999555339,
-            "latency_us_p99": 425.38655000043946,
+            "latency_us_p50": 237.14750022918452,
+            "latency_us_p99": 468.5250002239626,
             "windows": {
               "all": {
                 "range": [
@@ -1394,8 +1394,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 466.84950007147563,
-            "latency_us_p99": 581.4738499566374,
+            "latency_us_p50": 457.4109998429776,
+            "latency_us_p99": 791.4262503618372,
             "windows": {
               "all": {
                 "range": [
@@ -1507,8 +1507,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 365.9159999642725,
-            "latency_us_p99": 593.5491500395071,
+            "latency_us_p50": 399.64800043890136,
+            "latency_us_p99": 893.3108005749089,
             "windows": {
               "all": {
                 "range": [
@@ -1620,8 +1620,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 292.9254999344266,
-            "latency_us_p99": 429.5887999205654,
+            "latency_us_p50": 302.1560000888712,
+            "latency_us_p99": 561.8131993742269,
             "windows": {
               "all": {
                 "range": [
@@ -1730,8 +1730,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 484.9209999520099,
-            "latency_us_p99": 662.9073499880166,
+            "latency_us_p50": 476.0679998980777,
+            "latency_us_p99": 636.1870497130434,
             "windows": {
               "all": {
                 "range": [
@@ -1851,8 +1851,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 602.2635000135779,
-            "latency_us_p99": 859.6870000019396,
+            "latency_us_p50": 597.3219999759749,
+            "latency_us_p99": 823.9893500558537,
             "windows": {
               "all": {
                 "range": [
@@ -1972,8 +1972,8 @@
             "cusum_applicable": true,
             "constraint_declared": false,
             "threshold": null,
-            "latency_us_p50": 145.41349992214236,
-            "latency_us_p99": 233.9936997714174,
+            "latency_us_p50": 151.67799983828445,
+            "latency_us_p99": 250.82029992518056,
             "windows": {
               "all": {
                 "range": [
@@ -2055,8 +2055,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 294.752499939932,
-            "latency_us_p99": 453.56200002970564,
+            "latency_us_p50": 301.2325000781857,
+            "latency_us_p99": 438.7959005271112,
             "windows": {
               "all": {
                 "range": [
@@ -2156,8 +2156,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 480.6370000096649,
-            "latency_us_p99": 685.4799997199732,
+            "latency_us_p50": 472.3659999399388,
+            "latency_us_p99": 566.5798995323709,
             "windows": {
               "all": {
                 "range": [
@@ -2269,8 +2269,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 447.80100006391876,
-            "latency_us_p99": 849.0522503279856,
+            "latency_us_p50": 454.606000403146,
+            "latency_us_p99": 724.4901005378777,
             "windows": {
               "all": {
                 "range": [
@@ -2382,8 +2382,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 243.9754998704302,
-            "latency_us_p99": 410.5868003307478,
+            "latency_us_p50": 302.27399975046865,
+            "latency_us_p99": 443.85145001797343,
             "windows": {
               "all": {
                 "range": [
@@ -2492,8 +2492,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 401.1694998098392,
-            "latency_us_p99": 689.6559501001319,
+            "latency_us_p50": 469.9725000136823,
+            "latency_us_p99": 591.1625505632396,
             "windows": {
               "all": {
                 "range": [
@@ -2613,8 +2613,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 507.25199980661273,
-            "latency_us_p99": 809.6364000266473,
+            "latency_us_p50": 601.7114997121098,
+            "latency_us_p99": 848.9793005537647,
             "windows": {
               "all": {
                 "range": [
@@ -2734,8 +2734,8 @@
             "cusum_applicable": true,
             "constraint_declared": false,
             "threshold": null,
-            "latency_us_p50": 120.08599992441304,
-            "latency_us_p99": 239.26960006974696,
+            "latency_us_p50": 148.70549966872204,
+            "latency_us_p99": 214.7715494629665,
             "windows": {
               "all": {
                 "range": [
@@ -2817,8 +2817,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 266.70549982554803,
-            "latency_us_p99": 345.2215999914185,
+            "latency_us_p50": 300.2689995810215,
+            "latency_us_p99": 399.82605048862746,
             "windows": {
               "all": {
                 "range": [
@@ -2918,8 +2918,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 420.2279999390157,
-            "latency_us_p99": 618.5320498843794,
+            "latency_us_p50": 471.8539998975757,
+            "latency_us_p99": 567.5978999988727,
             "windows": {
               "all": {
                 "range": [
@@ -3031,8 +3031,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 390.0169999724312,
-            "latency_us_p99": 588.0443500245744,
+            "latency_us_p50": 471.4239998975245,
+            "latency_us_p99": 665.376350389124,
             "windows": {
               "all": {
                 "range": [
@@ -3144,8 +3144,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 236.11199981132813,
-            "latency_us_p99": 349.059449604283,
+            "latency_us_p50": 321.081500260334,
+            "latency_us_p99": 506.6935504601133,
             "windows": {
               "all": {
                 "range": [
@@ -3254,8 +3254,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 363.7575000539073,
-            "latency_us_p99": 551.4588498726879,
+            "latency_us_p50": 516.5204997865658,
+            "latency_us_p99": 711.5623501704241,
             "windows": {
               "all": {
                 "range": [
@@ -3375,8 +3375,8 @@
             "cusum_applicable": true,
             "constraint_declared": true,
             "threshold": 10.828,
-            "latency_us_p50": 520.4475000937236,
-            "latency_us_p99": 753.7245999628793,
+            "latency_us_p50": 611.5889996181068,
+            "latency_us_p99": 926.8613495805756,
             "windows": {
               "all": {
                 "range": [
@@ -3496,8 +3496,8 @@
             "cusum_applicable": true,
             "constraint_declared": false,
             "threshold": null,
-            "latency_us_p50": 141.76950003275124,
-            "latency_us_p99": 238.5465001680131,
+            "latency_us_p50": 150.7490001131373,
+            "latency_us_p99": 246.28290020700643,
             "windows": {
               "all": {
                 "range": [
@@ -3570,8 +3570,8 @@
       "numpy": "2.5.3",
       "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
       "machine": "x86_64",
-      "source_sha256": "a68c716fc13d9d0c5fc477496928d49312499fe0fdcd95bebfd549b31fd13e74",
-      "git_head": "501bbd37461fdc3a568f2d8fea550661281f5c87",
+      "source_sha256": "c16391f7b645033919ffbc4434621ed19b0f154f56d3243851049e65fe72782a",
+      "git_head": "5eedb43dffb1134a32b1bed3a3f1502099e1ede0",
       "source_dirty": false,
       "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
     },
