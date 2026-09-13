@@ -1,0 +1,1053 @@
+{
+  "schema_version": "fsre-real-noaa-month-v1",
+  "scope": "One month of real six-minute water levels. Truth-free: no number here is an error.",
+  "provenance": {
+    "generation": {
+      "python": "3.13.12",
+      "numpy": "2.5.3",
+      "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+      "machine": "x86_64",
+      "source_sha256": "d4680bb00f331c981a7fdd8305f0ba28ecbc7d0bcf80f41bdbb4380595aa22e6",
+      "git_head": "0d280e9027ac159aedea9cbf463849e850e2c6af",
+      "source_dirty": false,
+      "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
+    },
+    "daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
+    "daf_published_base": "6b378590da3076d88a0f4bd8bad79e1ce0b48ae2",
+    "evidence": {
+      "file": "data/daf/noaa_8454000_202401_mllw.observations.json",
+      "file_sha256": "20282bb54e265c0eea0daad7d4e30b19b6d6af9fb4947bae72577160f45a43e2",
+      "note": "Each response is the raw HTTPS body, byte for byte, stored under the sha256 of its own bytes. Consecutive windows overlap because DAF's adapter re-requests a trailing safety window; the overlap is recorded as it happened and resolved downstream by the bridge's deduplication.",
+      "binding": {
+        "adapter_id": "noaa-water-level-measurements",
+        "datum": "MLLW",
+        "factory": "daf.orchestration.bindings.noaa_water_level_measurement_binding",
+        "time_zone": "gmt",
+        "units": "metric",
+        "version": "a5fe4c80cb4f2559e7d241cbc44c9da123a8916df57d7077f3012bcd4fb64ed8"
+      },
+      "plans": [
+        {
+          "parameters": {
+            "end_date": "20240131",
+            "product": "water_level",
+            "start_date": "20240101",
+            "station": "8454000"
+          },
+          "plan_id": "fsre-noaa-month"
+        }
+      ],
+      "fetched_live": true,
+      "requested_at": "2026-09-12T00:00:00Z",
+      "recorded_at_daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
+      "source_session": "data/daf/raw/noaa_8454000_202401_mllw",
+      "source_session_index_sha256": "3c23c0176be3cf76b6a044c38e45d1f4a532d4a9df14dd798f4a5cfd85954a5e",
+      "n_recorded_responses": 30,
+      "n_observations": 21360,
+      "n_distinct_measurement_times": 7440,
+      "outcome_counts": {
+        "ACQUIRED": 30,
+        "DUPLICATE": 1
+      },
+      "response_urls": [
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240101&end_date=20240103&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240102&end_date=20240104&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240103&end_date=20240105&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240104&end_date=20240106&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240105&end_date=20240107&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240106&end_date=20240108&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240107&end_date=20240109&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240108&end_date=20240110&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240109&end_date=20240111&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240110&end_date=20240112&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240111&end_date=20240113&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240112&end_date=20240114&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240113&end_date=20240115&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240114&end_date=20240116&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240115&end_date=20240117&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240116&end_date=20240118&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240117&end_date=20240119&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240118&end_date=20240120&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240119&end_date=20240121&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240120&end_date=20240122&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240121&end_date=20240123&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240122&end_date=20240124&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240123&end_date=20240125&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240124&end_date=20240126&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240125&end_date=20240127&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240126&end_date=20240128&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240127&end_date=20240129&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240128&end_date=20240130&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240129&end_date=20240131&datum=MLLW&units=metric&time_zone=gmt&format=json",
+        "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_level&station=8454000&begin_date=20240130&end_date=20240131&datum=MLLW&units=metric&time_zone=gmt&format=json"
+      ],
+      "response_sha256": [
+        "243c145ddd7584313f91e802465bc09e6b0dd8fa570fe11eba0783fa39e568e6",
+        "03d4f4f278f6e2864249ce877b057aa537f8e1bc3e39f43c0529472b3eb50d91",
+        "ff5fa07f8844848cb60c8bb938be95a9eb1c70a80c9dd153a5a3c3a1faf7331b",
+        "08b1b0da17fd8e50310fd4b7a43485da6541b16ccfb3cf2f053612ee6af21af0",
+        "ec49ba0efd34ef80d4ac82b85420eb55e0a0e5556bbaf37136bcf32f2ebdfbf1",
+        "7a4507e488b6c9ba96240ca75d0fb79c7f497605c70cb97d1cfc89bca75ecbb0",
+        "409683c6487660dac2b2786bc0db6e4e3b0cd0d2bc708dab1e30c8dc48c7c014",
+        "712962bdde7a4b56f82a0c1edb7e9f2445be0a17eda39d9b8e7077451325e812",
+        "8f4d252cb0d75d6548e1b11e2c2ed3d959ced929b50353ec7437c50b3a27506c",
+        "acbbc55156b46fc4450e20a61f982178dfff2fe0b93c22f4ce0656f44be019b3",
+        "c9ea7b589cea6d7073ff94731eb4a63d841425635c3122a07e27333b68a92eea",
+        "4642e4c4b55838a8eb9db00f5905d1628f44e2022071243fafe6f56da223d455",
+        "80c8c8dd6256397f813c91f07eadc3c12068031722961b617dba70fec5a85b40",
+        "e4fadcbf71e52bb0a242549de37fdfcb2b6e17e642f3596d14817e4acec57d1d",
+        "6f38be8456d1bc91647939ae28bd288cc068881a5ab2864a47efc5a139d8aa99",
+        "c4046b995e64f310804c12e511b5565e249e49a442a2cc75c025aeb11ade14e1",
+        "4e3fe37bdb49f67702f752fbae6667e35ebcb572cd1bcc42f770c027dec69ddb",
+        "0a7793c4f95d0bf830036b673136e94ac345c42a320a7b850af307e59aab4c7d",
+        "c0b25c4681c746b9f88f6edfbd3ea326ff2625a926d24ea4d246884d8fb66212",
+        "80a34f249db551436d375c7591a94ee7e6332113714e6b2e8250c1deda008c70",
+        "7085e18a119698e8706a82450003791305e42d1beb7158ef6084f604861225e6",
+        "ae7bef1899640280a06a58cfb6c72ed3c5a552207e0c0d4098760fcbb8be4a85",
+        "f6c01e874dbaa3a99bc84751bf2804155f13f2c722bc52d39bc40b46fa5a95f2",
+        "d4a2e6723ac2af6830ceebb8d3ee1c8c624e89da30c64b0f512326be67dbe266",
+        "af2f354aef3edf44948efb52f3803ccdc7fc649342e7ea428838093f919dadc0",
+        "e723c37c1528af53fbf05ffe841058d248759940c7bacc6eb36c43612e3a1397",
+        "d988b39d5fcd1dddd8c8aaf434539ca9411f8e42afc06e7b19b6db119f99c0ec",
+        "f5bf60660d3abcbf43b94d5de057cef65b30319ac122bd6753f67027d425e663",
+        "9d6d754b8fcab0a77828c8e62a6f84a2d9cb1e963f21b7f3cde0fdb2030c935d",
+        "e6fc5ec895b27eb78550d4e87b747ccb8d278bcc2ff07e17157720c2eae6a1c4"
+      ]
+    },
+    "bridge": {
+      "bridge": "set_lcm.bridge.daf",
+      "bridge_version": "daf-measurement-bridge-v2",
+      "daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
+      "extraction_method": "json:noaa_water_level_measurement_v1",
+      "series": [
+        "noaa:8454000:MLLW:m"
+      ],
+      "selectors": [
+        {
+          "source_id": "noaa:8454000:MLLW:m",
+          "extraction_method": "json:noaa_water_level_measurement_v1",
+          "property": "water_level",
+          "match": {
+            "datum": "MLLW",
+            "station_id": "8454000",
+            "unit": "m"
+          },
+          "unit_field": "unit"
+        }
+      ],
+      "n_records_in": 21360,
+      "n_used": 21360,
+      "n_ignored": 0,
+      "ignored": [],
+      "n_in_conflict": 0,
+      "n_deduplicated": 13920,
+      "conflicts": [],
+      "conflict_policy": "refuse",
+      "off_grid": {
+        "tolerance_s": 1.0,
+        "n_refused": 0,
+        "max_abs_offset_s": 0.0,
+        "rule": "a reading further off the grid than tolerance_s is refused (bridge() raises, listing every such evidence id)"
+      },
+      "time_zone": "UTC",
+      "time_zone_declared": "UTC",
+      "time": {
+        "time_semantics": "instant",
+        "time_zone": "UTC",
+        "time_zone_declared": "UTC",
+        "rule": "measurement_time is 'YYYY-MM-DD HH:MM[:SS]', read in the declared zone"
+      },
+      "epoch_iso": "2024-01-01T00:00:00Z",
+      "cadence_s": 360.0,
+      "n_grid": 7440,
+      "n_missing": {
+        "noaa:8454000:MLLW:m": 0
+      },
+      "arrival_policy": {
+        "policy": "replay",
+        "latency_s": 0.0,
+        "rule": "arrival_t = t + latency_s"
+      },
+      "R_source": {
+        "noaa:8454000:MLLW:m": {
+          "kind": "source-stated",
+          "rule": "R_ii = uncertainty**2 where uncertainty_kind == 'stated'",
+          "n_points": 7440,
+          "sigma_min": 0.0,
+          "sigma_max": 2.002,
+          "n_zero": 37
+        }
+      },
+      "n_evidence_ids": 21360,
+      "evidence_ids_sha256": "7acc2410757204a4e41042d7fa08ed6c10bdae37ddccbc16739439fa286eb1e7",
+      "evidence_ids_sha256_rule": "sha256 of the sorted, distinct evidence ids used, joined by '\\n' (utf-8)"
+    }
+  },
+  "declared": {
+    "station": [
+      "8454000",
+      "MLLW",
+      "m"
+    ],
+    "fit_days": 15,
+    "steps_per_day": 240,
+    "level0_m": [
+      0.0
+    ],
+    "level0_std_m": 10.0,
+    "q_grids": {
+      "level_trend": [
+        1e-09,
+        3.1622776601683795e-09,
+        1e-08,
+        3.162277660168379e-08,
+        1e-07,
+        3.162277660168379e-07,
+        1e-06,
+        3.162277660168379e-06,
+        9.999999999999999e-06,
+        3.1622776601683795e-05,
+        0.0001,
+        0.00031622776601683794,
+        0.001
+      ],
+      "tide_kf": [
+        1e-07,
+        3.162277660168379e-07,
+        1e-06,
+        3.162277660168379e-06,
+        9.999999999999999e-06,
+        3.1622776601683795e-05,
+        0.0001,
+        0.00031622776601683794,
+        0.001,
+        0.0031622776601683794,
+        0.01,
+        0.03162277660168379,
+        0.1
+      ],
+      "tide_month": [
+        1e-07,
+        3.162277660168379e-07,
+        1e-06,
+        3.162277660168379e-06,
+        9.999999999999999e-06,
+        3.1622776601683795e-05,
+        0.0001,
+        0.00031622776601683794,
+        0.001,
+        0.0031622776601683794,
+        0.01,
+        0.03162277660168379,
+        0.1
+      ]
+    },
+    "q_units": {
+      "level_trend": "m s^-3/2",
+      "tide_kf": "m s^-1/2",
+      "tide_month": "m s^-1/2"
+    },
+    "constituents": {
+      "level_trend": [],
+      "tide_kf": [
+        "M2",
+        "K1",
+        "O1",
+        "M4"
+      ],
+      "tide_month": [
+        "M2",
+        "S2",
+        "N2",
+        "K1",
+        "O1",
+        "M4"
+      ]
+    },
+    "R": "NOAA's stated sigma^2 per reading, unscaled; the day report sweeps R, this one sweeps length",
+    "rayleigh_criterion": "two constituents need a record at least 1 / |n1 - n2| long to be separated"
+  },
+  "windows": {
+    "fit": {
+      "label": "days 1-15",
+      "role": "the q grids are searched here, and nowhere else",
+      "steps": [
+        0,
+        3600
+      ],
+      "n_steps": 3600,
+      "first_grid_point": "2024-01-01T00:00:00Z",
+      "last_grid_point": "2024-01-15T23:54:00Z",
+      "n_observed": 3600,
+      "frac_missing": 0.0,
+      "n_evidence_ids": 10080,
+      "min_reading_m": -0.204,
+      "max_reading_m": 2.601,
+      "series_extremes": {
+        "max_abs_reading": 2.601,
+        "max_abs_step_change": 0.15399999999999991,
+        "half_range": 1.4025
+      },
+      "series_check": {
+        "n_second_differences": 3598,
+        "rms_second_difference": 0.010426307748864945,
+        "white_error_sigma_bound": 0.004256522314324242,
+        "rms_stated_sigma": 0.01025050134275284,
+        "median_stated_sigma": 0.007,
+        "mean_stated_var_over_bound_var": 5.799364219830861,
+        "null_expected_mean_square": 0.0006306728738187884,
+        "null_rel_sd_mean_square": 0.08005749477176353
+      },
+      "stated_sigma": {
+        "units": "m",
+        "median": 0.007,
+        "rms": 0.01025050134275284,
+        "min": 0.0,
+        "max": 0.088,
+        "n_distinct_values": 50,
+        "n_stated_zero": 20,
+        "zero_note": "a stated 0.000 is carried as R = 0, which declares the reading exact",
+        "extreme_factor": 10.0,
+        "n_extreme": 1,
+        "extreme": [
+          {
+            "step_in_record": 2228,
+            "step_in_window": 2228,
+            "time": "2024-01-10T06:48:00Z",
+            "sigma": 0.088,
+            "over_median": 12.571428571428571
+          }
+        ],
+        "rms_without_extreme": 0.010146440950511254
+      },
+      "stated_sigma_over_white_bound": {
+        "median": 1.644535017810968,
+        "rms": 2.408186915467913,
+        "bound_assumes": "the bound assumes a white error independent of the water level, so a time-correlated component of the stated sigma is not bounded by it"
+      },
+      "resolution": {
+        "record_hours": 359.9,
+        "record_days": 14.995833333333332,
+        "modelled_by_tide_month": [
+          "M2",
+          "S2",
+          "N2",
+          "K1",
+          "O1",
+          "M4"
+        ],
+        "modelled_by_tide_kf": [
+          "M2",
+          "K1",
+          "O1",
+          "M4"
+        ],
+        "n_resolved": 19,
+        "n_unresolved": 2,
+        "unresolved": [
+          {
+            "pair": [
+              "M2",
+              "N2"
+            ],
+            "rayleigh_hours": 661.3092048546681,
+            "rayleigh_days": 27.554550202277838
+          },
+          {
+            "pair": [
+              "K1",
+              "P1"
+            ],
+            "rayleigh_hours": 4382.910544795875,
+            "rayleigh_days": 182.6212726998281
+          }
+        ],
+        "unresolved_among_modelled": [
+          {
+            "pair": [
+              "M2",
+              "N2"
+            ],
+            "rayleigh_hours": 661.3092048546681,
+            "rayleigh_days": 27.554550202277838
+          }
+        ],
+        "P1_note": "P1 is not modelled anywhere. Separating it from K1 needs 182.6 days, so a month cannot; it is absorbed into the K1 coefficients, and no K1 number here is clean of it."
+      }
+    },
+    "held_out": {
+      "label": "days 16-31",
+      "role": "held out: a disjoint window, no shared evidence",
+      "steps": [
+        3600,
+        7440
+      ],
+      "n_steps": 3840,
+      "first_grid_point": "2024-01-16T00:00:00Z",
+      "last_grid_point": "2024-01-31T23:54:00Z",
+      "n_observed": 3840,
+      "frac_missing": 0.0,
+      "n_evidence_ids": 11280,
+      "min_reading_m": 0.02,
+      "max_reading_m": 1.897,
+      "series_extremes": {
+        "max_abs_reading": 1.897,
+        "max_abs_step_change": 0.10099999999999998,
+        "half_range": 0.9385
+      },
+      "series_check": {
+        "n_second_differences": 3838,
+        "rms_second_difference": 0.006943567659316048,
+        "white_error_sigma_bound": 0.0028346996266359436,
+        "rms_stated_sigma": 0.033272059568302446,
+        "median_stated_sigma": 0.007,
+        "mean_stated_var_over_bound_var": 137.76702392227162,
+        "null_expected_mean_square": 0.006645445805106824,
+        "null_rel_sd_mean_square": 1.3334460339767535
+      },
+      "stated_sigma": {
+        "units": "m",
+        "median": 0.007,
+        "rms": 0.033272059568302446,
+        "min": 0.0,
+        "max": 2.002,
+        "n_distinct_values": 30,
+        "n_stated_zero": 17,
+        "zero_note": "a stated 0.000 is carried as R = 0, which declares the reading exact",
+        "extreme_factor": 10.0,
+        "n_extreme": 1,
+        "extreme": [
+          {
+            "step_in_record": 4543,
+            "step_in_window": 943,
+            "time": "2024-01-19T22:18:00Z",
+            "sigma": 2.002,
+            "over_median": 285.99999999999994
+          }
+        ],
+        "rms_without_extreme": 0.007955839957184236
+      },
+      "stated_sigma_over_white_bound": {
+        "median": 2.4693974395824054,
+        "rms": 11.737419815371334,
+        "bound_assumes": "the bound assumes a white error independent of the water level, so a time-correlated component of the stated sigma is not bounded by it"
+      },
+      "resolution": {
+        "record_hours": 383.9,
+        "record_days": 15.995833333333332,
+        "modelled_by_tide_month": [
+          "M2",
+          "S2",
+          "N2",
+          "K1",
+          "O1",
+          "M4"
+        ],
+        "modelled_by_tide_kf": [
+          "M2",
+          "K1",
+          "O1",
+          "M4"
+        ],
+        "n_resolved": 19,
+        "n_unresolved": 2,
+        "unresolved": [
+          {
+            "pair": [
+              "M2",
+              "N2"
+            ],
+            "rayleigh_hours": 661.3092048546681,
+            "rayleigh_days": 27.554550202277838
+          },
+          {
+            "pair": [
+              "K1",
+              "P1"
+            ],
+            "rayleigh_hours": 4382.910544795875,
+            "rayleigh_days": 182.6212726998281
+          }
+        ],
+        "unresolved_among_modelled": [
+          {
+            "pair": [
+              "M2",
+              "N2"
+            ],
+            "rayleigh_hours": 661.3092048546681,
+            "rayleigh_days": 27.554550202277838
+          }
+        ],
+        "P1_note": "P1 is not modelled anywhere. Separating it from K1 needs 182.6 days, so a month cannot; it is absorbed into the K1 coefficients, and no K1 number here is clean of it."
+      }
+    },
+    "month": {
+      "label": "days 1-31",
+      "role": "the whole record; in-sample for every fitted q",
+      "steps": [
+        0,
+        7440
+      ],
+      "n_steps": 7440,
+      "first_grid_point": "2024-01-01T00:00:00Z",
+      "last_grid_point": "2024-01-31T23:54:00Z",
+      "n_observed": 7440,
+      "frac_missing": 0.0,
+      "n_evidence_ids": 21360,
+      "min_reading_m": -0.204,
+      "max_reading_m": 2.601,
+      "series_extremes": {
+        "max_abs_reading": 2.601,
+        "max_abs_step_change": 0.15399999999999991,
+        "half_range": 1.4025
+      },
+      "series_check": {
+        "n_second_differences": 7438,
+        "rms_second_difference": 0.008802369880601667,
+        "white_error_sigma_bound": 0.003593552455786229,
+        "rms_stated_sigma": 0.02494417692299329,
+        "median_stated_sigma": 0.007,
+        "mean_stated_var_over_bound_var": 48.182616368044876,
+        "null_expected_mean_square": 0.0037342077171282594,
+        "null_rel_sd_mean_square": 1.2244923735191735
+      },
+      "stated_sigma": {
+        "units": "m",
+        "median": 0.007,
+        "rms": 0.02494417692299329,
+        "min": 0.0,
+        "max": 2.002,
+        "n_distinct_values": 51,
+        "n_stated_zero": 37,
+        "zero_note": "a stated 0.000 is carried as R = 0, which declares the reading exact",
+        "extreme_factor": 10.0,
+        "n_extreme": 2,
+        "extreme": [
+          {
+            "step_in_record": 4543,
+            "step_in_window": 4543,
+            "time": "2024-01-19T22:18:00Z",
+            "sigma": 2.002,
+            "over_median": 285.99999999999994
+          },
+          {
+            "step_in_record": 2228,
+            "step_in_window": 2228,
+            "time": "2024-01-10T06:48:00Z",
+            "sigma": 0.088,
+            "over_median": 12.571428571428571
+          }
+        ],
+        "rms_without_extreme": 0.009082018496036851
+      },
+      "stated_sigma_over_white_bound": {
+        "median": 1.9479331625530645,
+        "rms": 6.9413699201270695,
+        "bound_assumes": "the bound assumes a white error independent of the water level, so a time-correlated component of the stated sigma is not bounded by it"
+      },
+      "resolution": {
+        "record_hours": 743.9,
+        "record_days": 30.995833333333334,
+        "modelled_by_tide_month": [
+          "M2",
+          "S2",
+          "N2",
+          "K1",
+          "O1",
+          "M4"
+        ],
+        "modelled_by_tide_kf": [
+          "M2",
+          "K1",
+          "O1",
+          "M4"
+        ],
+        "n_resolved": 20,
+        "n_unresolved": 1,
+        "unresolved": [
+          {
+            "pair": [
+              "K1",
+              "P1"
+            ],
+            "rayleigh_hours": 4382.910544795875,
+            "rayleigh_days": 182.6212726998281
+          }
+        ],
+        "unresolved_among_modelled": [],
+        "P1_note": "P1 is not modelled anywhere. Separating it from K1 needs 182.6 days, so a month cannot; it is absorbed into the K1 coefficients, and no K1 number here is clean of it."
+      }
+    }
+  },
+  "fits": {
+    "level_trend": {
+      "window": "fit",
+      "profile": [
+        {
+          "q_scale": 1e-09,
+          "loglik": -19474305.077017024
+        },
+        {
+          "q_scale": 3.1622776601683795e-09,
+          "loglik": -4579700.526315322
+        },
+        {
+          "q_scale": 1e-08,
+          "loglik": -774659.2465852239
+        },
+        {
+          "q_scale": 3.162277660168379e-08,
+          "loglik": -119289.19497329957
+        },
+        {
+          "q_scale": 1e-07,
+          "loglik": -13923.50186776626
+        },
+        {
+          "q_scale": 3.162277660168379e-07,
+          "loglik": 5912.082290824982
+        },
+        {
+          "q_scale": 1e-06,
+          "loglik": 10213.743594944148
+        },
+        {
+          "q_scale": 3.162277660168379e-06,
+          "loglik": 9614.696065429836
+        },
+        {
+          "q_scale": 9.999999999999999e-06,
+          "loglik": 6810.10972569682
+        },
+        {
+          "q_scale": 3.1622776601683795e-05,
+          "loglik": 3001.978047444781
+        },
+        {
+          "q_scale": 0.0001,
+          "loglik": -1090.435147144953
+        },
+        {
+          "q_scale": 0.00031622776601683794,
+          "loglik": -5228.032348043497
+        },
+        {
+          "q_scale": 0.001,
+          "loglik": -9370.921434014323
+        }
+      ],
+      "argmax_index": 6,
+      "q_scale": 1e-06,
+      "loglik": 10213.743594944148,
+      "interior": true,
+      "units": "m s^-3/2",
+      "per_step": {
+        "rate_std_m_per_s": 1.8973665961010275e-05,
+        "level_std_m": 0.003943602414037196
+      },
+      "n_steps": 3600
+    },
+    "tide_kf": {
+      "window": "fit",
+      "profile": [
+        {
+          "q_scale": 1e-07,
+          "loglik": -18238523.418151073
+        },
+        {
+          "q_scale": 3.162277660168379e-07,
+          "loglik": -5058028.555952096
+        },
+        {
+          "q_scale": 1e-06,
+          "loglik": -1915445.0116290282
+        },
+        {
+          "q_scale": 3.162277660168379e-06,
+          "loglik": -758730.1561003206
+        },
+        {
+          "q_scale": 9.999999999999999e-06,
+          "loglik": -211150.0680965295
+        },
+        {
+          "q_scale": 3.1622776601683795e-05,
+          "loglik": -35783.54981461831
+        },
+        {
+          "q_scale": 0.0001,
+          "loglik": 3675.4380417416514
+        },
+        {
+          "q_scale": 0.00031622776601683794,
+          "loglik": 9544.427301369684
+        },
+        {
+          "q_scale": 0.001,
+          "loglik": 7496.965913883303
+        },
+        {
+          "q_scale": 0.0031622776601683794,
+          "loglik": 3678.9530052707014
+        },
+        {
+          "q_scale": 0.01,
+          "loglik": -422.1500338436812
+        },
+        {
+          "q_scale": 0.03162277660168379,
+          "loglik": -4559.0454057750185
+        },
+        {
+          "q_scale": 0.1,
+          "loglik": -8701.562296765584
+        }
+      ],
+      "argmax_index": 7,
+      "q_scale": 0.00031622776601683794,
+      "loglik": 9544.427301369684,
+      "interior": true,
+      "units": "m s^-1/2",
+      "per_step": {
+        "state_std_m": 0.006
+      },
+      "n_steps": 3600
+    },
+    "tide_month": {
+      "window": "fit",
+      "profile": [
+        {
+          "q_scale": 1e-07,
+          "loglik": -12986673.244958535
+        },
+        {
+          "q_scale": 3.162277660168379e-07,
+          "loglik": -3983675.3082180866
+        },
+        {
+          "q_scale": 1e-06,
+          "loglik": -1659251.4228025037
+        },
+        {
+          "q_scale": 3.162277660168379e-06,
+          "loglik": -676196.8214823178
+        },
+        {
+          "q_scale": 9.999999999999999e-06,
+          "loglik": -182614.03874312478
+        },
+        {
+          "q_scale": 3.1622776601683795e-05,
+          "loglik": -27678.01329018484
+        },
+        {
+          "q_scale": 0.0001,
+          "loglik": 5324.267781166568
+        },
+        {
+          "q_scale": 0.00031622776601683794,
+          "loglik": 9462.1509904478
+        },
+        {
+          "q_scale": 0.001,
+          "loglik": 6979.2218706629
+        },
+        {
+          "q_scale": 0.0031622776601683794,
+          "loglik": 3083.4325233389336
+        },
+        {
+          "q_scale": 0.01,
+          "loglik": -1026.628396217146
+        },
+        {
+          "q_scale": 0.03162277660168379,
+          "loglik": -5164.395461407002
+        },
+        {
+          "q_scale": 0.1,
+          "loglik": -9306.969957216339
+        }
+      ],
+      "argmax_index": 7,
+      "q_scale": 0.00031622776601683794,
+      "loglik": 9462.1509904478,
+      "interior": true,
+      "units": "m s^-1/2",
+      "per_step": {
+        "state_std_m": 0.006
+      },
+      "n_steps": 3600
+    }
+  },
+  "scored": {
+    "level_trend": {
+      "in_sample_fit_window": {
+        "q_scale": 1e-06,
+        "loglik": 10213.743594944148,
+        "n_steps": 3600,
+        "n_observed": 3600,
+        "frac_missing": 0.0,
+        "z_mean": 0.0034409729089811833,
+        "z_rms": 1.0023740907368912,
+        "z_lag1": 0.6054475903453187,
+        "frac_abs_z_gt_1.96": 0.05361111111111111,
+        "cusum_alarms": 20,
+        "cusum_first_alarm": 1519,
+        "r_share_mean": 0.25536247147928376,
+        "status_counts": {
+          "skipped": 3600
+        },
+        "n_evidence_ids": 10080,
+        "constraint_declared": false,
+        "latency_us_p50": 161.83250045287423,
+        "latency_us_p99": 325.5857148178618
+      },
+      "held_out": {
+        "fresh": {
+          "q_scale": 1e-06,
+          "loglik": 11880.634191653935,
+          "n_steps": 3840,
+          "n_observed": 3840,
+          "frac_missing": 0.0,
+          "z_mean": 0.004724612319278316,
+          "z_rms": 0.7967518375339443,
+          "z_lag1": 0.5527467493500045,
+          "frac_abs_z_gt_1.96": 0.024479166666666666,
+          "cusum_alarms": 6,
+          "cusum_first_alarm": 263,
+          "r_share_mean": 0.2363922218774946,
+          "status_counts": {
+            "skipped": 3840
+          },
+          "n_evidence_ids": 11280,
+          "constraint_declared": false,
+          "latency_us_p50": 165.68900173297152,
+          "latency_us_p99": 267.8951600682923
+        },
+        "continued": {
+          "q_scale": 1e-06,
+          "loglik": 11889.538003790145,
+          "n_steps": 3840,
+          "n_observed": 3840,
+          "frac_missing": 0.0,
+          "z_mean": 0.005419432948396678,
+          "z_rms": 0.7971439295095825,
+          "z_lag1": 0.5530037427236955,
+          "frac_abs_z_gt_1.96": 0.024479166666666666,
+          "cusum_alarms": 6,
+          "cusum_first_alarm_in_record": 3863,
+          "cusum_first_alarm": 263,
+          "r_share_mean": 0.2366543156207358,
+          "n_evidence_ids": 11280,
+          "note": "one filter over the whole month, scored on the held-out steps only; the state crossing into them is the fit window's, so this is not a cold start"
+        },
+        "z_rms_fresh_over_continued": 0.9995081290076694
+      },
+      "whole_month_in_sample": {
+        "q_scale": 1e-06,
+        "loglik": 22103.28159873429,
+        "n_steps": 7440,
+        "n_observed": 7440,
+        "frac_missing": 0.0,
+        "z_mean": 0.004462113574485956,
+        "z_rms": 0.9022967535660851,
+        "z_lag1": 0.5842894017222083,
+        "frac_abs_z_gt_1.96": 0.0385752688172043,
+        "cusum_alarms": 26,
+        "cusum_first_alarm": 1519,
+        "r_share_mean": 0.24570664910067833,
+        "status_counts": {
+          "skipped": 7440
+        },
+        "n_evidence_ids": 21360,
+        "constraint_declared": false,
+        "latency_us_p50": 161.71399693121202,
+        "latency_us_p99": 267.7361467794981
+      }
+    },
+    "tide_kf": {
+      "in_sample_fit_window": {
+        "q_scale": 0.00031622776601683794,
+        "loglik": 9544.427301369684,
+        "n_steps": 3600,
+        "n_observed": 3600,
+        "frac_missing": 0.0,
+        "z_mean": -0.002441637674814721,
+        "z_rms": 0.9199491459335236,
+        "z_lag1": 0.7846749575822953,
+        "frac_abs_z_gt_1.96": 0.04111111111111111,
+        "cusum_alarms": 37,
+        "cusum_first_alarm": 1470,
+        "r_share_mean": 0.188406904859295,
+        "status_counts": {
+          "skipped": 3600
+        },
+        "n_evidence_ids": 10080,
+        "constraint_declared": false,
+        "latency_us_p50": 235.9475038247183,
+        "latency_us_p99": 379.8994633689286
+      },
+      "held_out": {
+        "fresh": {
+          "q_scale": 0.00031622776601683794,
+          "loglik": 11159.687380600139,
+          "n_steps": 3840,
+          "n_observed": 3840,
+          "frac_missing": 0.0,
+          "z_mean": 0.008674338500651402,
+          "z_rms": 0.6557406755642685,
+          "z_lag1": 0.7722422549013831,
+          "frac_abs_z_gt_1.96": 0.01015625,
+          "cusum_alarms": 4,
+          "cusum_first_alarm": 259,
+          "r_share_mean": 0.1605778728470024,
+          "status_counts": {
+            "skipped": 3840
+          },
+          "n_evidence_ids": 11280,
+          "constraint_declared": false,
+          "latency_us_p50": 236.6049993725028,
+          "latency_us_p99": 411.6006579715759
+        },
+        "continued": {
+          "q_scale": 0.00031622776601683794,
+          "loglik": 11187.735186470189,
+          "n_steps": 3840,
+          "n_observed": 3840,
+          "frac_missing": 0.0,
+          "z_mean": 0.010596161669084097,
+          "z_rms": 0.656771561732782,
+          "z_lag1": 0.7726667092803277,
+          "frac_abs_z_gt_1.96": 0.010416666666666666,
+          "cusum_alarms": 4,
+          "cusum_first_alarm_in_record": 3857,
+          "cusum_first_alarm": 257,
+          "r_share_mean": 0.16278461968737243,
+          "n_evidence_ids": 11280,
+          "note": "one filter over the whole month, scored on the held-out steps only; the state crossing into them is the fit window's, so this is not a cold start"
+        },
+        "z_rms_fresh_over_continued": 0.9984303733161137
+      },
+      "whole_month_in_sample": {
+        "q_scale": 0.00031622776601683794,
+        "loglik": 20732.162487839872,
+        "n_steps": 7440,
+        "n_observed": 7440,
+        "frac_missing": 0.0,
+        "z_mean": 0.0042875490833266085,
+        "z_rms": 0.7950690498593548,
+        "z_lag1": 0.7803660550972014,
+        "frac_abs_z_gt_1.96": 0.025268817204301075,
+        "cusum_alarms": 41,
+        "cusum_first_alarm": 1470,
+        "r_share_mean": 0.17518249960927043,
+        "status_counts": {
+          "skipped": 7440
+        },
+        "n_evidence_ids": 21360,
+        "constraint_declared": false,
+        "latency_us_p50": 255.25000091874972,
+        "latency_us_p99": 410.1082807028427
+      }
+    },
+    "tide_month": {
+      "in_sample_fit_window": {
+        "q_scale": 0.00031622776601683794,
+        "loglik": 9462.1509904478,
+        "n_steps": 3600,
+        "n_observed": 3600,
+        "frac_missing": 0.0,
+        "z_mean": -0.0037460984904362396,
+        "z_rms": 0.8064530585497407,
+        "z_lag1": 0.782212209152399,
+        "frac_abs_z_gt_1.96": 0.03111111111111111,
+        "cusum_alarms": 25,
+        "cusum_first_alarm": 1471,
+        "r_share_mean": 0.15552580573738353,
+        "status_counts": {
+          "skipped": 3600
+        },
+        "n_evidence_ids": 10080,
+        "constraint_declared": false,
+        "latency_us_p50": 257.2365010564681,
+        "latency_us_p99": 343.4798897797006
+      },
+      "held_out": {
+        "fresh": {
+          "q_scale": 0.00031622776601683794,
+          "loglik": 10885.629099460799,
+          "n_steps": 3840,
+          "n_observed": 3840,
+          "frac_missing": 0.0,
+          "z_mean": 0.006446477875941012,
+          "z_rms": 0.5657728625299839,
+          "z_lag1": 0.7708790481174014,
+          "frac_abs_z_gt_1.96": 0.005729166666666666,
+          "cusum_alarms": 3,
+          "cusum_first_alarm": 266,
+          "r_share_mean": 0.12929873627340602,
+          "status_counts": {
+            "skipped": 3840
+          },
+          "n_evidence_ids": 11280,
+          "constraint_declared": false,
+          "latency_us_p50": 254.0185014368035,
+          "latency_us_p99": 375.8364800160053
+        },
+        "continued": {
+          "q_scale": 0.00031622776601683794,
+          "loglik": 10919.724464487696,
+          "n_steps": 3840,
+          "n_observed": 3840,
+          "frac_missing": 0.0,
+          "z_mean": 0.01067307694988852,
+          "z_rms": 0.5673157243622647,
+          "z_lag1": 0.7716447707037657,
+          "frac_abs_z_gt_1.96": 0.005989583333333334,
+          "cusum_alarms": 3,
+          "cusum_first_alarm_in_record": 3859,
+          "cusum_first_alarm": 259,
+          "r_share_mean": 0.13164329397591382,
+          "n_evidence_ids": 11280,
+          "note": "one filter over the whole month, scored on the held-out steps only; the state crossing into them is the fit window's, so this is not a cold start"
+        },
+        "z_rms_fresh_over_continued": 0.9972804176474833
+      },
+      "whole_month_in_sample": {
+        "q_scale": 0.00031622776601683794,
+        "loglik": 20381.875454935493,
+        "n_steps": 7440,
+        "n_observed": 7440,
+        "frac_missing": 0.0,
+        "z_mean": 0.003696056575537835,
+        "z_rms": 0.693403297730334,
+        "z_lag1": 0.7785039637786859,
+        "frac_abs_z_gt_1.96": 0.018145161290322582,
+        "cusum_alarms": 28,
+        "cusum_first_alarm": 1471,
+        "r_share_mean": 0.14319934805404433,
+        "status_counts": {
+          "skipped": 7440
+        },
+        "n_evidence_ids": 21360,
+        "constraint_declared": false,
+        "latency_us_p50": 263.3090043673292,
+        "latency_us_p99": 441.0493871546346
+      }
+    }
+  },
+  "limitations": [
+    "Nobody knows the water level, so no number here is an error against it.",
+    "A fitted q_scale is a property of the fit window and the declared grid, not a calibration.",
+    "The 15-day fit window leaves 1 declared pair(s) unresolved (M2/N2 needs 27.6 days), so tide_month's q was fitted where a pair its model declares is not separable.",
+    "P1 is not modelled anywhere. Separating it from K1 needs 182.6 days, so a month cannot; it is absorbed into the K1 coefficients, and no K1 number here is clean of it.",
+    "One station, one month, one datum. A month of another season could order the filters differently.",
+    "The continued scoring is not a cold start: the state entering the held-out window is the fit window's.",
+    "A cold-started filter matches a continued one over this 3,840-step window. That measures the transient's length against the window's, not that carried state does not matter.",
+    "2 readings state a sigma above 10x the median, the largest 2.002 m; every second moment of the stated sigma here is dominated by that one.",
+    "The stated sigma is 1.95x the white-error bound on the median reading over the month. The bound assumes a white error independent of the level, so a correlated part of a published accuracy statement is not bounded by it and nothing here shows the declared R to be wrong.",
+    "37 readings state sigma = 0.000 m, carried as R = 0: the filter is asked to treat them as exact. They are counted, not adjusted."
+  ]
+}
