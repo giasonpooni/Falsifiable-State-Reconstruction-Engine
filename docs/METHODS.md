@@ -261,6 +261,21 @@ per-row declaration rejects at 2.1x nominal against a full `vec(A)` declaration'
 is much smaller than ignoring `A` altogether, which is an argument for the shortcut where
 evidence genuinely is not shared, not for using it everywhere.
 
+The **projection** carries the same declaration. `E` is independent of the state error and
+zero-mean, so the cross-covariance between the state error and the residual is unchanged and
+`K = P A^T S^-1` stays the minimum-mean-square gain; only `S` widens, so the gain shrinks by
+a quadratic form in the state. `project_hard` and `project_soft` both take that path when a
+set declares `A_var`, and `Cov(E x)` is evaluated at the incoming state — one step, not
+iterated. Measured against a null that is true by construction
+([`results/eiv_projection.md`](../results/eiv_projection.md)): treating the relation as exact
+leaves a nominal 95% region covering **1.5%** at the widest operating point tested, and the
+over-confidence follows `1 + c·scale²` to within **0.10%** across a 16x sweep — which is the
+quadratic form itself, since no constant mis-declaration of `Sigma_b` or `P` could produce a
+slope. The declared version stays calibrated within 0.03 across that range, and is never
+worse than not projecting at all, while treating the relation as exact is worse than not
+projecting from 1x upward. Iterating the gain is measured to change NEES by at most 0.03
+against a target of 3, which is why one step stays.
+
 Two things the correction does not do. It is first order in the coefficient error — the
 residual miscalibration is measured shrinking from 1.24x to 0.98x as the declared variance
 falls a hundredfold, which is what a dropped second-order term does. And it corrects the

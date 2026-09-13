@@ -312,6 +312,11 @@ def matrix_uncertainty(cs, x: np.ndarray, P: np.ndarray) -> np.ndarray:
     return 0.5 * (Q + Q.T)
 
 
+def _declared_b_cov(cs, rows: int) -> np.ndarray:
+    """Sigma_b as a (rows, rows) matrix, or zeros when the set declares b exact."""
+    return cs.b_cov if cs.b_var is not None else np.zeros((rows, rows))
+
+
 def _S_eiv(A: np.ndarray, P: np.ndarray, Sigma_b: np.ndarray, Q: np.ndarray) -> np.ndarray:
     """S = A P A^T + Sigma_b + Cov(E x), with the same singularity guard as the others."""
     S = A @ P @ A.T + Sigma_b + Q
@@ -324,7 +329,7 @@ def _S_eiv(A: np.ndarray, P: np.ndarray, Sigma_b: np.ndarray, Q: np.ndarray) -> 
 
 def _residual_S(cs, A: np.ndarray, P: np.ndarray, x: np.ndarray | None) -> np.ndarray:
     """The residual covariance this set declares, whichever of the three forms applies."""
-    Sigma_b = cs.b_cov if cs.b_var is not None else np.zeros((A.shape[0], A.shape[0]))
+    Sigma_b = _declared_b_cov(cs, A.shape[0])
     if cs.A_var is None:
         return _S_declared(A, P, Sigma_b) if cs.b_var is not None else _S(A, P)
     if x is None:
@@ -335,23 +340,29 @@ def _residual_S(cs, A: np.ndarray, P: np.ndarray, x: np.ndarray | None) -> np.nd
     return _S_eiv(A, P, Sigma_b, matrix_uncertainty(cs, x, P))
 
 
-def _S_declared(A: np.ndarray, P: np.ndarray, Sigma_b: np.ndarray) -> np.ndarray:
-    """S = A P A^T + Sigma_b for a set with declared b_var, with the same singularity guard."""
-    S = A @ P @ A.T + Sigma_b
-    _finite(S, "A P A^T + Sigma_b")
+def _S_declared(A: np.ndarray, P: np.ndarray, Sigma: np.ndarray, what: str = "Sigma_b") -> np.ndarray:
+    """S = A P A^T + Sigma for a set with declared uncertainty, with the same singularity guard.
+    `what` names the declaration that was summed, so the message blames the right one."""
+    S = A @ P @ A.T + Sigma
+    _finite(S, f"A P A^T + {what}")
     if np.linalg.cond(S) > _COND_MAX:
-        raise ValueError("A P A^T + Sigma_b is numerically singular: neither P nor the declared b_var "
-                         "carries uncertainty along a constraint")
+        raise ValueError(f"A P A^T + {what} is numerically singular: neither P nor the declared "
+                         "uncertainty carries any along a constraint")
     return S
 
 
 def _pseudo_measurement_update(x: np.ndarray, P: np.ndarray, A: np.ndarray, b: np.ndarray,
-                               Sigma: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+                               Sigma: np.ndarray, what: str = "Sigma_b") -> tuple[np.ndarray, np.ndarray]:
     """Kalman update with the pseudo-measurement b = A x + e, e ~ N(0, Sigma):
     K = P A^T S^-1 with S = A P A^T + Sigma, x* = x - K r, and P* in Joseph form
-    (I - K A) P (I - K A)^T + K Sigma K^T, which stays symmetric PSD by construction."""
+    (I - K A) P (I - K A)^T + K Sigma K^T, which stays symmetric PSD by construction.
+
+    Joseph rather than the shorter P - K A P because the gain is not always the optimal one:
+    on the errors-in-variables path Sigma is evaluated at the incoming state rather than the
+    true one, and Joseph stays symmetric PSD under a suboptimal K where the short form need
+    not. For an optimal K the two agree."""
     r = A @ x - b
-    S = _S_declared(A, P, Sigma)
+    S = _S_declared(A, P, Sigma, what)
     K = P @ A.T @ np.linalg.inv(S)
     x_star = x - K @ r
     I_KA = np.eye(P.shape[0]) - K @ A
@@ -421,13 +432,42 @@ def constraint_bases(cs: ConstraintSet) -> tuple[np.ndarray, np.ndarray]:
 
 
 def project_hard(x: np.ndarray, P: np.ndarray, cs: ConstraintSet) -> tuple[np.ndarray, np.ndarray]:
-    """Minimum P^-1-weighted correction that satisfies A x = b exactly -- or, when the
-    set declares b_var, the Kalman update with pseudo-measurement noise Sigma_b (Joseph
-    form); for Sigma_b > 0 that leaves a nonzero residual and a positive-definite P*."""
+    """Minimum P^-1-weighted correction that satisfies A x = b exactly -- or, when the set
+    declares uncertainty, the Kalman update with that pseudo-measurement noise (Joseph form);
+    for Sigma > 0 that leaves a nonzero residual and a positive-definite P*.
+
+    Three cases, by what the set declares:
+
+        nothing           exact projection onto A x = b
+        b_var             Sigma = Sigma_b
+        A_var (+ b_var)   Sigma = Sigma_b + Cov(E x), the errors-in-variables update
+
+    "Hard" stopped meaning "exact" when b_var arrived; it means no slack beyond what the set
+    declares. A_var carries that one step further, because with an uncertain relation there is
+    no subspace left to project onto: the states satisfying (A_bar + E) x = b move with the
+    realised E, so enforcing A_bar x = b exactly would assert a certainty the declaration
+    denies. Before this, a set declaring A_var was projected here as though A were exact --
+    silently, while consistency_stat and detectability both refused to answer without a state.
+
+    Only S changes. The cross-covariance between the state error and the residual is untouched
+    by E, which is independent of the state error and zero-mean, so K = P A^T S^-1 remains the
+    linear minimum-mean-square gain; the wider S simply shrinks it.
+
+    Cov(E x) is a quadratic form in the state, so unlike every other case the gain depends on
+    where it is evaluated: the same set corrects less where its uncertain coefficients act on a
+    larger state. It is taken at the incoming (x, P) -- one step, not iterated to a fixed
+    point. results/eiv_projection measures what that costs rather than assuming it negligible.
+    """
     x, P = _state_arrays(x, P)
     A, b = reduced(cs)
     _check_columns(A, x.size)
-    if cs.b_var is not None:
+    if cs.A_var is not None:
+        Sigma = _declared_b_cov(cs, A.shape[0]) + matrix_uncertainty(cs, x, P)
+        # A declared-but-zero uncertainty IS exactness, and the exact path below is the one
+        # that handles it. Falling through beats raising on the singular S that Sigma = 0 gives.
+        if Sigma.any():
+            return _pseudo_measurement_update(x, P, A, b, Sigma, "Sigma_b + Cov(E x)")
+    elif cs.b_var is not None:
         return _pseudo_measurement_update(x, P, A, b, cs.b_cov)
     r = A @ x - b
     _finite(r, "constraint residual")
@@ -442,18 +482,23 @@ def project_hard(x: np.ndarray, P: np.ndarray, cs: ConstraintSet) -> tuple[np.nd
 def project_soft(x: np.ndarray, P: np.ndarray, cs: ConstraintSet, lam: float) -> tuple[np.ndarray, np.ndarray]:
     """Penalised correction; leaves a nonzero residual for every finite lam.
 
-    With b_var declared: hard with Sigma_b + (1/lam) I, i.e. an extra, undeclared slack of
-    variance 1/lam per row on top of the declared uncertainty. For every constraint set,
-    lam must be positive; positive infinity explicitly dispatches to project_hard."""
+    With uncertainty declared: hard with an extra, undeclared slack of variance 1/lam per row
+    on top of it -- Sigma_b + (1/lam) I, and Sigma_b + Cov(E x) + (1/lam) I when the set also
+    declares A_var. For every constraint set, lam must be positive; positive infinity
+    explicitly dispatches to project_hard."""
     lam = _soft_weight(lam)
     if np.isposinf(lam):
         return project_hard(x, P, cs)
     x, P = _state_arrays(x, P)
-    if cs.b_var is not None:
+    if cs.b_var is not None or cs.A_var is not None:
         A, b = reduced(cs)
         _check_columns(A, x.size)
-        Sigma = cs.b_cov + np.eye(A.shape[0]) / lam
-        return _pseudo_measurement_update(x, P, A, b, Sigma)
+        Sigma = _declared_b_cov(cs, A.shape[0]) + np.eye(A.shape[0]) / lam
+        what = "Sigma_b + I/lam"
+        if cs.A_var is not None:
+            Sigma = Sigma + matrix_uncertainty(cs, x, P)
+            what = "Sigma_b + Cov(E x) + I/lam"
+        return _pseudo_measurement_update(x, P, A, b, Sigma, what)
     A, b = _constraint_arrays(cs)
     _check_columns(A, x.size)
     Pinv = np.linalg.inv(P)
@@ -486,6 +531,9 @@ def reconcile(
            "hard" / "soft"
     hold:  caller has decided (e.g. after debouncing the consistency stat) that
            the constraint should not be enforced this step -> MODEL_INCONSISTENT
+
+    The projection follows whatever the set declares: a declared A_var makes both modes the
+    errors-in-variables update, with no change here.
 
     Input validation also applies when skipping/holding and when the caller supplies
     stat or threshold. Without a constraint P may be PSD (this is a passthrough);

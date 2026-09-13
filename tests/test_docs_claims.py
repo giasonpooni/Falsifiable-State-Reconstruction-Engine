@@ -184,3 +184,63 @@ def test_the_month_narrative_quotes_the_month_artifact():
     assert unresolved, "the narrative claims the fit window leaves a pair unresolved"
     for row in unresolved:
         assert f"{row['rayleigh_days']:.1f}" in DOC, row
+
+
+# ---------------------------------------------------------------------------
+# the errors-in-variables projection
+#
+# README, METHODS and ROADMAP all quote numbers from results/eiv_projection.json by hand.
+# Those are exactly the sentences that go stale silently when a seed or a sweep moves, so
+# every one of them is formatted from the artifact here and required verbatim.
+# ---------------------------------------------------------------------------
+
+PROJECTION = json.loads((RESULTS / "eiv_projection.json").read_text(encoding="utf-8"))
+README = _prose(REPO_ROOT / "README.md")
+METHODS = _prose(REPO_ROOT / "docs" / "METHODS.md")
+ROADMAP = _prose(REPO_ROOT / "docs" / "ROADMAP.md")
+
+
+def _arm(experiment, name):
+    return experiment["by_arm"][name]
+
+
+@pytest.mark.parametrize("doc,name", [(README, "README.md"), (METHODS, "METHODS.md"),
+                                      (ROADMAP, "ROADMAP.md")])
+def test_the_projection_numbers_the_prose_quotes_are_the_artifacts_own(doc, name):
+    xs = PROJECTION["experiments"]
+    widest = max(xs, key=lambda e: e["state_scale"])
+    fit = PROJECTION["quadratic_fit"]
+
+    # the coverage a reader acts on, at the operating point the prose names as the widest
+    coverage = _arm(widest, "A treated as exact")["coverage"]
+    assert f"{coverage * 100:.1f}%" in doc, (name, coverage)
+
+    # the quadratic fit, which is the claim that the mechanism is the state-dependence
+    assert f"{fit['worst_relative_error'] * 100:.2f}%" in doc, (name, fit["worst_relative_error"])
+
+
+def test_the_prose_does_not_quote_the_fit_without_the_span_it_was_fitted_over():
+    """`1 + c*scale^2` to 0.10% means nothing without the range it holds across."""
+    scales = PROJECTION["declared"]["state_scale_swept"]
+    span = f"{scales[-1] / scales[0]:.0f}x"
+    for doc, name in ((METHODS, "METHODS.md"), (ROADMAP, "ROADMAP.md")):
+        assert "1 + c" in doc, name
+        assert span in doc, (name, span)
+
+
+def test_the_prose_reports_the_one_step_gain_cost_it_was_measured_at():
+    worst = max(abs(e["one_step_gain"]["reiterated_nees_change"])
+                for e in PROJECTION["experiments"])
+    dimension = PROJECTION["experiments"][0]["dimension"]
+    for doc, name in ((METHODS, "METHODS.md"), (ROADMAP, "ROADMAP.md")):
+        assert f"{worst:.2f}" in doc, (name, worst)
+        assert f"target of {dimension}" in doc, name
+
+
+def test_the_docs_do_not_still_say_the_projection_ignores_the_declaration():
+    """The sentence this stage removed, kept out of every document that carried it."""
+    for doc, name in ((README, "README.md"), (METHODS, "METHODS.md"), (ROADMAP, "ROADMAP.md")):
+        for stale in ("solves against `A_bar` as though it were exact",
+                      "The projection is unchanged",
+                      "implemented for the test, not the projection"):
+            assert stale not in doc, (name, stale)

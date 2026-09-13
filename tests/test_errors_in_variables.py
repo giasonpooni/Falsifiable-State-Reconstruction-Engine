@@ -194,7 +194,11 @@ def test_every_qualitative_sentence_is_a_computed_condition(report):
 
 def test_the_report_says_what_the_correction_does_not_do(report):
     text = eiv.render(report)
-    assert "The projection is unchanged" in json.dumps(report["limitations"])
+    limitations = json.dumps(report["limitations"])
+    assert "The projection is unchanged" not in limitations, (
+        "the projection now follows the declaration; this limitation was closed by "
+        "results/eiv_projection and must not be re-asserted")
+    assert "results/eiv_projection" in limitations
     assert "true by construction" in text
     for phrase in ("not conservative", "first order", "quadratic form in the state"):
         assert phrase in text, phrase

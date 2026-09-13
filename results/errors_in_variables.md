@@ -1,6 +1,6 @@
 # What treating an uncertain relation as exact costs
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 c16391f7b645, git 5eedb43dff. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 53017be44caa, git 4d31ad0f0c (source dirty). Latency columns are wall-clock on this machine and are not a claim.
 
 A calibration measurement against a null that is true by construction. No real record appears; nothing here describes an instrument.
 
@@ -52,6 +52,6 @@ It shrinks from 1.24x to 0.98x as the declared variance falls 100-fold, which is
 - The null is true by construction here, which is what makes this a calibration measurement and not a fault benchmark.
 - Cov(E x) is first order in the coefficient error: the dropped term is the uncertain coefficients acting on the state error, second order in the two small quantities together. Its residual cost is measured above rather than assumed small.
 - It is a quadratic form in the state, so a set declaring A_var has a different residual covariance at a different operating point and detectability stops being a property of the set alone.
-- The projection is unchanged. A declared A_var corrects the consistency TEST; reconciliation still solves against A_bar as though it were exact, so a reported correction remains conditional on that.
+- The projection follows the same declaration. A declared A_var widens the gain as well as the test, so a reported correction is no longer conditional on the relation being exact; results/eiv_projection measures what that is worth on this same system.
 - Nothing here declares dependence between A's error and b's, or between A's error and the state estimate. Shared evidence produces exactly those, and this experiment does not measure them.
 - One relation shape, one operating point, one Gaussian coefficient error. A different relation could be more or less sensitive.

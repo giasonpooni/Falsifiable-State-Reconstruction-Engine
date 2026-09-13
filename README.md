@@ -140,6 +140,7 @@ operational workflow.
 | Two-reach river | The first topology here that can name an instrument: six declared faults recovered in 100% of records with routing, none of the storage ones without it. | [Muskingum results](results/muskingum_reach.md) |
 | Second-balance design study | Which proposed topology could actually isolate a fault, computed before either is built: conservation alone reaches 1 of 7, the constitutive relation reaches 5 of 7. | [Design study](results/second_balance.md) |
 | Uncertain relations | What treating a measured coefficient as exact costs, against a null that is true by construction: 26 to 30 times the nominal false-alarm rate. | [Calibration](results/errors_in_variables.md) |
+| Uncertain relations, reconciled | The same cost to the estimate rather than the test: a nominal 95% region that actually covers 1.5%, and an over-confidence measured to be quadratic in the operating point to within 0.10%. | [Projection](results/eiv_projection.md) |
 
 To run the default test suite:
 

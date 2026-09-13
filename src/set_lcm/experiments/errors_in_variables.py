@@ -172,7 +172,7 @@ def compute() -> dict:
             "The null is true by construction here, which is what makes this a calibration measurement and not a fault benchmark.",
             "Cov(E x) is first order in the coefficient error: the dropped term is the uncertain coefficients acting on the state error, second order in the two small quantities together. Its residual cost is measured above rather than assumed small.",
             "It is a quadratic form in the state, so a set declaring A_var has a different residual covariance at a different operating point and detectability stops being a property of the set alone.",
-            "The projection is unchanged. A declared A_var corrects the consistency TEST; reconciliation still solves against A_bar as though it were exact, so a reported correction remains conditional on that.",
+            "The projection follows the same declaration. A declared A_var widens the gain as well as the test, so a reported correction is no longer conditional on the relation being exact; results/eiv_projection measures what that is worth on this same system.",
             "Nothing here declares dependence between A's error and b's, or between A's error and the state estimate. Shared evidence produces exactly those, and this experiment does not measure them.",
             "One relation shape, one operating point, one Gaussian coefficient error. A different relation could be more or less sensitive.",
         ],

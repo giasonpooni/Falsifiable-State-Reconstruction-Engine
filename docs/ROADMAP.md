@@ -170,7 +170,7 @@ against a full declaration's 1.2x. A joint nonlinear state model remains an alte
 remains unimplemented. Neither thermal modeling nor this alternative experiment is delivered
 in the foundation stage.
 
-## 3b. Uncertainty on the relation itself — implemented for the test, not the projection
+## 3b. Uncertainty on the relation itself — implemented for the test and the projection
 
 Every constitutive row the stage above needs carries measured coefficients, and the kernel
 declared uncertainty only on `b`. `ConstraintSet.A_var` now declares it on `A`, as a per-row
@@ -180,11 +180,21 @@ stack or a full `vec(A)` covariance, and the consistency statistic adds `Cov(E x
 worth against a null that is true by construction: treating an uncertain relation as exact
 rejects a healthy system at 26–30x the nominal rate. It is not a conservative simplification.
 
-What remains: the **projection** still solves against `A_bar` as though it were exact, so a
-reported correction is conditional on that; the correction is first order, with its residual
-measured; and no dependence between `A`'s error and `b`'s, or between `A`'s error and the
-state, is declared or inferred. A full errors-in-variables reconciliation is the next step
-here, and it is a harder problem than the test was.
+The **projection** now follows the same declaration.
+[`results/eiv_projection.md`](../results/eiv_projection.md) measures it on the same system,
+scored on the estimate instead of the statistic: a nominal 95% region covers 1.5% at the
+widest operating point when the relation is treated as exact, and the over-confidence follows
+`1 + c·scale²` to within 0.10% across a 16x sweep. That last number is the mechanism rather
+than a summary — a constant mis-declaration of `Sigma_b` or `P` would have cost the same at
+every scale, so the slope is specifically the relation's own coefficients acting on a larger
+state. Treating it as exact is worse than not projecting at all from 1x upward; the declared
+version is never worse, at any scale tested.
+
+What remains: the correction is first order, with its residual measured; `Cov(E x)` is taken
+at the incoming state rather than iterated to a fixed point, with that cost measured at no
+more than 0.03 NEES against a target of 3; and no dependence between `A`'s error and `b`'s, or
+between `A`'s error and the state, is declared or inferred. Shared evidence produces exactly
+those dependences, and they are the remaining piece of this stage.
 
 ## 4. Degradation benchmark — offset/drift/gain baseline implemented; expansion planned
 
