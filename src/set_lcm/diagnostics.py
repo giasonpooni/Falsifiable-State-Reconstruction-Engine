@@ -12,6 +12,11 @@ residual norms have chi-square distributions with their remaining residual degre
 freedom. Thresholds use a converged incomplete-gamma calculation, not an asymptotic
 quantile approximation. Existing reconciliation-kernel arithmetic is unchanged.
 
+An adequate candidate is not an actionable one: another candidate may explain the record
+equally well. Every observable candidate therefore reports its separation from the nearest
+other one in these whitened coordinates, and its reciprocal -- how much larger an amplitude
+would have to be before the record could prefer one. A verdict is never reported without it.
+
 An adequate null means no departure was detected, not that the instruments are healthy.
 Identification is conditional on the supplied candidates, nuisance space, known covariance
 and single-fault model. Candidate adequacy is not a posterior probability. Intervals are
@@ -20,7 +25,7 @@ for choosing a candidate or searching for an onset. No multiple-testing guarante
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from fractions import Fraction
 from functools import lru_cache
 import math
@@ -72,6 +77,18 @@ def _gamma_probabilities(a: float, x: float) -> tuple[float, float]:
                 q = min(1.0, max(0.0, prefactor * fraction))
                 return 1.0 - q, q
     raise ValueError("incomplete-gamma calculation did not converge")
+
+
+def _separation(a: np.ndarray, b: np.ndarray) -> float:
+    """The fraction of unit direction a that b cannot explain: sin(theta), stably.
+
+    Computed as the norm of a's component orthogonal to b, rather than from
+    sqrt(1 - cos^2), which loses every significant figure as cos approaches 1.
+    set_lcm.fdi computes the same quantity for static row-space directions; this
+    one works in the post-nuisance whitened coordinates the decision is made in.
+    """
+    orthogonal = a - b * float((a @ b) / (b @ b))
+    return float(np.clip(np.linalg.norm(orthogonal) / np.linalg.norm(a), 0.0, 1.0))
 
 
 def _probability(value, name: str) -> float:
@@ -181,6 +198,20 @@ def _verify_no_discarded_direction(matrix: np.ndarray, resolved_rank: int, name:
 
 @dataclass(frozen=True)
 class CandidateFit:
+    """One candidate's lack-of-fit, amplitude, and distance from its nearest rival.
+
+    `adequate` says whether this candidate explains the record. It says nothing about
+    whether another candidate would explain it equally well, which is what decides
+    whether an adequate candidate can be acted on. The nearest_* fields answer that in
+    the whitened post-nuisance coordinates the test used: nearest_orthogonal_fraction is
+    the fraction of this signature the nearest rival cannot explain, and its reciprocal
+    nearest_isolation_amplification is how much larger an amplitude must be before the
+    rival's own lack-of-fit can reject it. They are None when there is no other
+    observable candidate to compare against, and on an unobservable candidate; the
+    amplification is also None for an exactly collinear pair, where no amplitude
+    separates them and nearest_orthogonal_fraction is 0.0. Every field is finite or
+    None, never inf or NaN, because a result dict is serialized with allow_nan=False.
+    """
     name: str
     observable: bool
     fit_statistic: float | None
@@ -191,6 +222,10 @@ class CandidateFit:
     amplitude_sd: float | None
     interval: tuple[float, float] | None
     explanation: str
+    nearest: str | None = None
+    nearest_cos: float | None = None
+    nearest_orthogonal_fraction: float | None = None
+    nearest_isolation_amplification: float | None = None
 
     def as_dict(self) -> dict:
         return {"name": self.name, "observable": self.observable,
@@ -198,7 +233,10 @@ class CandidateFit:
                 "fit_threshold": self.fit_threshold, "adequate": self.adequate,
                 "amplitude": self.amplitude, "amplitude_sd": self.amplitude_sd,
                 "interval": list(self.interval) if self.interval is not None else None,
-                "explanation": self.explanation}
+                "explanation": self.explanation, "nearest": self.nearest,
+                "nearest_cos": self.nearest_cos,
+                "nearest_orthogonal_fraction": self.nearest_orthogonal_fraction,
+                "nearest_isolation_amplification": self.nearest_isolation_amplification}
 
 
 @dataclass(frozen=True)
@@ -214,6 +252,10 @@ class DiagnosticResult:
     interval_level: float
     explanation: str
     assumptions: tuple[str, ...]
+    # The smallest nearest_orthogonal_fraction over observable candidates: the tightest
+    # pair this catalogue asks the record to separate. None with fewer than two
+    # observable candidates, where there is nothing to separate.
+    min_separation: float | None = None
 
     def as_dict(self) -> dict:
         return {"status": self.status, "candidates": list(self.candidates),
@@ -222,7 +264,7 @@ class DiagnosticResult:
                 "fits": {fit.name: fit.as_dict() for fit in self.fits},
                 "nuisance_rank": self.nuisance_rank, "alpha": self.alpha,
                 "interval_level": self.interval_level, "explanation": self.explanation,
-                "assumptions": list(self.assumptions)}
+                "assumptions": list(self.assumptions), "min_separation": self.min_separation}
 
 
 def diagnose(residual, covariance, hypotheses: Mapping[str, object], *, nuisance=None,
@@ -320,7 +362,7 @@ def diagnose(residual, covariance, hypotheses: Mapping[str, object], *, nuisance
         return statistic, threshold, bool(statistic <= threshold)
 
     null_statistic, null_threshold, null_adequate = test(y, null_dof)
-    fits = []
+    fits, directions = [], {}
     for name, signature in signatures.items():
         scale = float(np.max(np.abs(signature)))
         w = whiten(signature / scale) if scale != 0.0 else np.zeros(n)
@@ -358,8 +400,29 @@ def diagnose(residual, covariance, hypotheses: Mapping[str, object], *, nuisance
                        "declared covariance; not adjusted for candidate or onset selection.")
         if fit_dof == 0:
             explanation += " The fit is saturated: no residual degrees of freedom remain to test it."
+        directions[name] = direction
         fits.append(CandidateFit(name, True, fit_statistic, fit_dof, fit_threshold, adequate,
                                  amplitude, sd, interval, explanation))
+
+    if len(directions) > 1:
+        for index, fit in enumerate(fits):
+            own = directions.get(fit.name)
+            if own is None:
+                continue
+            rivals = [(abs(float(own @ other)), other_name, other)
+                      for other_name, other in directions.items() if other_name != fit.name]
+            _, nearest_name, nearest = max(rivals)
+            separation = _separation(own, nearest)
+            fits[index] = replace(
+                fit, nearest=nearest_name, nearest_cos=float(np.clip(own @ nearest, -1.0, 1.0)),
+                nearest_orthogonal_fraction=separation,
+                # None, not inf: exact collinearity has no amplitude that separates the pair,
+                # and a result dict is serialized with allow_nan=False by its consumers.
+                # nearest_orthogonal_fraction == 0.0 is what says the pair is collinear.
+                nearest_isolation_amplification=(1.0 / separation if separation > 0.0 else None))
+    separations = [fit.nearest_orthogonal_fraction for fit in fits
+                   if fit.nearest_orthogonal_fraction is not None]
+    min_separation = min(separations) if separations else None
 
     candidates = tuple(fit.name for fit in fits if fit.observable and fit.adequate is True)
     if null_dof == 0:
@@ -390,5 +453,17 @@ def diagnose(residual, covariance, hypotheses: Mapping[str, object], *, nuisance
         "Row units must agree across residual, signatures, nuisance and joint covariance; units are not inferred or converted.",
         "Rank uses machine-precision tolerances on normalized columns; unresolved nonzero directions or oversized exact-rank checks are refused, not silently discarded.",
     )
+    # Stated for every verdict, not only the ambiguous one: an `identified` that came from
+    # a catalogue whose closest pair is barely separated is a different claim from one that
+    # came from an orthogonal catalogue, and the status alone does not distinguish them.
+    if min_separation is not None:
+        explanation += (f" Closest observable candidate pair: separated by {min_separation:.3g} "
+                        f"of a whitened unit direction, so telling those two apart takes an "
+                        f"amplitude about {1.0 / min_separation:.3g} times the one that rejects "
+                        f"no fault."
+                        if min_separation > 0.0 else
+                        " Two observable candidates in this catalogue are numerically collinear, "
+                        "so no amplitude lets this record prefer one of them.")
     return DiagnosticResult(status, candidates, null_statistic, null_dof, null_threshold, tuple(fits),
-                            nuisance_rank, alpha, interval_level, explanation, assumptions)
+                            nuisance_rank, alpha, interval_level, explanation, assumptions,
+                            min_separation)

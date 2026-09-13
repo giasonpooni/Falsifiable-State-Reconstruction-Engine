@@ -233,3 +233,33 @@ def test_committed_camera_report_reproduces(full_report):
     failure = reproduction_failure("camera_baseline.json", full_report, committed)
     assert failure is None, failure
     assert path.with_suffix(".md").read_text(encoding="utf-8") == experiment.render(committed)
+
+
+def test_the_declared_collinearity_of_the_catalogue_is_measured_not_only_asserted(full_report):
+    """The report says the two candidates are collinear; the artifact now shows it.
+
+    A gauge drift of +max(t-12,0) and a camera-level drift of -max(t-12,0) differ only
+    in sign, so no amplitude and no covariance separates them. Every diagnostic in the
+    report therefore carries min_separation 0.0 and no isolation amplification: the
+    prose claim and the computed geometry have to agree.
+    """
+    separations, amplifications = set(), set()
+
+    def walk(node):
+        if isinstance(node, dict):
+            if "min_separation" in node:
+                separations.add(node["min_separation"])
+                for fit in node.get("fits", {}).values():
+                    if fit.get("nearest") is not None:
+                        amplifications.add(fit["nearest_isolation_amplification"])
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    walk(full_report)
+    assert separations == {0.0}, separations
+    assert amplifications == {None}, amplifications
+    declared = json.dumps(full_report)
+    assert "They are collinear: evidence can reject consistency without choosing" in declared

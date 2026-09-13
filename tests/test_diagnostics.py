@@ -265,3 +265,98 @@ def test_outputs_are_frozen_json_safe_and_inputs_are_unchanged():
     assert serialized["fits"]["zero"]["interval"] is None
     full = diagnose(residual, covariance, {}, nuisance=np.eye(2))
     assert json.loads(json.dumps(full.as_dict(), allow_nan=False))["null_threshold"] is None
+
+
+# ---------------------------------------------------------------------------
+# an adequate candidate is not an actionable one
+# ---------------------------------------------------------------------------
+
+def _catalogue(n=8, epsilon=2e-3):
+    """One direction, a near-collinear rival, and an orthogonal one."""
+    a = np.zeros(n); a[:4] = 1.0
+    near = a.copy(); near[4] = epsilon * np.linalg.norm(a)
+    far = np.zeros(n); far[4:] = 1.0
+    return a, near, far
+
+
+def test_a_near_collinear_pair_is_reported_with_how_far_apart_it_is():
+    """The pair is structurally distinct and practically inseparable; both are reported."""
+    a, near, far = _catalogue()
+    result = diagnose(6.0 * a, np.eye(8), {"a": a, "near": near, "far": far})
+    assert result.status == "ambiguous"
+    assert set(result.candidates) == {"a", "near"}
+    fits = {fit.name: fit for fit in result.fits}
+    assert fits["a"].nearest == "near" and fits["near"].nearest == "a"
+    # sin(theta) for these two, and its reciprocal
+    expected = 2e-3 / np.sqrt(1.0 + 2e-3 ** 2)
+    assert fits["a"].nearest_orthogonal_fraction == pytest.approx(expected, rel=1e-6)
+    assert fits["a"].nearest_isolation_amplification == pytest.approx(1.0 / expected, rel=1e-6)
+    assert result.min_separation == pytest.approx(expected, rel=1e-6)
+    assert "500 times the one that rejects no fault" in result.explanation
+
+
+def test_every_verdict_states_the_closest_pair_including_an_identified_one():
+    """`identified` from a barely separated catalogue is not the claim it looks like."""
+    a, _, far = _catalogue()
+    identified = diagnose(6.0 * a, np.eye(8), {"a": a, "far": far})
+    assert identified.status == "identified"
+    assert identified.min_separation == pytest.approx(1.0)      # orthogonal catalogue
+    assert "Closest observable candidate pair" in identified.explanation
+    consistent = diagnose(np.zeros(8), np.eye(8), {"a": a, "far": far})
+    assert consistent.status == "consistent"
+    assert "Closest observable candidate pair" in consistent.explanation
+
+
+def test_a_lone_or_unobservable_candidate_has_nothing_to_be_separated_from():
+    a, _, _ = _catalogue()
+    lone = diagnose(6.0 * a, np.eye(8), {"a": a})
+    assert lone.min_separation is None
+    assert lone.fits[0].nearest is None
+    assert lone.fits[0].nearest_orthogonal_fraction is None
+    assert lone.as_dict()["min_separation"] is None
+    # a candidate confounded with the nuisance space is unobservable and stays unpaired
+    confounded = diagnose(6.0 * a, np.eye(8), {"a": a, "zero": np.zeros(8)})
+    assert {fit.name: fit.observable for fit in confounded.fits} == {"a": True, "zero": False}
+    assert next(f for f in confounded.fits if f.name == "zero").nearest is None
+    assert confounded.min_separation is None       # one observable candidate, nothing to compare
+
+
+def test_exactly_collinear_candidates_cannot_be_separated_at_any_amplitude():
+    a, _, _ = _catalogue()
+    result = diagnose(6.0 * a, np.eye(8), {"a": a, "twice": 2.0 * a})
+    assert result.min_separation == 0.0
+    fits = {fit.name: fit for fit in result.fits}
+    # None rather than inf: there is no amplitude, and the dict must stay JSON-serializable
+    assert fits["a"].nearest_isolation_amplification is None
+    assert fits["a"].nearest_orthogonal_fraction == 0.0
+    assert abs(fits["a"].nearest_cos) == pytest.approx(1.0)
+    assert "no amplitude lets this record prefer one of them" in result.explanation
+    json.dumps(result.as_dict(), allow_nan=False)     # the way every report writes it
+
+
+def test_the_separation_is_archived_with_every_fit():
+    a, near, far = _catalogue()
+    archived = diagnose(6.0 * a, np.eye(8), {"a": a, "near": near, "far": far}).as_dict()
+    assert archived["min_separation"] is not None
+    for name, fit in archived["fits"].items():
+        assert {"nearest", "nearest_cos", "nearest_orthogonal_fraction",
+                "nearest_isolation_amplification"} <= set(fit), name
+        assert fit["nearest"] is not None, name
+    # and it survives a JSON round trip, which is how a report carries it
+    assert json.loads(json.dumps(archived))["min_separation"] == archived["min_separation"]
+
+
+def test_the_separation_uses_the_whitened_coordinates_the_decision_used():
+    """A covariance that stretches one axis changes the separation, as it must.
+
+    Two directions are geometrically orthogonal in the raw coordinates; under a
+    covariance that makes one axis enormously noisy, the record cannot separate them.
+    """
+    raw_a = np.array([1.0, 0.0, 0.0, 0.0])
+    raw_b = np.array([1.0, 1.0, 0.0, 0.0])
+    residual = np.array([4.0, 0.0, 0.0, 0.0])
+    plain = diagnose(residual, np.eye(4), {"a": raw_a, "b": raw_b})
+    stretched = diagnose(residual, np.diag([1.0, 1e8, 1.0, 1.0]), {"a": raw_a, "b": raw_b})
+    assert plain.min_separation > 0.5
+    assert stretched.min_separation < 1e-3
+    assert stretched.min_separation < plain.min_separation
