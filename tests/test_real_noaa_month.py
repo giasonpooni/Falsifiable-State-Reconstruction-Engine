@@ -143,7 +143,13 @@ def test_both_scorings_read_the_same_held_out_readings(report, bridged):
 
 
 def test_the_continued_alarm_step_is_reported_in_both_coordinate_systems(report, bridged):
+    """truth_free reports an alarm step in its run's own clock, and the two runs differ.
+
+    Comparing the fresh and continued scorings would otherwise mean silently subtracting an
+    offset, so the continued entry carries both forms and they must agree.
+    """
     offset = month.FIT_DAYS * month.STEPS_PER_DAY
+    n_steps = len(bridged.observations)
     for kind, scored in report["scored"].items():
         continued = scored["held_out"]["continued"]
         in_record, in_window = continued["cusum_first_alarm_in_record"], continued["cusum_first_alarm"]
@@ -151,12 +157,8 @@ def test_the_continued_alarm_step_is_reported_in_both_coordinate_systems(report,
             assert in_window is None
             continue
         assert in_window == in_record - offset, kind
-        assert 0 <= in_window < wins_n(bridged) - offset
+        assert 0 <= in_window < n_steps - offset
         assert in_record >= offset          # the alarm is inside the held-out window
-
-
-def wins_n(bridged):
-    return len(bridged.observations)
 
 
 def test_the_burn_in_null_is_reported_as_a_measurement(report):
