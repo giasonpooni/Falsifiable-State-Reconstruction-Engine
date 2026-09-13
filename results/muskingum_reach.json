@@ -1,0 +1,2592 @@
+{
+  "schema_version": "fsre-muskingum-reach-v1",
+  "scope": "Simulated two-reach Muskingum records with known injected faults. Synthetic throughout: no field validation and no real record.",
+  "provenance": {
+    "generation": {
+      "python": "3.13.12",
+      "numpy": "2.5.3",
+      "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+      "machine": "x86_64",
+      "source_sha256": "c16391f7b645033919ffbc4434621ed19b0f154f56d3243851049e65fe72782a",
+      "git_head": "72be9e377926582930594bb928985b3f0d745d29",
+      "source_dirty": false,
+      "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
+    }
+  },
+  "declared": {
+    "config": {
+      "K": 1.0,
+      "x": 0.2,
+      "dt": 1.0
+    },
+    "true_config_under_parameter_error": {
+      "K": 1.15,
+      "x": 0.28,
+      "dt": 1.0
+    },
+    "parameter_sigma": {
+      "K": 0.15,
+      "x": 0.08
+    },
+    "sigma": {
+      "storage_1": 0.2,
+      "storage_2": 0.2,
+      "inflow_gauge": 0.3,
+      "middle_gauge": 0.3,
+      "outflow_gauge": 0.3
+    },
+    "n_steps": 21,
+    "alpha": 0.01,
+    "onset": 6,
+    "magnitude_multiples": [
+      1.5,
+      4.0
+    ],
+    "development_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "evaluation_seeds": [
+      10000,
+      10001,
+      10002,
+      10003,
+      10004,
+      10005,
+      10006,
+      10007,
+      10008,
+      10009,
+      10010,
+      10011,
+      10012,
+      10013,
+      10014,
+      10015,
+      10016,
+      10017,
+      10018,
+      10019,
+      10020,
+      10021,
+      10022,
+      10023,
+      10024,
+      10025,
+      10026,
+      10027,
+      10028,
+      10029,
+      10030,
+      10031,
+      10032,
+      10033,
+      10034,
+      10035,
+      10036,
+      10037,
+      10038,
+      10039,
+      10040,
+      10041,
+      10042,
+      10043,
+      10044,
+      10045,
+      10046,
+      10047,
+      10048,
+      10049,
+      10050,
+      10051,
+      10052,
+      10053,
+      10054,
+      10055,
+      10056,
+      10057,
+      10058,
+      10059,
+      10060,
+      10061,
+      10062,
+      10063
+    ],
+    "onset_status": "declared and supplied to the rule; no onset search is performed",
+    "hydrograph_status": "deterministic, so a seed changes the readings and never the river"
+  },
+  "structure": {
+    "state_order": [
+      "S1_start",
+      "S1_end",
+      "S2_start",
+      "S2_end",
+      "inflow",
+      "middle",
+      "outflow"
+    ],
+    "rows": {
+      "continuity only": {
+        "storage 1 sensor bias": [
+          0.0,
+          0.0
+        ],
+        "storage 2 sensor bias": [
+          0.0,
+          0.0
+        ],
+        "inflow gauge bias": [
+          -1.0,
+          0.0
+        ],
+        "middle gauge bias": [
+          1.0,
+          -1.0
+        ],
+        "outflow gauge bias": [
+          0.0,
+          1.0
+        ],
+        "common flow-gauge drift": [
+          0.0,
+          0.0
+        ],
+        "ungauged lateral inflow": [
+          -1.0,
+          0.0
+        ],
+        "coordinated storage/flow offset (K:1)": [
+          0.0,
+          0.0
+        ]
+      },
+      "continuity + routing": {
+        "storage 1 sensor bias": [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        "storage 2 sensor bias": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "inflow gauge bias": [
+          -1.0,
+          0.0,
+          -0.2,
+          0.0
+        ],
+        "middle gauge bias": [
+          1.0,
+          -1.0,
+          -0.8,
+          -0.2
+        ],
+        "outflow gauge bias": [
+          0.0,
+          1.0,
+          0.0,
+          -0.8
+        ],
+        "common flow-gauge drift": [
+          0.0,
+          0.0,
+          -1.0,
+          -1.0
+        ],
+        "ungauged lateral inflow": [
+          -1.0,
+          0.0,
+          -0.2,
+          0.0
+        ],
+        "coordinated storage/flow offset (K:1)": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    }
+  },
+  "development": {
+    "continuity only": {
+      "healthy": {
+        "injected": "healthy",
+        "kind": "none",
+        "magnitude_multiple": 0.0,
+        "magnitude": 0.0,
+        "correct_candidate": null,
+        "n_seeds": 16,
+        "outcomes": {
+          "correctly quiet": 16
+        },
+        "statuses": {
+          "consistent": 16
+        }
+      },
+      "storage 1 sensor bias @ 1.5 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 16
+        },
+        "statuses": {
+          "consistent": 16
+        }
+      },
+      "storage 1 sensor bias @ 4 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 16
+        },
+        "statuses": {
+          "consistent": 16
+        }
+      },
+      "storage 2 sensor bias @ 1.5 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 16
+        },
+        "statuses": {
+          "consistent": 16
+        }
+      },
+      "storage 2 sensor bias @ 4 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 16
+        },
+        "statuses": {
+          "consistent": 16
+        }
+      },
+      "inflow gauge bias @ 1.5 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "ambiguous, correct among them": 6,
+          "missed": 7,
+          "identified correctly": 3
+        },
+        "statuses": {
+          "ambiguous": 6,
+          "consistent": 7,
+          "identified": 3
+        }
+      },
+      "inflow gauge bias @ 4 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      },
+      "middle gauge bias @ 1.5 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 4,
+          "missed": 12
+        },
+        "statuses": {
+          "identified": 4,
+          "consistent": 12
+        }
+      },
+      "middle gauge bias @ 4 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      },
+      "outflow gauge bias @ 1.5 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 3,
+          "missed": 10,
+          "ambiguous, correct among them": 3
+        },
+        "statuses": {
+          "identified": 3,
+          "consistent": 10,
+          "ambiguous": 3
+        }
+      },
+      "outflow gauge bias @ 4 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      },
+      "common flow-gauge drift @ 1.5 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 16
+        },
+        "statuses": {
+          "consistent": 16
+        }
+      },
+      "common flow-gauge drift @ 4 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 16
+        },
+        "statuses": {
+          "consistent": 16
+        }
+      },
+      "ungauged lateral inflow @ 1.5 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified WRONG": 2,
+          "missed": 11,
+          "ambiguous, correct absent": 3
+        },
+        "statuses": {
+          "identified": 2,
+          "consistent": 11,
+          "ambiguous": 3
+        }
+      },
+      "ungauged lateral inflow @ 4 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified WRONG": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      }
+    },
+    "continuity + routing": {
+      "healthy": {
+        "injected": "healthy",
+        "kind": "none",
+        "magnitude_multiple": 0.0,
+        "magnitude": 0.0,
+        "correct_candidate": null,
+        "n_seeds": 16,
+        "outcomes": {
+          "correctly quiet": 16
+        },
+        "statuses": {
+          "consistent": 16
+        }
+      },
+      "storage 1 sensor bias @ 1.5 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 13,
+          "ambiguous, correct among them": 2,
+          "identified correctly": 1
+        },
+        "statuses": {
+          "consistent": 13,
+          "ambiguous": 2,
+          "identified": 1
+        }
+      },
+      "storage 1 sensor bias @ 4 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      },
+      "storage 2 sensor bias @ 1.5 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 15,
+          "ambiguous, correct among them": 1
+        },
+        "statuses": {
+          "consistent": 15,
+          "ambiguous": 1
+        }
+      },
+      "storage 2 sensor bias @ 4 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      },
+      "inflow gauge bias @ 1.5 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 11,
+          "identified correctly": 4,
+          "ambiguous, correct among them": 1
+        },
+        "statuses": {
+          "consistent": 11,
+          "identified": 4,
+          "ambiguous": 1
+        }
+      },
+      "inflow gauge bias @ 4 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      },
+      "middle gauge bias @ 1.5 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "ambiguous, correct among them": 2,
+          "missed": 13,
+          "identified correctly": 1
+        },
+        "statuses": {
+          "ambiguous": 2,
+          "consistent": 13,
+          "identified": 1
+        }
+      },
+      "middle gauge bias @ 4 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      },
+      "outflow gauge bias @ 1.5 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 12,
+          "ambiguous, correct among them": 2,
+          "identified correctly": 2
+        },
+        "statuses": {
+          "consistent": 12,
+          "ambiguous": 2,
+          "identified": 2
+        }
+      },
+      "outflow gauge bias @ 4 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      },
+      "common flow-gauge drift @ 1.5 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 7,
+          "missed": 3,
+          "ambiguous, correct among them": 6
+        },
+        "statuses": {
+          "identified": 7,
+          "consistent": 3,
+          "ambiguous": 6
+        }
+      },
+      "common flow-gauge drift @ 4 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      },
+      "ungauged lateral inflow @ 1.5 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 12,
+          "ambiguous, correct absent": 3,
+          "identified WRONG": 1
+        },
+        "statuses": {
+          "consistent": 12,
+          "ambiguous": 3,
+          "identified": 1
+        }
+      },
+      "ungauged lateral inflow @ 4 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified WRONG": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      }
+    },
+    "continuity + routing, physical candidate declared": {
+      "healthy": {
+        "injected": "healthy",
+        "kind": "none",
+        "magnitude_multiple": 0.0,
+        "magnitude": 0.0,
+        "correct_candidate": null,
+        "n_seeds": 16,
+        "outcomes": {
+          "correctly quiet": 16
+        },
+        "statuses": {
+          "consistent": 16
+        }
+      },
+      "storage 1 sensor bias @ 1.5 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 13,
+          "ambiguous, correct among them": 2,
+          "identified correctly": 1
+        },
+        "statuses": {
+          "consistent": 13,
+          "ambiguous": 2,
+          "identified": 1
+        }
+      },
+      "storage 1 sensor bias @ 4 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      },
+      "storage 2 sensor bias @ 1.5 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 15,
+          "ambiguous, correct among them": 1
+        },
+        "statuses": {
+          "consistent": 15,
+          "ambiguous": 1
+        }
+      },
+      "storage 2 sensor bias @ 4 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      },
+      "inflow gauge bias @ 1.5 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 11,
+          "ambiguous, correct among them": 5
+        },
+        "statuses": {
+          "consistent": 11,
+          "ambiguous": 5
+        }
+      },
+      "inflow gauge bias @ 4 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "ambiguous, correct among them": 16
+        },
+        "statuses": {
+          "ambiguous": 16
+        }
+      },
+      "middle gauge bias @ 1.5 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "ambiguous, correct among them": 2,
+          "missed": 13,
+          "identified correctly": 1
+        },
+        "statuses": {
+          "ambiguous": 2,
+          "consistent": 13,
+          "identified": 1
+        }
+      },
+      "middle gauge bias @ 4 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      },
+      "outflow gauge bias @ 1.5 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 12,
+          "ambiguous, correct among them": 2,
+          "identified correctly": 2
+        },
+        "statuses": {
+          "consistent": 12,
+          "ambiguous": 2,
+          "identified": 2
+        }
+      },
+      "outflow gauge bias @ 4 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      },
+      "common flow-gauge drift @ 1.5 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 7,
+          "missed": 3,
+          "ambiguous, correct among them": 6
+        },
+        "statuses": {
+          "identified": 7,
+          "consistent": 3,
+          "ambiguous": 6
+        }
+      },
+      "common flow-gauge drift @ 4 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      },
+      "ungauged lateral inflow @ 1.5 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 12,
+          "ambiguous, correct among them": 4
+        },
+        "statuses": {
+          "consistent": 12,
+          "ambiguous": 4
+        }
+      },
+      "ungauged lateral inflow @ 4 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 16,
+        "outcomes": {
+          "ambiguous, correct among them": 16
+        },
+        "statuses": {
+          "ambiguous": 16
+        }
+      }
+    },
+    "routing with parameter error, A treated as exact": {
+      "healthy": {
+        "injected": "healthy",
+        "kind": "none",
+        "magnitude_multiple": 0.0,
+        "magnitude": 0.0,
+        "correct_candidate": null,
+        "n_seeds": 16,
+        "outcomes": {
+          "false alarm": 16
+        },
+        "statuses": {
+          "unexplained": 16
+        }
+      },
+      "storage 1 sensor bias @ 1.5 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "unexplained": 16
+        },
+        "statuses": {
+          "unexplained": 16
+        }
+      },
+      "storage 1 sensor bias @ 4 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "unexplained": 16
+        },
+        "statuses": {
+          "unexplained": 16
+        }
+      },
+      "storage 2 sensor bias @ 1.5 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "unexplained": 16
+        },
+        "statuses": {
+          "unexplained": 16
+        }
+      },
+      "storage 2 sensor bias @ 4 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "unexplained": 16
+        },
+        "statuses": {
+          "unexplained": 16
+        }
+      },
+      "inflow gauge bias @ 1.5 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "unexplained": 16
+        },
+        "statuses": {
+          "unexplained": 16
+        }
+      },
+      "inflow gauge bias @ 4 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "unexplained": 16
+        },
+        "statuses": {
+          "unexplained": 16
+        }
+      },
+      "middle gauge bias @ 1.5 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "unexplained": 16
+        },
+        "statuses": {
+          "unexplained": 16
+        }
+      },
+      "middle gauge bias @ 4 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "unexplained": 16
+        },
+        "statuses": {
+          "unexplained": 16
+        }
+      },
+      "outflow gauge bias @ 1.5 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "unexplained": 16
+        },
+        "statuses": {
+          "unexplained": 16
+        }
+      },
+      "outflow gauge bias @ 4 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "unexplained": 16
+        },
+        "statuses": {
+          "unexplained": 16
+        }
+      },
+      "common flow-gauge drift @ 1.5 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 16,
+        "outcomes": {
+          "unexplained": 16
+        },
+        "statuses": {
+          "unexplained": 16
+        }
+      },
+      "common flow-gauge drift @ 4 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 16,
+        "outcomes": {
+          "unexplained": 16
+        },
+        "statuses": {
+          "unexplained": 16
+        }
+      },
+      "ungauged lateral inflow @ 1.5 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 16,
+        "outcomes": {
+          "unexplained": 16
+        },
+        "statuses": {
+          "unexplained": 16
+        }
+      },
+      "ungauged lateral inflow @ 4 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 16,
+        "outcomes": {
+          "unexplained": 16
+        },
+        "statuses": {
+          "unexplained": 16
+        }
+      }
+    },
+    "routing with parameter error, A_var declared": {
+      "healthy": {
+        "injected": "healthy",
+        "kind": "none",
+        "magnitude_multiple": 0.0,
+        "magnitude": 0.0,
+        "correct_candidate": null,
+        "n_seeds": 16,
+        "outcomes": {
+          "correctly quiet": 16
+        },
+        "statuses": {
+          "consistent": 16
+        }
+      },
+      "storage 1 sensor bias @ 1.5 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 14,
+          "identified correctly": 1,
+          "ambiguous, correct among them": 1
+        },
+        "statuses": {
+          "consistent": 14,
+          "identified": 1,
+          "ambiguous": 1
+        }
+      },
+      "storage 1 sensor bias @ 4 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "ambiguous, correct among them": 11,
+          "identified correctly": 5
+        },
+        "statuses": {
+          "ambiguous": 11,
+          "identified": 5
+        }
+      },
+      "storage 2 sensor bias @ 1.5 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 14,
+          "ambiguous, correct among them": 2
+        },
+        "statuses": {
+          "consistent": 14,
+          "ambiguous": 2
+        }
+      },
+      "storage 2 sensor bias @ 4 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "ambiguous, correct among them": 11,
+          "identified correctly": 5
+        },
+        "statuses": {
+          "ambiguous": 11,
+          "identified": 5
+        }
+      },
+      "inflow gauge bias @ 1.5 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 11,
+          "ambiguous, correct among them": 5
+        },
+        "statuses": {
+          "consistent": 11,
+          "ambiguous": 5
+        }
+      },
+      "inflow gauge bias @ 4 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "ambiguous, correct among them": 16
+        },
+        "statuses": {
+          "ambiguous": 16
+        }
+      },
+      "middle gauge bias @ 1.5 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 13,
+          "ambiguous, correct among them": 2,
+          "identified correctly": 1
+        },
+        "statuses": {
+          "consistent": 13,
+          "ambiguous": 2,
+          "identified": 1
+        }
+      },
+      "middle gauge bias @ 4 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      },
+      "outflow gauge bias @ 1.5 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 11,
+          "ambiguous, correct among them": 4,
+          "identified correctly": 1
+        },
+        "statuses": {
+          "consistent": 11,
+          "ambiguous": 4,
+          "identified": 1
+        }
+      },
+      "outflow gauge bias @ 4 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 16
+        },
+        "statuses": {
+          "identified": 16
+        }
+      },
+      "common flow-gauge drift @ 1.5 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 16
+        },
+        "statuses": {
+          "consistent": 16
+        }
+      },
+      "common flow-gauge drift @ 4 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 16,
+        "outcomes": {
+          "identified correctly": 13,
+          "missed": 1,
+          "ambiguous, correct among them": 2
+        },
+        "statuses": {
+          "identified": 13,
+          "consistent": 1,
+          "ambiguous": 2
+        }
+      },
+      "ungauged lateral inflow @ 1.5 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 16,
+        "outcomes": {
+          "missed": 13,
+          "ambiguous, correct among them": 3
+        },
+        "statuses": {
+          "consistent": 13,
+          "ambiguous": 3
+        }
+      },
+      "ungauged lateral inflow @ 4 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 16,
+        "outcomes": {
+          "ambiguous, correct among them": 15,
+          "unexplained": 1
+        },
+        "statuses": {
+          "ambiguous": 15,
+          "unexplained": 1
+        }
+      }
+    }
+  },
+  "evaluation": {
+    "continuity only": {
+      "healthy": {
+        "injected": "healthy",
+        "kind": "none",
+        "magnitude_multiple": 0.0,
+        "magnitude": 0.0,
+        "correct_candidate": null,
+        "n_seeds": 64,
+        "outcomes": {
+          "correctly quiet": 63,
+          "false alarm": 1
+        },
+        "statuses": {
+          "consistent": 63,
+          "ambiguous": 1
+        }
+      },
+      "storage 1 sensor bias @ 1.5 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "missed": 63,
+          "identified WRONG": 1
+        },
+        "statuses": {
+          "consistent": 63,
+          "identified": 1
+        }
+      },
+      "storage 1 sensor bias @ 4 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "missed": 63,
+          "identified WRONG": 1
+        },
+        "statuses": {
+          "consistent": 63,
+          "identified": 1
+        }
+      },
+      "storage 2 sensor bias @ 1.5 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "missed": 64
+        },
+        "statuses": {
+          "consistent": 64
+        }
+      },
+      "storage 2 sensor bias @ 4 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "missed": 63,
+          "ambiguous, correct among them": 1
+        },
+        "statuses": {
+          "consistent": 63,
+          "ambiguous": 1
+        }
+      },
+      "inflow gauge bias @ 1.5 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "missed": 43,
+          "identified correctly": 8,
+          "ambiguous, correct among them": 12,
+          "unexplained": 1
+        },
+        "statuses": {
+          "consistent": 43,
+          "identified": 8,
+          "ambiguous": 12,
+          "unexplained": 1
+        }
+      },
+      "inflow gauge bias @ 4 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 63,
+          "unexplained": 1
+        },
+        "statuses": {
+          "identified": 63,
+          "unexplained": 1
+        }
+      },
+      "middle gauge bias @ 1.5 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "missed": 38,
+          "ambiguous, correct among them": 14,
+          "identified correctly": 12
+        },
+        "statuses": {
+          "consistent": 38,
+          "ambiguous": 14,
+          "identified": 12
+        }
+      },
+      "middle gauge bias @ 4 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 64
+        },
+        "statuses": {
+          "identified": 64
+        }
+      },
+      "outflow gauge bias @ 1.5 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "ambiguous, correct among them": 13,
+          "missed": 44,
+          "identified correctly": 7
+        },
+        "statuses": {
+          "ambiguous": 13,
+          "consistent": 44,
+          "identified": 7
+        }
+      },
+      "outflow gauge bias @ 4 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 64
+        },
+        "statuses": {
+          "identified": 64
+        }
+      },
+      "common flow-gauge drift @ 1.5 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 64,
+        "outcomes": {
+          "missed": 63,
+          "ambiguous, correct absent": 1
+        },
+        "statuses": {
+          "consistent": 63,
+          "ambiguous": 1
+        }
+      },
+      "common flow-gauge drift @ 4 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 64,
+        "outcomes": {
+          "missed": 63,
+          "ambiguous, correct absent": 1
+        },
+        "statuses": {
+          "consistent": 63,
+          "ambiguous": 1
+        }
+      },
+      "ungauged lateral inflow @ 1.5 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 64,
+        "outcomes": {
+          "missed": 40,
+          "ambiguous, correct absent": 15,
+          "identified WRONG": 9
+        },
+        "statuses": {
+          "consistent": 40,
+          "ambiguous": 15,
+          "identified": 9
+        }
+      },
+      "ungauged lateral inflow @ 4 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified WRONG": 63,
+          "unexplained": 1
+        },
+        "statuses": {
+          "identified": 63,
+          "unexplained": 1
+        }
+      }
+    },
+    "continuity + routing": {
+      "healthy": {
+        "injected": "healthy",
+        "kind": "none",
+        "magnitude_multiple": 0.0,
+        "magnitude": 0.0,
+        "correct_candidate": null,
+        "n_seeds": 64,
+        "outcomes": {
+          "correctly quiet": 64
+        },
+        "statuses": {
+          "consistent": 64
+        }
+      },
+      "storage 1 sensor bias @ 1.5 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "ambiguous, correct among them": 11,
+          "missed": 50,
+          "identified correctly": 3
+        },
+        "statuses": {
+          "ambiguous": 11,
+          "consistent": 50,
+          "identified": 3
+        }
+      },
+      "storage 1 sensor bias @ 4 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 64
+        },
+        "statuses": {
+          "identified": 64
+        }
+      },
+      "storage 2 sensor bias @ 1.5 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "ambiguous, correct among them": 8,
+          "missed": 50,
+          "identified correctly": 6
+        },
+        "statuses": {
+          "ambiguous": 8,
+          "consistent": 50,
+          "identified": 6
+        }
+      },
+      "storage 2 sensor bias @ 4 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 64
+        },
+        "statuses": {
+          "identified": 64
+        }
+      },
+      "inflow gauge bias @ 1.5 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "missed": 44,
+          "ambiguous, correct among them": 9,
+          "identified correctly": 11
+        },
+        "statuses": {
+          "consistent": 44,
+          "ambiguous": 9,
+          "identified": 11
+        }
+      },
+      "inflow gauge bias @ 4 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 64
+        },
+        "statuses": {
+          "identified": 64
+        }
+      },
+      "middle gauge bias @ 1.5 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "missed": 43,
+          "identified correctly": 11,
+          "ambiguous, correct among them": 10
+        },
+        "statuses": {
+          "consistent": 43,
+          "identified": 11,
+          "ambiguous": 10
+        }
+      },
+      "middle gauge bias @ 4 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 64
+        },
+        "statuses": {
+          "identified": 64
+        }
+      },
+      "outflow gauge bias @ 1.5 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 9,
+          "missed": 49,
+          "ambiguous, correct among them": 6
+        },
+        "statuses": {
+          "identified": 9,
+          "consistent": 49,
+          "ambiguous": 6
+        }
+      },
+      "outflow gauge bias @ 4 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 64
+        },
+        "statuses": {
+          "identified": 64
+        }
+      },
+      "common flow-gauge drift @ 1.5 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 64,
+        "outcomes": {
+          "ambiguous, correct among them": 26,
+          "identified correctly": 31,
+          "missed": 7
+        },
+        "statuses": {
+          "ambiguous": 26,
+          "identified": 31,
+          "consistent": 7
+        }
+      },
+      "common flow-gauge drift @ 4 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 64
+        },
+        "statuses": {
+          "identified": 64
+        }
+      },
+      "ungauged lateral inflow @ 1.5 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified WRONG": 10,
+          "missed": 44,
+          "ambiguous, correct absent": 10
+        },
+        "statuses": {
+          "identified": 10,
+          "consistent": 44,
+          "ambiguous": 10
+        }
+      },
+      "ungauged lateral inflow @ 4 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified WRONG": 64
+        },
+        "statuses": {
+          "identified": 64
+        }
+      }
+    },
+    "continuity + routing, physical candidate declared": {
+      "healthy": {
+        "injected": "healthy",
+        "kind": "none",
+        "magnitude_multiple": 0.0,
+        "magnitude": 0.0,
+        "correct_candidate": null,
+        "n_seeds": 64,
+        "outcomes": {
+          "correctly quiet": 64
+        },
+        "statuses": {
+          "consistent": 64
+        }
+      },
+      "storage 1 sensor bias @ 1.5 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "ambiguous, correct among them": 11,
+          "missed": 50,
+          "identified correctly": 3
+        },
+        "statuses": {
+          "ambiguous": 11,
+          "consistent": 50,
+          "identified": 3
+        }
+      },
+      "storage 1 sensor bias @ 4 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 64
+        },
+        "statuses": {
+          "identified": 64
+        }
+      },
+      "storage 2 sensor bias @ 1.5 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "ambiguous, correct among them": 8,
+          "missed": 50,
+          "identified correctly": 6
+        },
+        "statuses": {
+          "ambiguous": 8,
+          "consistent": 50,
+          "identified": 6
+        }
+      },
+      "storage 2 sensor bias @ 4 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 64
+        },
+        "statuses": {
+          "identified": 64
+        }
+      },
+      "inflow gauge bias @ 1.5 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "missed": 44,
+          "ambiguous, correct among them": 20
+        },
+        "statuses": {
+          "consistent": 44,
+          "ambiguous": 20
+        }
+      },
+      "inflow gauge bias @ 4 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "ambiguous, correct among them": 64
+        },
+        "statuses": {
+          "ambiguous": 64
+        }
+      },
+      "middle gauge bias @ 1.5 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "missed": 43,
+          "identified correctly": 11,
+          "ambiguous, correct among them": 10
+        },
+        "statuses": {
+          "consistent": 43,
+          "identified": 11,
+          "ambiguous": 10
+        }
+      },
+      "middle gauge bias @ 4 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 64
+        },
+        "statuses": {
+          "identified": 64
+        }
+      },
+      "outflow gauge bias @ 1.5 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 9,
+          "missed": 49,
+          "ambiguous, correct among them": 6
+        },
+        "statuses": {
+          "identified": 9,
+          "consistent": 49,
+          "ambiguous": 6
+        }
+      },
+      "outflow gauge bias @ 4 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 64
+        },
+        "statuses": {
+          "identified": 64
+        }
+      },
+      "common flow-gauge drift @ 1.5 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 64,
+        "outcomes": {
+          "ambiguous, correct among them": 26,
+          "identified correctly": 31,
+          "missed": 7
+        },
+        "statuses": {
+          "ambiguous": 26,
+          "identified": 31,
+          "consistent": 7
+        }
+      },
+      "common flow-gauge drift @ 4 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 64
+        },
+        "statuses": {
+          "identified": 64
+        }
+      },
+      "ungauged lateral inflow @ 1.5 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 64,
+        "outcomes": {
+          "ambiguous, correct among them": 20,
+          "missed": 44
+        },
+        "statuses": {
+          "ambiguous": 20,
+          "consistent": 44
+        }
+      },
+      "ungauged lateral inflow @ 4 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 64,
+        "outcomes": {
+          "ambiguous, correct among them": 64
+        },
+        "statuses": {
+          "ambiguous": 64
+        }
+      }
+    },
+    "routing with parameter error, A treated as exact": {
+      "healthy": {
+        "injected": "healthy",
+        "kind": "none",
+        "magnitude_multiple": 0.0,
+        "magnitude": 0.0,
+        "correct_candidate": null,
+        "n_seeds": 64,
+        "outcomes": {
+          "false alarm": 64
+        },
+        "statuses": {
+          "unexplained": 64
+        }
+      },
+      "storage 1 sensor bias @ 1.5 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "unexplained": 64
+        },
+        "statuses": {
+          "unexplained": 64
+        }
+      },
+      "storage 1 sensor bias @ 4 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "unexplained": 64
+        },
+        "statuses": {
+          "unexplained": 64
+        }
+      },
+      "storage 2 sensor bias @ 1.5 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "unexplained": 64
+        },
+        "statuses": {
+          "unexplained": 64
+        }
+      },
+      "storage 2 sensor bias @ 4 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "unexplained": 64
+        },
+        "statuses": {
+          "unexplained": 64
+        }
+      },
+      "inflow gauge bias @ 1.5 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "unexplained": 64
+        },
+        "statuses": {
+          "unexplained": 64
+        }
+      },
+      "inflow gauge bias @ 4 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "unexplained": 64
+        },
+        "statuses": {
+          "unexplained": 64
+        }
+      },
+      "middle gauge bias @ 1.5 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "unexplained": 64
+        },
+        "statuses": {
+          "unexplained": 64
+        }
+      },
+      "middle gauge bias @ 4 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "unexplained": 64
+        },
+        "statuses": {
+          "unexplained": 64
+        }
+      },
+      "outflow gauge bias @ 1.5 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "unexplained": 64
+        },
+        "statuses": {
+          "unexplained": 64
+        }
+      },
+      "outflow gauge bias @ 4 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "unexplained": 64
+        },
+        "statuses": {
+          "unexplained": 64
+        }
+      },
+      "common flow-gauge drift @ 1.5 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 64,
+        "outcomes": {
+          "unexplained": 64
+        },
+        "statuses": {
+          "unexplained": 64
+        }
+      },
+      "common flow-gauge drift @ 4 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 64,
+        "outcomes": {
+          "unexplained": 64
+        },
+        "statuses": {
+          "unexplained": 64
+        }
+      },
+      "ungauged lateral inflow @ 1.5 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 64,
+        "outcomes": {
+          "unexplained": 64
+        },
+        "statuses": {
+          "unexplained": 64
+        }
+      },
+      "ungauged lateral inflow @ 4 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 64,
+        "outcomes": {
+          "unexplained": 64
+        },
+        "statuses": {
+          "unexplained": 64
+        }
+      }
+    },
+    "routing with parameter error, A_var declared": {
+      "healthy": {
+        "injected": "healthy",
+        "kind": "none",
+        "magnitude_multiple": 0.0,
+        "magnitude": 0.0,
+        "correct_candidate": null,
+        "n_seeds": 64,
+        "outcomes": {
+          "correctly quiet": 64
+        },
+        "statuses": {
+          "consistent": 64
+        }
+      },
+      "storage 1 sensor bias @ 1.5 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "ambiguous, correct among them": 14,
+          "missed": 49,
+          "identified correctly": 1
+        },
+        "statuses": {
+          "ambiguous": 14,
+          "consistent": 49,
+          "identified": 1
+        }
+      },
+      "storage 1 sensor bias @ 4 sigma": {
+        "injected": "storage 1 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 1 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 24,
+          "ambiguous, correct among them": 40
+        },
+        "statuses": {
+          "identified": 24,
+          "ambiguous": 40
+        }
+      },
+      "storage 2 sensor bias @ 1.5 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.30000000000000004,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "missed": 47,
+          "identified correctly": 2,
+          "ambiguous, correct among them": 15
+        },
+        "statuses": {
+          "consistent": 47,
+          "identified": 2,
+          "ambiguous": 15
+        }
+      },
+      "storage 2 sensor bias @ 4 sigma": {
+        "injected": "storage 2 sensor bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 0.8,
+        "correct_candidate": "storage 2 sensor bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 28,
+          "ambiguous, correct among them": 36
+        },
+        "statuses": {
+          "identified": 28,
+          "ambiguous": 36
+        }
+      },
+      "inflow gauge bias @ 1.5 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "missed": 42,
+          "ambiguous, correct among them": 21,
+          "unexplained": 1
+        },
+        "statuses": {
+          "consistent": 42,
+          "ambiguous": 21,
+          "unexplained": 1
+        }
+      },
+      "inflow gauge bias @ 4 sigma": {
+        "injected": "inflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "inflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "ambiguous, correct among them": 62,
+          "unexplained": 2
+        },
+        "statuses": {
+          "ambiguous": 62,
+          "unexplained": 2
+        }
+      },
+      "middle gauge bias @ 1.5 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "ambiguous, correct among them": 20,
+          "missed": 34,
+          "identified correctly": 10
+        },
+        "statuses": {
+          "ambiguous": 20,
+          "consistent": 34,
+          "identified": 10
+        }
+      },
+      "middle gauge bias @ 4 sigma": {
+        "injected": "middle gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "middle gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 64
+        },
+        "statuses": {
+          "identified": 64
+        }
+      },
+      "outflow gauge bias @ 1.5 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 10,
+          "missed": 47,
+          "ambiguous, correct among them": 7
+        },
+        "statuses": {
+          "identified": 10,
+          "consistent": 47,
+          "ambiguous": 7
+        }
+      },
+      "outflow gauge bias @ 4 sigma": {
+        "injected": "outflow gauge bias",
+        "kind": "sensor_bias",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "outflow gauge bias",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 64
+        },
+        "statuses": {
+          "identified": 64
+        }
+      },
+      "common flow-gauge drift @ 1.5 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 64,
+        "outcomes": {
+          "missed": 59,
+          "unexplained": 1,
+          "identified correctly": 3,
+          "ambiguous, correct among them": 1
+        },
+        "statuses": {
+          "consistent": 59,
+          "unexplained": 1,
+          "identified": 3,
+          "ambiguous": 1
+        }
+      },
+      "common flow-gauge drift @ 4 sigma": {
+        "injected": "common flow-gauge drift",
+        "kind": "common_drift",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "common flow-gauge drift",
+        "n_seeds": 64,
+        "outcomes": {
+          "identified correctly": 55,
+          "missed": 7,
+          "unexplained": 1,
+          "ambiguous, correct among them": 1
+        },
+        "statuses": {
+          "identified": 55,
+          "consistent": 7,
+          "unexplained": 1,
+          "ambiguous": 1
+        }
+      },
+      "ungauged lateral inflow @ 1.5 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 1.5,
+        "magnitude": 0.44999999999999996,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 64,
+        "outcomes": {
+          "ambiguous, correct among them": 22,
+          "missed": 42
+        },
+        "statuses": {
+          "ambiguous": 22,
+          "consistent": 42
+        }
+      },
+      "ungauged lateral inflow @ 4 sigma": {
+        "injected": "ungauged lateral inflow",
+        "kind": "lateral_inflow",
+        "magnitude_multiple": 4.0,
+        "magnitude": 1.2,
+        "correct_candidate": "ungauged lateral inflow",
+        "n_seeds": 64,
+        "outcomes": {
+          "ambiguous, correct among them": 60,
+          "unexplained": 4
+        },
+        "statuses": {
+          "ambiguous": 60,
+          "unexplained": 4
+        }
+      }
+    }
+  },
+  "limitations": [
+    "Synthetic records from the same Muskingum model the rows declare, except where parameter error is injected on purpose. Agreement is not field validation.",
+    "One hydrograph, one reach pair, one onset, two magnitudes. A different wave or onset could order these differently.",
+    "The onset is declared and supplied; searching for it is a different and harder problem, and the amplitude intervals diagnose() reports are conditional on the supplied profile.",
+    "An ungauged lateral inflow and an inflow-gauge bias produce the same residual direction. No covariance and no amount of record separates them; only another gauge does.",
+    "A coordinated offset of both storage sensors by K times a common offset on all three flow gauges is in the null space and produces exactly zero residual, at any magnitude.",
+    "Parameter uncertainty is declared as a linear sensitivity in K and x about the declared values, first order in the parameter error like the A_var term it mirrors."
+  ],
+  "claims": {
+    "routing recovers every declared instrument fault at the strong magnitude": true,
+    "continuity alone recovers strictly fewer of them": true,
+    "continuity alone misses the storage sensors entirely": true,
+    "neither variant raises a false alarm on a healthy river": true,
+    "an undeclared physical cause is confidently blamed on an instrument": true,
+    "declaring the physical cause converts that into reported ambiguity": true,
+    "parameter error treated as exact raises false alarms on a healthy river": true,
+    "declaring the parameter uncertainty removes them": true,
+    "the coordinated offset produces exactly no residual": true,
+    "the physical cause and the inflow gauge produce the same residual": true,
+    "the storage sensors move only the routing rows": true
+  }
+}
