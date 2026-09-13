@@ -98,9 +98,27 @@ Perspective, rotation and moving-camera 3-D pose need a separate experiment and 
 model before extending the registration or claiming odometry support. No FluidNexus code
 or generated-view measurements are imported into this prototype.
 
-## 3. A second independent balance — planned
+## 3. A second independent balance — designed, not yet built
 
-Implement the two-reach Muskingum design in Methods. Begin with declared parameters and
+**The design study is committed: [`results/second_balance.md`](../results/second_balance.md).**
+It runs `fdi.isolability()` on both candidates before either is built, because a second
+balance buys only the directions its rows separate. Its results decide this stage:
+
+- Every constraint in the repository has rank(A) = 1, so **0 of 4** declared faults are
+  isolable today. That is why this stage exists.
+- A second *conservation* row is not enough: continuity alone reaches **1 of 7**, and the
+  cooling loop's mass+energy pair also **1 of 7**, leaving six perfectly confounded pairs
+  because one energy equation gives one residual direction.
+- The **constitutive** relation is what separates sensors. With Muskingum routing the river
+  reaches **5 of 7**; with the heat-exchanger duty relation the loop reaches **2 of 7**.
+- The river's one remaining confound is physical — an ungauged lateral inflow against an
+  inflow-gauge bias — which no topology fixes and only another gauge would. The loop's is
+  instrumental.
+- Every constitutive row carries declared parameters, so the isolation it buys is
+  conditional on uncertainty the kernel cannot yet represent. See stage 3b.
+
+Implement the two-reach Muskingum design in Methods, with the routing rows: continuity alone
+is measured to be nearly worthless for isolation. Begin with declared parameters and
 known synthetic truth, then introduce parameter error, lateral inflow, correlated
 observations and correctly modeled interval semantics.
 
@@ -109,8 +127,12 @@ model, a common offset invisible to the balance, and appropriate ambiguity when 
 processes mimic faults. Implement a decision rule using the residual vector and joint
 covariance; a rank calculation or scalar threshold is not that rule.
 
-An alternative is a cooling loop with mass and energy balances over the same pipes. Before
-choosing it, show which candidate faults remain observable and have noncollinear signatures
+An alternative is a cooling loop with mass and energy balances over the same pipes. The study
+above did exactly the check this paragraph asks for and the alternative came second: 2 of 7
+against 5 of 7, an instrumental rather than physical residual confound, and a declared prior
+in kilograms and joules that `check_spd` refuses at 2 of 3 swept scales, which is an argument
+for nondimensionalising that design before building it. Before choosing it anyway, show which
+candidate faults remain observable and have noncollinear signatures
 after heat exchange, energy storage and other nuisance terms are included. Temperature-
 derived enthalpy coefficients are measured quantities with uncertainty; shared flow and
 temperature evidence can correlate the rows. Use an explicit errors-in-variables treatment
