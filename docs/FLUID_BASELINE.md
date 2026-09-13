@@ -150,11 +150,20 @@ explicit denominators. It evaluates one fixed horizon per record, not detection 
 
 The [Ridgway report](../results/real_fluid_baseline.md) uses the committed real measurements,
 their evidence IDs and the existing consumer-declared uncertainty sweep. Daily storage
-means are matched to daily flows under an explicit constant-net-flow assumption. Fixed,
-nonoverlapping windows retain shared-reference covariance. Missing windows and omitted
+means are matched to daily flows under an explicit constant-net-flow assumption.
+Nonoverlapping windows retain shared-reference covariance. Missing windows and omitted
 cross-window pairs are counted. Real sensor truth is unavailable: rejection is a
 conditional inconsistency, and the report assigns no sensor cause. Its cross-day raw
 measurement covariance is declared zero, not empirically calibrated.
+
+**The window length is swept, because it decides the rejection rate as much as the declared
+storage σ does.** A longer window accumulates more of a persistent misfit while its
+chi-square threshold grows more slowly, so the same measurements reject more often at a
+longer window: at σ = 50 acre-ft the rate runs 0.0% at 3-day windows, 5.1% at 8, 22.9% at
+the declared 32 and 44.4% at 64, and the median window's statistic as a fraction of its own
+threshold rises monotonically with the window over every declared σ. The report gives every
+cell of both axes and marks which window length is the declared one; no single cell is the
+record's rejection rate.
 
 Both reports have JSON companions, generator provenance and default-suite reproduction
 checks. Same-build numerical reproduction is exact; cross-build values use a declared

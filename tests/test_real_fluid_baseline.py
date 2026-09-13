@@ -129,3 +129,67 @@ def test_real_baseline_report_reproduces(report):
     failure = reproduction_failure("real_fluid_baseline.json", report, committed)
     assert failure is None, failure
     assert baseline.render(committed) == (root / "real_fluid_baseline.md").read_text(encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# the window length is a consumer choice, and it decides the headline
+# ---------------------------------------------------------------------------
+
+def test_the_declared_window_is_one_point_of_its_own_swept_axis():
+    assert baseline.WINDOW_DAYS in baseline.WINDOW_DAYS_SENSITIVITY
+    assert all(isinstance(w, int) and not isinstance(w, bool) and w >= 3
+               for w in baseline.WINDOW_DAYS_SENSITIVITY)
+    with pytest.raises(ValueError):
+        baseline.build_report(window_days=16, window_sensitivity=(3, 8, 32))   # 16 is not in the sweep
+    with pytest.raises(ValueError):
+        baseline.build_report(window_sensitivity=(32, 32))                     # not distinct
+    with pytest.raises(ValueError):
+        baseline.build_report(window_sensitivity=(2, 32))                      # fewer than two residuals
+
+
+def test_every_declared_sigma_and_window_length_gets_a_cell(report):
+    cells = {(c["storage_sigma_acre_ft"], c["window_days"]) for c in report["window_sensitivity"]}
+    assert cells == {(s, w) for s in wb.STORAGE_SIGMA_SWEEP for w in baseline.WINDOW_DAYS_SENSITIVITY}
+    declared = [c for c in report["window_sensitivity"] if c["is_declared_window"]]
+    assert {c["window_days"] for c in declared} == {baseline.WINDOW_DAYS}
+    assert len(declared) == len(wb.STORAGE_SIGMA_SWEEP)
+    # The declared cell must agree with the detailed sweep it was taken from.
+    for sweep in report["sweeps"]:
+        cell = next(c for c in declared if c["storage_sigma_acre_ft"] == sweep["storage_sigma_acre_ft"])
+        assert cell["n_windows"] == len(sweep["windows"])
+        assert cell["rejected_windows"] == sweep["rejected_windows"]
+        assert cell["tested_adjacent_pairs"] == sweep["tested_adjacent_pairs"]
+        assert cell["untested_adjacent_pairs"] == sweep["untested_adjacent_pairs"]
+
+
+def test_a_longer_window_accumulates_more_of_the_same_misfit(report):
+    """The mechanism, measured: the statistic grows with the window faster than its threshold.
+
+    This is why the rejected-window RATE cannot be read as a property of the record.
+    Stated per declared sigma, over the swept lengths, on the median window.
+    """
+    by_sigma = {}
+    for cell in report["window_sensitivity"]:
+        by_sigma.setdefault(cell["storage_sigma_acre_ft"], []).append(cell)
+    for sigma, cells in by_sigma.items():
+        cells.sort(key=lambda c: c["window_days"])
+        ratios = [c["statistic_over_threshold"]["median"] for c in cells]
+        assert ratios == sorted(ratios), (sigma, ratios)
+        assert all(c["dof_per_window"] == c["window_days"] - 1 for c in cells), sigma
+    # On this record the spread across the window axis is as wide as across the sigma axis.
+    rates = {(c["storage_sigma_acre_ft"], c["window_days"]): c["rejected_fraction"]
+             for c in report["window_sensitivity"]}
+    smallest, largest = min(baseline.WINDOW_DAYS_SENSITIVITY), max(baseline.WINDOW_DAYS_SENSITIVITY)
+    tight, loose = min(wb.STORAGE_SIGMA_SWEEP), max(wb.STORAGE_SIGMA_SWEEP)
+    assert rates[(tight, smallest)] == 0.0                       # nothing rejects at all
+    assert rates[(tight, largest)] > rates[(tight, baseline.WINDOW_DAYS)]
+    assert rates[(loose, largest)] <= rates[(tight, largest)]     # a wider sigma cannot reject more
+
+
+def test_the_report_says_the_rate_is_not_a_property_of_the_gauges(report):
+    md = baseline.render(report)
+    assert "The window length decides the rate as much as the declared sigma does" in md
+    assert "Neither axis is a measurement of the gauges alone" in md
+    assert "*(declared)*" in md
+    for phrase in ("median stat/threshold", "consumer choice"):
+        assert phrase in md, phrase

@@ -21,6 +21,8 @@ from set_lcm.experiments.provenance import REPO_ROOT
 
 RESULTS = REPO_ROOT / "results"
 WB = json.loads((RESULTS / "real_water_balance.json").read_text(encoding="utf-8"))
+FLUID = json.loads((RESULTS / "real_fluid_baseline.json").read_text(encoding="utf-8"))
+FLUID_DOC = (REPO_ROOT / "docs" / "FLUID_BASELINE.md").read_text(encoding="utf-8")
 # The prose uses a typographic minus; the artifact writes ASCII. Compare on one of them.
 DOC = (REPO_ROOT / "docs" / "RESULTS.md").read_text(encoding="utf-8").replace("\u2212", "-")
 CLOSURE = WB["closure_free"]
@@ -78,3 +80,24 @@ def test_the_rejection_the_doc_attributes_to_the_daily_statistic_is_the_daily_on
     assert f"{stat['threshold']:.2f}" in DOC
     # and the doc must not attribute a rejection to the cumulative
     assert re.search(r"cumulative[^.]*\brejects\b", DOC) is None
+
+
+def test_the_fluid_doc_quotes_the_window_sweep_the_artifact_measured():
+    """The rejection rate depends on a consumer choice, so the doc must quote it as measured."""
+    lengths = FLUID["declared"]["window_days_sensitivity"]
+    cells = {(c["storage_sigma_acre_ft"], c["window_days"]): c for c in FLUID["window_sensitivity"]}
+    tightest = min(sigma for sigma, _ in cells)
+    for window in lengths:
+        rate = cells[(tightest, window)]["rejected_fraction"]
+        assert f"{rate * 100:.1f}%" in FLUID_DOC, (window, rate)
+        assert str(window) in FLUID_DOC, window
+    assert FLUID["declared"]["window_days"] in lengths
+    assert "decides the rejection rate as much as the declared storage" in FLUID_DOC
+
+    # the monotone claim the doc makes, checked at every declared sigma
+    by_sigma = {}
+    for (sigma, window), cell in cells.items():
+        by_sigma.setdefault(sigma, []).append((window, cell["statistic_over_threshold"]["median"]))
+    for sigma, points in by_sigma.items():
+        medians = [median for _, median in sorted(points)]
+        assert medians == sorted(medians), (sigma, medians)
