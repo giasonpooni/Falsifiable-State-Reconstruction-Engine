@@ -1,6 +1,6 @@
 # Additive invariant-layer equivalence
 
-Generated with Python 3.13.12, numpy 2.5.3 on Windows-11-10.0.26200-SP0; source sha256 a84a493d17d5, git b6302eb1ff. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 d43388f8cc02, git 5e836d989f. Latency columns are wall-clock on this machine and are not a claim.
 
 **This tests numerical equivalence to ordinary Kalman filtering, not a performance improvement.**
 
@@ -10,12 +10,12 @@ Fixed absolute tolerance: 1e-08 in original kg, kg² and dimensionless NIS units
 
 | scenario | seed | largest mean difference [kg] | largest covariance difference [kg²] | largest NIS difference | equivalent chart runs |
 |---|---:|---:|---:|---:|---:|
-| clean | 0 | 3.553e-14 | 5.551e-17 | 3.473e-13 | 20/20 |
+| clean | 0 | 3.553e-14 | 5.551e-17 | 3.482e-13 | 20/20 |
 | clean | 1 | 7.105e-14 | 5.551e-17 | 3.755e-13 | 20/20 |
 | clean | 2 | 6.395e-14 | 5.551e-17 | 2.776e-13 | 20/20 |
 | clean | 3 | 4.974e-14 | 5.551e-17 | 4.130e-13 | 20/20 |
-| clean | 4 | 4.974e-14 | 5.551e-17 | 3.424e-13 | 20/20 |
-| clean | 5 | 3.553e-14 | 5.551e-17 | 4.157e-13 | 20/20 |
+| clean | 4 | 4.974e-14 | 5.551e-17 | 3.428e-13 | 20/20 |
+| clean | 5 | 3.553e-14 | 5.551e-17 | 4.166e-13 | 20/20 |
 | clean | 6 | 4.974e-14 | 5.551e-17 | 3.713e-13 | 20/20 |
 | clean | 7 | 6.395e-14 | 5.551e-17 | 3.531e-13 | 20/20 |
 | biased_gauge | 0 | 6.395e-14 | 5.551e-17 | 8.313e-13 | 20/20 |
@@ -25,7 +25,7 @@ Fixed absolute tolerance: 1e-08 in original kg, kg² and dimensionless NIS units
 | biased_gauge | 4 | 3.553e-14 | 5.551e-17 | 5.045e-13 | 20/20 |
 | biased_gauge | 5 | 5.684e-14 | 5.551e-17 | 7.674e-13 | 20/20 |
 | biased_gauge | 6 | 5.684e-14 | 5.551e-17 | 7.994e-13 | 20/20 |
-| biased_gauge | 7 | 7.105e-14 | 5.551e-17 | 8.704e-13 | 20/20 |
+| biased_gauge | 7 | 7.105e-14 | 5.551e-17 | 8.740e-13 | 20/20 |
 
 Equivalent comparisons: 320/320.
 

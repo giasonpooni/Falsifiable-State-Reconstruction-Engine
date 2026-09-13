@@ -1,6 +1,6 @@
 # P4c: a month of real water levels, and what a month buys over a day
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 d4680bb00f33, git 0d280e9027. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 d43388f8cc02, git 5e836d989f. Latency columns are wall-clock on this machine and are not a claim.
 
 One month of real six-minute water levels. Truth-free: no number here is an error.
 
@@ -105,7 +105,7 @@ The last two columns are second moments of the stated sigma, so the single 2.002
 | `held_out` | 2.47 | 11.74 |
 | `month` | 1.95 | 6.94 |
 
-**The stated sigma exceeds the white-error bound in every window, on the median reading and on the RMS alike** -- 1.64 to 2.47 times on the median, more on the RMS where the 2.002 m statement lands. So the direction of the finding does not come from that one reading, even though its size in the RMS column does. This is the same fact the filters report as a z RMS below 1: a declared R larger than the innovations it predicts.
+**The stated sigma exceeds the white-error bound in every window, on the median reading and on the RMS alike** -- 1.64 to 2.47 times on the median, more on the RMS where the 2.002 m statement lands. So the direction of the finding does not come from that one reading, even though its size in the RMS column does. It is the same fact the filters report as a z RMS below 1, which 11 of the 12 scorings above are: a declared R larger than the innovations it predicts.
 
 It is not a correction to make, and the bound does not say the declared R is wrong. The bound assumes a white error independent of the water level, so a time-correlated component of the stated sigma is not bounded by it -- and NOAA's stated sigma is a published accuracy statement, not a per-reading white-noise variance. What the comparison supports is that this record is smoother than the declared R treats it as being, which is a statement about the pair and not about either alone.
 

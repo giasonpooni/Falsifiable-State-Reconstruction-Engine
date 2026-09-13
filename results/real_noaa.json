@@ -3,10 +3,10 @@
     "generation": {
       "python": "3.13.12",
       "numpy": "2.5.3",
-      "platform": "Windows-11-10.0.26200-SP0",
-      "machine": "AMD64",
-      "source_sha256": "40f11398c225c06fa5891867a091bb3928221afffb2880d0f8d561424f3e85cf",
-      "git_head": "355021125eebf0d1cb43e18eb971d782879df524",
+      "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+      "machine": "x86_64",
+      "source_sha256": "d43388f8cc029b4012698b8b7504b007bc98538da43d89d95de136736ab6c83d",
+      "git_head": "5e836d989f1da8a447316cd6c471c95151189c8d",
       "source_dirty": false,
       "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
     },
@@ -268,7 +268,7 @@
         3.162277660168379e-07,
         1e-06,
         3.162277660168379e-06,
-        1e-05,
+        9.999999999999999e-06,
         3.1622776601683795e-05,
         0.0001,
         0.00031622776601683794,
@@ -279,7 +279,7 @@
         3.162277660168379e-07,
         1e-06,
         3.162277660168379e-06,
-        1e-05,
+        9.999999999999999e-06,
         3.1622776601683795e-05,
         0.0001,
         0.00031622776601683794,
@@ -469,8 +469,8 @@
           "loglik": 628.8238893333765
         },
         {
-          "q_scale": 1e-05,
-          "loglik": 444.984597346301
+          "q_scale": 9.999999999999999e-06,
+          "loglik": 444.98459734630103
         },
         {
           "q_scale": 3.1622776601683795e-05,
@@ -505,47 +505,47 @@
       "profile": [
         {
           "q_scale": 1e-07,
-          "loglik": -14470.366237733135
+          "loglik": -14470.356332473004
         },
         {
           "q_scale": 3.162277660168379e-07,
-          "loglik": -14290.561586595053
+          "loglik": -14290.615395216988
         },
         {
           "q_scale": 1e-06,
-          "loglik": -12890.664076805622
+          "loglik": -12890.66131984943
         },
         {
           "q_scale": 3.162277660168379e-06,
-          "loglik": -8817.679204319142
+          "loglik": -8817.683090620198
         },
         {
-          "q_scale": 1e-05,
-          "loglik": -4784.014204252011
+          "q_scale": 9.999999999999999e-06,
+          "loglik": -4784.014153680751
         },
         {
           "q_scale": 3.1622776601683795e-05,
-          "loglik": -1228.8797950403537
+          "loglik": -1228.8797995687341
         },
         {
           "q_scale": 0.0001,
-          "loglik": 365.8073845789887
+          "loglik": 365.8073846811421
         },
         {
           "q_scale": 0.00031622776601683794,
-          "loglik": 631.1602469045309
+          "loglik": 631.1602469036219
         },
         {
           "q_scale": 0.001,
-          "loglik": 484.96898498120925
+          "loglik": 484.96898498122755
         },
         {
           "q_scale": 0.0031622776601683794,
-          "loglik": 235.38611320446168
+          "loglik": 235.38611320446012
         },
         {
           "q_scale": 0.01,
-          "loglik": -31.968378864587795
+          "loglik": -31.96837886458768
         },
         {
           "q_scale": 0.03162277660168379,
@@ -558,7 +558,7 @@
       ],
       "argmax_index": 7,
       "q_scale": 0.00031622776601683794,
-      "loglik": 631.1602469045309,
+      "loglik": 631.1602469036219,
       "interior": true,
       "units": "m s^-1/2",
       "per_step": {
@@ -588,8 +588,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 370.6000279635191,
-          "latency_us_p99": 927.3499937262361
+          "latency_us_p50": 159.96000001905486,
+          "latency_us_p99": 222.23115935048548
         },
         "R x10": {
           "q_scale": 1e-06,
@@ -610,8 +610,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 348.100031260401,
-          "latency_us_p99": 542.8149562794698
+          "latency_us_p50": 161.93099872907624,
+          "latency_us_p99": 224.1265207703691
         },
         "R x100": {
           "q_scale": 1e-06,
@@ -632,8 +632,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 362.900085747242,
-          "latency_us_p99": 785.9580416697995
+          "latency_us_p50": 157.1850007167086,
+          "latency_us_p99": 229.79759785812345
         }
       },
       "held_out": {
@@ -656,8 +656,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 400.0000189989805,
-          "latency_us_p99": 519.1999953240155
+          "latency_us_p50": 159.91449981811456,
+          "latency_us_p99": 246.3779789104591
         },
         "R x10": {
           "q_scale": 1e-06,
@@ -678,8 +678,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 374.4999994523823,
-          "latency_us_p99": 542.8230331744994
+          "latency_us_p50": 157.45799828437157,
+          "latency_us_p99": 222.80218719970432
         },
         "R x100": {
           "q_scale": 1e-06,
@@ -700,8 +700,8 @@
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 292.7999594248831,
-          "latency_us_p99": 563.4029826615006
+          "latency_us_p50": 156.5429993206635,
+          "latency_us_p99": 223.2978913525584
         }
       }
     },
@@ -710,136 +710,136 @@
         "R x1": {
           "q_scale": 0.00031622776601683794,
           "r_scale": 1.0,
-          "loglik": 631.1602469045309,
+          "loglik": 631.1602469036219,
           "n_steps": 240,
           "n_observed": 240,
           "frac_missing": 0.0,
-          "z_mean": -0.09529011937951314,
-          "z_rms": 0.7594554445423541,
-          "z_lag1": 0.8553498411607159,
+          "z_mean": -0.09529011938339865,
+          "z_rms": 0.7594554445476231,
+          "z_lag1": 0.8553498411623252,
           "frac_abs_z_gt_1.96": 0.016666666666666666,
           "cusum_alarms": 1,
           "cusum_first_alarm": 109,
-          "r_share_mean": 0.19051533737560075,
+          "r_share_mean": 0.19051533737582266,
           "status_counts": {
             "skipped": 240
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 398.9000106230378,
-          "latency_us_p99": 486.9129823055118
+          "latency_us_p50": 243.8770025037229,
+          "latency_us_p99": 378.38684889720747
         },
         "R x10": {
           "q_scale": 0.00031622776601683794,
           "r_scale": 10.0,
-          "loglik": 504.91169732244435,
+          "loglik": 504.91169732246664,
           "n_steps": 240,
           "n_observed": 240,
           "frac_missing": 0.0,
-          "z_mean": -0.07885684016124207,
-          "z_rms": 0.6161394653114588,
-          "z_lag1": 0.9072811558785362,
+          "z_mean": -0.07885684016083974,
+          "z_rms": 0.6161394653115293,
+          "z_lag1": 0.9072811558780862,
           "frac_abs_z_gt_1.96": 0.0,
           "cusum_alarms": 1,
           "cusum_first_alarm": 114,
-          "r_share_mean": 0.4446519056622853,
+          "r_share_mean": 0.4446519056624272,
           "status_counts": {
             "skipped": 240
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 271.7000315897167,
-          "latency_us_p99": 531.8869696930043
+          "latency_us_p50": 238.18200133973733,
+          "latency_us_p99": 350.7549488858785
         },
         "R x100": {
           "q_scale": 0.00031622776601683794,
           "r_scale": 100.0,
-          "loglik": 308.177086206334,
+          "loglik": 308.17708620646357,
           "n_steps": 240,
           "n_observed": 240,
           "frac_missing": 0.0,
-          "z_mean": -0.026591980771889647,
-          "z_rms": 0.4316368821931858,
-          "z_lag1": 0.9386374066297395,
+          "z_mean": -0.026591980771643153,
+          "z_rms": 0.4316368821929167,
+          "z_lag1": 0.9386374066297345,
           "frac_abs_z_gt_1.96": 0.0,
           "cusum_alarms": 0,
           "cusum_first_alarm": null,
-          "r_share_mean": 0.6405042424252999,
+          "r_share_mean": 0.6405042424254764,
           "status_counts": {
             "skipped": 240
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 269.849959295243,
-          "latency_us_p99": 551.1719803325826
+          "latency_us_p50": 237.15100178378634,
+          "latency_us_p99": 358.9759719034191
         }
       },
       "held_out": {
         "R x1": {
           "q_scale": 0.00031622776601683794,
           "r_scale": 1.0,
-          "loglik": 673.2636954737504,
+          "loglik": 673.2636954737792,
           "n_steps": 240,
           "n_observed": 240,
           "frac_missing": 0.0,
-          "z_mean": 0.020377214382710222,
-          "z_rms": 0.702743917359409,
-          "z_lag1": 0.7063089593201237,
+          "z_mean": 0.02037721437803815,
+          "z_rms": 0.7027439173595739,
+          "z_lag1": 0.706308959318638,
           "frac_abs_z_gt_1.96": 0.0125,
           "cusum_alarms": 0,
           "cusum_first_alarm": null,
-          "r_share_mean": 0.11975829181032914,
+          "r_share_mean": 0.11975829181034008,
           "status_counts": {
             "skipped": 240
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 251.60005316138268,
-          "latency_us_p99": 550.9439785964784
+          "latency_us_p50": 235.6369986955542,
+          "latency_us_p99": 321.34285807842343
         },
         "R x10": {
           "q_scale": 0.00031622776601683794,
           "r_scale": 10.0,
-          "loglik": 575.1093015922787,
+          "loglik": 575.1093015924139,
           "n_steps": 240,
           "n_observed": 240,
           "frac_missing": 0.0,
-          "z_mean": 0.013143683223577951,
-          "z_rms": 0.5910639154133154,
-          "z_lag1": 0.7222669819827149,
+          "z_mean": 0.013143683225532355,
+          "z_rms": 0.5910639154132808,
+          "z_lag1": 0.7222669819832822,
           "frac_abs_z_gt_1.96": 0.0125,
           "cusum_alarms": 0,
           "cusum_first_alarm": null,
-          "r_share_mean": 0.3630216446076781,
+          "r_share_mean": 0.36302164460811037,
           "status_counts": {
             "skipped": 240
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 403.09998439624906,
-          "latency_us_p99": 510.1419717539102
+          "latency_us_p50": 234.31349836755544,
+          "latency_us_p99": 325.6263897492311
         },
         "R x100": {
           "q_scale": 0.00031622776601683794,
           "r_scale": 100.0,
-          "loglik": 398.40135379369156,
+          "loglik": 398.4013537937913,
           "n_steps": 240,
           "n_observed": 240,
           "frac_missing": 0.0,
-          "z_mean": -0.006448051611602864,
-          "z_rms": 0.37919624026465315,
-          "z_lag1": 0.7464561993676719,
+          "z_mean": -0.0064480516116896865,
+          "z_rms": 0.37919624026479404,
+          "z_lag1": 0.7464561993672898,
           "frac_abs_z_gt_1.96": 0.0,
           "cusum_alarms": 0,
           "cusum_first_alarm": null,
-          "r_share_mean": 0.5990298599657389,
+          "r_share_mean": 0.5990298599661295,
           "status_counts": {
             "skipped": 240
           },
           "n_evidence_ids": 240,
           "constraint_declared": false,
-          "latency_us_p50": 408.00002170726657,
-          "latency_us_p99": 681.8839930929228
+          "latency_us_p50": 236.924497585278,
+          "latency_us_p99": 352.6307063293643
         }
       }
     }
@@ -866,15 +866,15 @@
       "q_scale": 0.00031622776601683794,
       "state": "mean_level",
       "burn_in_steps": 20,
-      "max_abs_dz_after_burn_in": 0.006516369041790315,
+      "max_abs_dz_after_burn_in": 0.006516369041668857,
       "argmax_step_after_burn_in": 28,
       "max_abs_dz_all_steps": 0.09878990458072483,
       "abs_dz_at_step_0": 0.09878990458072483,
-      "max_abs_dz_from_step_1": 0.016927364891469926,
-      "offset_final": 1.063967604902699,
-      "offset_min_after_burn_in": 0.9826394310450435,
-      "offset_max_after_burn_in": 1.063967604902699,
-      "reported_level_offset_final": 1.063999801412803,
+      "max_abs_dz_from_step_1": 0.016927364891459407,
+      "offset_final": 1.0639676049027003,
+      "offset_min_after_burn_in": 0.9826394310450102,
+      "offset_max_after_burn_in": 1.0639676049027003,
+      "reported_level_offset_final": 1.0639998014128027,
       "data_offset_min": 1.0639999999999998,
       "data_offset_max": 1.0640000000000003,
       "stated_R_identical": true

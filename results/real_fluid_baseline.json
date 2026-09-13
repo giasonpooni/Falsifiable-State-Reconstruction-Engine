@@ -1,5 +1,5 @@
 {
-  "schema_version": "fsre-real-fluid-baseline-v2",
+  "schema_version": "fsre-real-fluid-baseline-v3",
   "scope": "Real-record conditional consistency; no known fault labels or ground truth.",
   "declared": {
     "window_days": 32,
@@ -32,8 +32,8 @@
       "numpy": "2.5.3",
       "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
       "machine": "x86_64",
-      "source_sha256": "4b49249c49acdbf5481f69d63976df32d6995dd8451a9af9dbe6dedb033d5c24",
-      "git_head": "995ff74d167d39adccc1454de75e0761252eb292",
+      "source_sha256": "d43388f8cc029b4012698b8b7504b007bc98538da43d89d95de136736ab6c83d",
+      "git_head": "5e836d989f1da8a447316cd6c471c95151189c8d",
       "source_dirty": false,
       "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
     }
@@ -15752,5 +15752,13 @@
     "Cross-window adjacent pairs and incomplete windows are explicitly counted, not silently filled.",
     "The rejected-window rate is a joint property of the record and the declared window length; both axes are swept and neither is a measurement of the gauges alone.",
     "Legacy wb_open/wb_aug/wb_closed filters retain their documented approximation; this path works directly on measurements."
-  ]
+  ],
+  "claims": {
+    "the_declared_window_is_one_point_of_the_swept_axis": true,
+    "a_longer_window_raises_the_median_statistic_over_its_threshold": true,
+    "the_window_axis_moves_the_rate_at_least_as_far_as_the_sigma_axis": true,
+    "a_wider_declared_sigma_never_rejects_more": true,
+    "every_cell_reports_how_close_its_median_window_was": true,
+    "the_declared_cell_agrees_with_the_detailed_sweep": true
+  }
 }

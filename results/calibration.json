@@ -3,10 +3,10 @@
   "provenance": {
     "python": "3.13.12",
     "numpy": "2.5.3",
-    "platform": "Windows-11-10.0.26200-SP0",
-    "machine": "AMD64",
-    "source_sha256": "40f11398c225c06fa5891867a091bb3928221afffb2880d0f8d561424f3e85cf",
-    "git_head": "355021125eebf0d1cb43e18eb971d782879df524",
+    "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "source_sha256": "d43388f8cc029b4012698b8b7504b007bc98538da43d89d95de136736ab6c83d",
+    "git_head": "5e836d989f1da8a447316cd6c471c95151189c8d",
     "source_dirty": false,
     "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
   },
@@ -65,9 +65,9 @@
           "nominal": 0.001
         }
       },
-      "lag1_autocorr": 0.7607173095683177,
-      "autocorr_time": 7.358314579261307,
-      "effective_samples": 135.90068611885695
+      "lag1_autocorr": 0.7607173095683178,
+      "autocorr_time": 7.358314579261311,
+      "effective_samples": 135.9006861188569
     },
     "leak_stale_constraint": {
       "window": [

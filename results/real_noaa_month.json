@@ -1,5 +1,5 @@
 {
-  "schema_version": "fsre-real-noaa-month-v1",
+  "schema_version": "fsre-real-noaa-month-v2",
   "scope": "One month of real six-minute water levels. Truth-free: no number here is an error.",
   "provenance": {
     "generation": {
@@ -7,11 +7,12 @@
       "numpy": "2.5.3",
       "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
       "machine": "x86_64",
-      "source_sha256": "d4680bb00f331c981a7fdd8305f0ba28ecbc7d0bcf80f41bdbb4380595aa22e6",
-      "git_head": "0d280e9027ac159aedea9cbf463849e850e2c6af",
+      "source_sha256": "d43388f8cc029b4012698b8b7504b007bc98538da43d89d95de136736ab6c83d",
+      "git_head": "5e836d989f1da8a447316cd6c471c95151189c8d",
       "source_dirty": false,
       "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
     },
+    "windows_disjoint": true,
     "daf_commit": "ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2",
     "daf_published_base": "6b378590da3076d88a0f4bd8bad79e1ce0b48ae2",
     "evidence": {
@@ -801,8 +802,8 @@
         },
         "n_evidence_ids": 10080,
         "constraint_declared": false,
-        "latency_us_p50": 161.83250045287423,
-        "latency_us_p99": 325.5857148178618
+        "latency_us_p50": 150.7225024397485,
+        "latency_us_p99": 264.1047957149562
       },
       "held_out": {
         "fresh": {
@@ -823,8 +824,8 @@
           },
           "n_evidence_ids": 11280,
           "constraint_declared": false,
-          "latency_us_p50": 165.68900173297152,
-          "latency_us_p99": 267.8951600682923
+          "latency_us_p50": 152.60150030371733,
+          "latency_us_p99": 313.0186078487897
         },
         "continued": {
           "q_scale": 1e-06,
@@ -863,8 +864,8 @@
         },
         "n_evidence_ids": 21360,
         "constraint_declared": false,
-        "latency_us_p50": 161.71399693121202,
-        "latency_us_p99": 267.7361467794981
+        "latency_us_p50": 157.88949895068072,
+        "latency_us_p99": 232.82304035092235
       }
     },
     "tide_kf": {
@@ -886,8 +887,8 @@
         },
         "n_evidence_ids": 10080,
         "constraint_declared": false,
-        "latency_us_p50": 235.9475038247183,
-        "latency_us_p99": 379.8994633689286
+        "latency_us_p50": 231.34900038712658,
+        "latency_us_p99": 332.87122139881814
       },
       "held_out": {
         "fresh": {
@@ -908,8 +909,8 @@
           },
           "n_evidence_ids": 11280,
           "constraint_declared": false,
-          "latency_us_p50": 236.6049993725028,
-          "latency_us_p99": 411.6006579715759
+          "latency_us_p50": 230.38150175125338,
+          "latency_us_p99": 399.6344505139864
         },
         "continued": {
           "q_scale": 0.00031622776601683794,
@@ -948,8 +949,8 @@
         },
         "n_evidence_ids": 21360,
         "constraint_declared": false,
-        "latency_us_p50": 255.25000091874972,
-        "latency_us_p99": 410.1082807028427
+        "latency_us_p50": 229.53250299906358,
+        "latency_us_p99": 353.2260114297969
       }
     },
     "tide_month": {
@@ -971,8 +972,8 @@
         },
         "n_evidence_ids": 10080,
         "constraint_declared": false,
-        "latency_us_p50": 257.2365010564681,
-        "latency_us_p99": 343.4798897797006
+        "latency_us_p50": 246.6769983584527,
+        "latency_us_p99": 396.5193982003253
       },
       "held_out": {
         "fresh": {
@@ -993,8 +994,8 @@
           },
           "n_evidence_ids": 11280,
           "constraint_declared": false,
-          "latency_us_p50": 254.0185014368035,
-          "latency_us_p99": 375.8364800160053
+          "latency_us_p50": 246.81750073796138,
+          "latency_us_p99": 353.3029248501408
         },
         "continued": {
           "q_scale": 0.00031622776601683794,
@@ -1033,8 +1034,8 @@
         },
         "n_evidence_ids": 21360,
         "constraint_declared": false,
-        "latency_us_p50": 263.3090043673292,
-        "latency_us_p99": 441.0493871546346
+        "latency_us_p50": 247.5809997122269,
+        "latency_us_p99": 416.842529957648
       }
     }
   },
@@ -1049,5 +1050,23 @@
     "2 readings state a sigma above 10x the median, the largest 2.002 m; every second moment of the stated sigma here is dominated by that one.",
     "The stated sigma is 1.95x the white-error bound on the median reading over the month. The bound assumes a white error independent of the level, so a correlated part of a published accuracy statement is not bounded by it and nothing here shows the declared R to be wrong.",
     "37 readings state sigma = 0.000 m, carried as R = 0: the filter is asked to treat them as exact. They are counted, not adjusted."
-  ]
+  ],
+  "claims": {
+    "month_separates_every_modelled_pair": true,
+    "fit_window_leaves_a_modelled_pair_unresolved": true,
+    "fit_window_separates_S2_and_O1": true,
+    "P1_unresolved_in_every_window": true,
+    "P1_modelled_nowhere": true,
+    "fit_and_held_out_share_no_evidence": true,
+    "no_missing_readings": true,
+    "burn_in_changes_z_rms_by_under_five_percent": true,
+    "continued_alarm_steps_convert_to_the_fresh_window": true,
+    "one_reading_dominates_the_stated_sigma_rms": true,
+    "the_largest_stated_sigma_is_in_the_held_out_half": true,
+    "the_held_out_half_has_the_larger_stated_sigma_rms": true,
+    "some_readings_state_zero_sigma": true,
+    "stated_sigma_exceeds_the_white_bound_in_every_window": true,
+    "most_scorings_have_z_rms_below_one": true,
+    "the_month_has_more_second_differences_than_either_half": true
+  }
 }

@@ -1,6 +1,6 @@
 # Real fluid-measurement baseline — Ridgway
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 4b49249c49ac, git 995ff74d16. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 d43388f8cc02, git 5e836d989f. Latency columns are wall-clock on this machine and are not a claim.
 
 Real-record conditional consistency; no known fault labels or ground truth.
 
