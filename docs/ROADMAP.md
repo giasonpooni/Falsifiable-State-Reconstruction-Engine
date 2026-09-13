@@ -196,6 +196,31 @@ more than 0.03 NEES against a target of 3; and no dependence between `A`'s error
 between `A`'s error and the state, is declared or inferred. Shared evidence produces exactly
 those dependences, and they are the remaining piece of this stage.
 
+## 3c. A site declared as data — implemented for the first site
+
+Every `ConstraintSet` in this repository was built by a function inside one experiment module,
+with the site's gauge ids, drainage areas, declared sigmas and citations as module globals
+beside it. That made a second reservoir cost a second experiment module, and it put the
+kernel's capabilities — `diagnose`, `detectability`, the isolability tables, the design study,
+a declared `A_var` — out of reach of anyone not editing this codebase.
+
+The abstraction was not invented for this: `experiments.second_balance.Topology` already
+carried states, faults, variants and declared priors across three instances. `declarations/`
+promotes that shape out of one experiment and makes it loadable, and
+`src/set_lcm/declaration.py` reads it with the refusals the format needs to be worth trusting.
+
+[`declarations/ridgway.toml`](../declarations/ridgway.toml) is the first instance, and
+`results/real_water_balance` regenerates from it with no value moved. That is what makes the
+format measured rather than merely plausible: the same report, from a document instead of from
+constants.
+
+What remains, and it is the substantive half: **a second site.** Every real-data claim in this
+repository is n=1 site, and the claim that a declaration is now sufficient is untested until a
+second one costs a declaration rather than a module. The design-study topologies are not yet
+expressed in the format either, so `faults` — which `Topology` carries and this schema does
+not — is the next field it needs. Estimator configuration stays in code deliberately: a
+declaration says what the system is and what evidence exists for it, not how to filter it.
+
 ## 4. Degradation benchmark — offset/drift/gain baseline implemented; expansion planned
 
 The committed fixed-horizon benchmark supplies offset, drift and gain at two locked

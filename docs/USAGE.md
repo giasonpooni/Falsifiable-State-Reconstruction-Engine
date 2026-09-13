@@ -209,6 +209,34 @@ delayed sample can hold up later samples. General out-of-sequence measurement ha
 not implemented. The historical reservoir filter example uses an acknowledged approximation for daily
 mean storage/flow alignment. Neither should be silently generalized to a new deployment.
 
+## Declare a site
+
+A site is a TOML document under `declarations/`, not a Python module. It declares the states
+and their units, one or more constraint variants over them, the sensors with the uncertainty
+this consumer declares and the citation for it, the committed record, and any other declared
+number. `set_lcm.declaration.load` reads it and `Declaration.constraint_set(variant, ...)`
+builds the `ConstraintSet` the kernel takes.
+
+```python
+from set_lcm.declaration import load
+
+site = load("declarations/ridgway.toml")
+cs = site.constraint_set("open", readings={"closure": s0}, variances={"closure": s0_var})
+```
+
+A row whose right-hand side is a *reading* cannot be resolved when the file is read, so the
+declaration names the sensor and the index and the value arrives at build time. Supplying a
+reading for a row that declared a constant, or omitting one a row asked for, raises rather
+than quietly substituting one for the other.
+
+The format refuses more than it accepts, because a declaration that guesses is worse than no
+declaration: an unknown key raises and names itself, a row using a state its variant does not
+declare raises and names both, a declared state that no row constrains raises unless the
+variant lists it under `unconstrained`, and a declared sigma without a citation raises. The
+one implicit rule is that a coefficient omitted from a row is zero — the orphan-state check is
+what keeps that from hiding a mistake. Every declared string is stripped of surrounding
+whitespace, which is the only value the loader alters; `src/set_lcm/declaration.py` says why.
+
 ## Reproduce the reports
 
 These commands regenerate experiments from committed code and, where applicable,

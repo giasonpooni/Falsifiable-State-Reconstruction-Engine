@@ -1,0 +1,185 @@
+# Ridgway Reservoir, declared as data.
+#
+# Every number here was a module global in experiments/real_water_balance.py, beside the
+# code that used it. The point of moving them is review: a declared sigma and its citation,
+# a row and its units, the epoch a cumulative state is zero at -- these are the assumptions
+# the project exists to keep visible, and here they are one diff away from a reader.
+
+schema = "fsre-declaration-v1"
+key = "ridgway"
+label = "Ridgway Reservoir, Uncompahgre River, Colorado"
+note = """
+Three water years of USGS daily values: reservoir storage, the outlet gauge and two inflow gauges. The balance is written on cumulative volumes so continuity is exact arithmetic on the declared states rather than a quadrature rule. The two inflow gauges cover 246.2 sq mi of a total 265.0 sq mi above the reservoir, which is why an ungauged variant exists at all.
+"""
+
+# ---------------------------------------------------------------------------
+# the committed evidence, relative to the repository root
+# ---------------------------------------------------------------------------
+[record]
+directory = "data/daf"
+manifest = "manifest.json"
+observations = "usgs_ridgway_wy2023_2025.observations.json"
+
+# ---------------------------------------------------------------------------
+# states
+# ---------------------------------------------------------------------------
+[[state]]
+name = "storage"
+unit = "acre-ft"
+description = "Reservoir storage, derived from a measured lake elevation through a stage-capacity table."
+
+[[state]]
+name = "cumulative_gauged"
+unit = "acre-ft"
+description = "Cumulative gauged net inflow since the epoch: the running integral of inflows minus outflow. Zero at the epoch by definition."
+
+[[state]]
+name = "cumulative_ungauged"
+unit = "acre-ft"
+description = "Cumulative net inflow the four gauges do not see. Zero at the epoch by definition. A model-dependent output, never a measurement."
+
+# ---------------------------------------------------------------------------
+# variants: what is believed about the system, as the alternatives the reports compare
+# ---------------------------------------------------------------------------
+[[variant]]
+key = "open"
+version = "ridgway-closure-open-v1"
+label = "Open balance: the four gauges account for every drop"
+description = """
+storage minus cumulative gauged net inflow equals the storage at the epoch: the declared statement that the four gauges account for every drop. b is the day-0 storage reading and carries that reading's declared variance.
+"""
+states = ["storage", "cumulative_gauged"]
+
+  [[variant.row]]
+  name = "closure"
+  unit = "acre-ft"
+  description = "Storage minus every cumulative net inflow term equals the storage at the epoch."
+  coefficients = { storage = 1.0, cumulative_gauged = -1.0 }
+  # b is the day-0 storage READING, so the set declares that reading's variance rather
+  # than calling itself exact. Resolved when the record exists, not when this file is read.
+  b = { from = "reading", sensor = "storage", index = 0, var_from_sensor = true }
+
+[[variant]]
+key = "augmented"
+version = "ridgway-closure-augmented-v1"
+label = "Augmented balance: an ungauged state absorbs what the gauges miss"
+description = """
+storage minus cumulative gauged net inflow minus cumulative ungauged net inflow equals the storage at the epoch. U can absorb imbalance, but its finite declared uncertainty still permits rejection; U_hat is a model-dependent output.
+"""
+states = ["storage", "cumulative_gauged", "cumulative_ungauged"]
+
+  [[variant.row]]
+  name = "closure"
+  unit = "acre-ft"
+  description = "Storage minus every cumulative net inflow term equals the storage at the epoch."
+  coefficients = { storage = 1.0, cumulative_gauged = -1.0, cumulative_ungauged = -1.0 }
+  # b is the day-0 storage READING, so the set declares that reading's variance rather
+  # than calling itself exact. Resolved when the record exists, not when this file is read.
+  b = { from = "reading", sensor = "storage", index = 0, var_from_sensor = true }
+
+# ---------------------------------------------------------------------------
+# sensors: where the record comes from, and the uncertainty this consumer declares
+# ---------------------------------------------------------------------------
+[[sensor]]
+role = "storage"
+source_id = "usgs:USGS-09147022:00054:00003"
+extraction_method = "json:usgs_daily_value_v1"
+property = "reservoir_storage"
+match = { monitoring_location_id = "USGS-09147022", parameter_code = "00054", statistic_id = "00003", unit = "Acre-ft" }
+sigma = 200.0
+citation = """
+NOT a source statement. Reservoir storage is derived from a measured lake elevation through a stage-capacity table whose uncertainty at this reservoir this repository has no source for. This value is one point of a declared sweep (STORAGE_SIGMA_SWEEP); every conclusion in the report is computed at each point, and the report says which survive the range.
+"""
+
+[[sensor]]
+role = "outflow"
+source_id = "usgs:USGS-09147025:00060:00003"
+extraction_method = "json:usgs_daily_value_v1"
+property = "discharge"
+match = { monitoring_location_id = "USGS-09147025", parameter_code = "00060", statistic_id = "00003", unit = "ft^3/s" }
+relative = 0.05
+sigma_floor = 1.0
+citation = """
+USGS rates a daily discharge record 'Good' when about 95% of daily values are within 10% of their true value (USGS surface-water accuracy classes, as published per site and period in the annual water-data reports). Read as a two-sided 95% normal interval, that is 2 sigma, so sigma = 5% of the reading. Two assumptions here are this consumer's and not USGS's: that this site and period are rated 'Good' (the rating itself was not acquired -- it is not in the daily-values API), and that the error is normal. Floored at 1.0 ft^3/s because a percentage states nothing at zero flow.
+"""
+
+[[sensor]]
+role = "inflow_uncompahgre"
+source_id = "usgs:USGS-09146200:00060:00003"
+extraction_method = "json:usgs_daily_value_v1"
+property = "discharge"
+match = { monitoring_location_id = "USGS-09146200", parameter_code = "00060", statistic_id = "00003", unit = "ft^3/s" }
+relative = 0.05
+sigma_floor = 1.0
+citation = """
+USGS rates a daily discharge record 'Good' when about 95% of daily values are within 10% of their true value (USGS surface-water accuracy classes, as published per site and period in the annual water-data reports). Read as a two-sided 95% normal interval, that is 2 sigma, so sigma = 5% of the reading. Two assumptions here are this consumer's and not USGS's: that this site and period are rated 'Good' (the rating itself was not acquired -- it is not in the daily-values API), and that the error is normal. Floored at 1.0 ft^3/s because a percentage states nothing at zero flow.
+"""
+
+[[sensor]]
+role = "inflow_dallas"
+source_id = "usgs:USGS-09147000:00060:00003"
+extraction_method = "json:usgs_daily_value_v1"
+property = "discharge"
+match = { monitoring_location_id = "USGS-09147000", parameter_code = "00060", statistic_id = "00003", unit = "ft^3/s" }
+relative = 0.05
+sigma_floor = 1.0
+citation = """
+USGS rates a daily discharge record 'Good' when about 95% of daily values are within 10% of their true value (USGS surface-water accuracy classes, as published per site and period in the annual water-data reports). Read as a two-sided 95% normal interval, that is 2 sigma, so sigma = 5% of the reading. Two assumptions here are this consumer's and not USGS's: that this site and period are rated 'Good' (the rating itself was not acquired -- it is not in the daily-values API), and that the error is normal. Floored at 1.0 ft^3/s because a percentage states nothing at zero flow.
+"""
+
+# ---------------------------------------------------------------------------
+# declared scalars: neither coefficients nor sigmas, but choices all the same
+# ---------------------------------------------------------------------------
+[[scalar]]
+name = "gauged_drainage_area"
+value = 246.2
+unit = "sq mi"
+description = "Drainage area of the two inflow gauges combined: 149.0 sq mi at the Uncompahgre gauge plus 97.2 sq mi at the Dallas Creek gauge."
+
+[[scalar]]
+name = "total_drainage_area"
+value = 265.0
+unit = "sq mi"
+description = "Total drainage area above the reservoir. The difference against the gauged area is what the ungauged state exists to carry."
+
+[[scalar]]
+name = "prior_storage_std"
+value = 20000.0
+unit = "acre-ft"
+description = "Prior width on storage: wide enough that the first storage reading sets S rather than the prior."
+
+[[scalar]]
+name = "q_storage"
+value = 500.0
+unit = "acre-ft / sqrt(day)"
+description = "Process noise on storage. Free enough to follow a reservoir that fills in a season. Stated, never fitted."
+
+[[scalar]]
+name = "q_flow"
+value = 50.0
+unit = "ft^3/s / sqrt(day)"
+description = "Process noise on each flow state. Free enough to follow a snowmelt hydrograph day to day. Stated, never fitted."
+
+[[scalar]]
+name = "q_ungauged"
+value = 200.0
+unit = "acre-ft / sqrt(day)"
+description = "Process noise on the ungauged state; the augmented variant only."
+
+[[scalar]]
+name = "cumulative0_std"
+value = 1.0
+unit = "acre-ft"
+description = "Prior width on the cumulative states at the epoch, where they are zero by definition to within a rounding."
+
+[[scalar]]
+name = "flow0"
+value = 0.0
+unit = "ft^3/s"
+description = "Prior mean on each flow state. Declared for completeness and made irrelevant by flow0_std, which is wider than any reading in the record."
+
+[[scalar]]
+name = "flow0_std"
+value = 1000.0
+unit = "ft^3/s"
+description = "Prior width on each flow state, wider than the largest reading in the record."

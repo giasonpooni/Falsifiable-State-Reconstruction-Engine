@@ -57,19 +57,13 @@ import numpy as np
 
 from ..bridge.daf import BridgedSeries, DeclaredSigma, SeriesSelector, bridge, load_records
 from ..lcm import constraint_bases, detectability
+from ..declaration import load as load_declaration
 from ..schema import ConstraintSet
 from ..testbed.cusum import CusumConfig
 from ..testbed.estimators_balance import CFS_DAY_TO_ACRE_FT, BalanceConfig
 from ..testbed.runner import EstimatorSpec, RunResult, run
 from ..testbed.truth_free import evaluate_truth_free
 from .provenance import REPO_ROOT
-
-DATA_DIR = REPO_ROOT / "data" / "daf"
-MANIFEST_PATH = DATA_DIR / "manifest.json"
-OBSERVATIONS = "usgs_ridgway_wy2023_2025.observations.json"
-
-DV_METHOD = "json:usgs_daily_value_v1"
-STATISTIC = "00003"          # USGS daily MEAN
 
 # ---------------------------------------------------------------------------
 # what the caller declares
@@ -84,72 +78,64 @@ DAY_ZONE_CITATION = (
     "them; it would matter to an alignment against a sub-daily series, and none is used."
 )
 
-FLOW_SIGMA_CITATION = (
-    "USGS rates a daily discharge record 'Good' when about 95% of daily values are within 10% of "
-    "their true value (USGS surface-water accuracy classes, as published per site and period in the "
-    "annual water-data reports). Read as a two-sided 95% normal interval, that is 2 sigma, so sigma "
-    "= 5% of the reading. Two assumptions here are this consumer's and not USGS's: that this site "
-    "and period are rated 'Good' (the rating itself was not acquired -- it is not in the daily-values "
-    "API), and that the error is normal. Floored at 1.0 ft^3/s because a percentage states nothing "
-    "at zero flow."
-)
+# Everything below is read from declarations/ridgway.toml rather than written here. The
+# names are kept because the rest of this module and its tests use them, but each is now a
+# view of one reviewable document instead of a constant beside the code that consumes it.
+DECLARATION_PATH = REPO_ROOT / "declarations" / "ridgway.toml"
+DECLARATION = load_declaration(DECLARATION_PATH)
 
-STORAGE_SIGMA_CITATION = (
-    "NOT a source statement. Reservoir storage is derived from a measured lake elevation through a "
-    "stage-capacity table whose uncertainty at this reservoir this repository has no source for. "
-    "This value is one point of a declared sweep (STORAGE_SIGMA_SWEEP); every conclusion in the "
-    "report is computed at each point, and the report says which survive the range."
-)
+# Which record, and where: the last thing that tied this module to one reservoir.
+DATA_DIR = REPO_ROOT / DECLARATION.record.directory
+MANIFEST_PATH = DATA_DIR / DECLARATION.record.manifest
+OBSERVATIONS = DECLARATION.record.observations
 
-SITES = {
-    "storage": ("USGS-09147022", "00054", "Acre-ft", "reservoir_storage"),
-    "outflow": ("USGS-09147025", "00060", "ft^3/s", "discharge"),
-    "inflow_uncompahgre": ("USGS-09146200", "00060", "ft^3/s", "discharge"),
-    "inflow_dallas": ("USGS-09147000", "00060", "ft^3/s", "discharge"),
-}
-# the sensor column order the estimators in testbed.estimators_balance declare
-COLUMNS = ("storage", "outflow", "inflow_uncompahgre", "inflow_dallas")
+# The unit every volume in this report is quoted in, taken from the state that declares it
+# rather than retyped into each string.
+VOLUME_UNIT = DECLARATION.states["storage"].unit
 
-GAUGED_SQ_MI = 149.0 + 97.2
-TOTAL_SQ_MI = 265.0
+# The declared sensor order IS the column order the estimators in testbed.estimators_balance
+# expect, which used to be a comment next to a hand-written tuple and is now a property of the
+# document: reorder the [[sensor]] tables and the columns move with them.
+COLUMNS = tuple(sen.role for sen in DECLARATION.sensors)
+SELECTORS = tuple(SeriesSelector(source_id=sen.source_id, extraction_method=sen.extraction_method,
+                                 property=sen.property, match=sen.match)
+                  for sen in DECLARATION.sensors)
+SOURCE_IDS = tuple(sel.source_id for sel in SELECTORS)
 
-FLOW_SIGMA_RELATIVE = 0.05
-FLOW_SIGMA_FLOOR = 1.0
-STORAGE_SIGMA_SWEEP = (50.0, 200.0, 800.0)     # acre-ft; the middle value is the one tables report with
-STORAGE_SIGMA_BASE = 200.0
+GAUGED_SQ_MI = DECLARATION.scalar("gauged_drainage_area")
+TOTAL_SQ_MI = DECLARATION.scalar("total_drainage_area")
 
-# Declared process-noise scales. A storage random walk must be free enough to follow a
-# reservoir that fills in a season; the flow states must be free enough to follow a
-# snowmelt hydrograph day to day. Both are stated, never fitted.
+FLOW_SIGMA_RELATIVE = DECLARATION.sensor("outflow").relative
+FLOW_SIGMA_FLOOR = DECLARATION.sensor("outflow").sigma_floor
+FLOW_SIGMA_CITATION = DECLARATION.sensor("outflow").citation
+STORAGE_SIGMA_BASE = DECLARATION.sensor("storage").sigma
+STORAGE_SIGMA_CITATION = DECLARATION.sensor("storage").citation
+
+# The sweep is an analysis choice, not a property of the site: the declaration says what this
+# consumer declares for the storage series, and this says which neighbourhood of that value
+# every conclusion is recomputed at.
+STORAGE_SIGMA_SWEEP = (50.0, STORAGE_SIGMA_BASE, 800.0)     # acre-ft
+
 CFG = BalanceConfig(
-    q_storage=500.0,        # acre-ft / sqrt(day)
-    q_flow=50.0,            # ft^3/s / sqrt(day)
-    q_ungauged=200.0,       # acre-ft / sqrt(day), wb_aug only
-    cumulative0_std=1.0,    # G and U start at 0 by definition, to within a rounding
-    flow0=0.0,
-    flow0_std=1000.0,       # ft^3/s; wider than the largest reading in the record
+    q_storage=DECLARATION.scalar("q_storage"),
+    q_flow=DECLARATION.scalar("q_flow"),
+    q_ungauged=DECLARATION.scalar("q_ungauged"),
+    cumulative0_std=DECLARATION.scalar("cumulative0_std"),
+    flow0=DECLARATION.scalar("flow0"),
+    flow0_std=DECLARATION.scalar("flow0_std"),
 )
-PRIOR_STORAGE_STD = 20000.0    # acre-ft; wide enough that the first storage reading sets S
-
-
-def _selector(role: str) -> SeriesSelector:
-    site, param, unit, prop = SITES[role]
-    return SeriesSelector(
-        source_id=f"usgs:{site}:{param}:{STATISTIC}",
-        extraction_method=DV_METHOD, property=prop,
-        match={"monitoring_location_id": site, "parameter_code": param,
-               "statistic_id": STATISTIC, "unit": unit})
-
-
-SELECTORS = tuple(_selector(role) for role in COLUMNS)
-SOURCE_IDS = tuple(s.source_id for s in SELECTORS)
+PRIOR_STORAGE_STD = DECLARATION.scalar("prior_storage_std")
 
 
 def declared_sigma(storage_sigma: float) -> dict:
-    out = {SELECTORS[0].source_id: DeclaredSigma(sigma=storage_sigma, citation=STORAGE_SIGMA_CITATION)}
-    for sel in SELECTORS[1:]:
-        out[sel.source_id] = DeclaredSigma(relative=FLOW_SIGMA_RELATIVE, sigma_floor=FLOW_SIGMA_FLOOR,
-                                           citation=FLOW_SIGMA_CITATION)
+    """The consumer-declared R for each column. `storage_sigma` is the sweep's current point;
+    every other number, and every citation, is the declaration's."""
+    storage = DECLARATION.sensor("storage")
+    out = {storage.source_id: DeclaredSigma(sigma=storage_sigma, citation=storage.citation)}
+    for sen in DECLARATION.sensors:
+        if sen.role != storage.role:
+            out[sen.source_id] = DeclaredSigma(relative=sen.relative, sigma_floor=sen.sigma_floor,
+                                               citation=sen.citation)
     return out
 
 
@@ -197,7 +183,7 @@ def closure_residual(bs: BridgedSeries) -> dict:
     cum = float(np.nansum(r))
     return {
         "n_days": int(finite.sum()),
-        "units": "acre-ft per day",
+        "units": f"{VOLUME_UNIT} per day",
         "mean": float(np.nanmean(r)),
         "sd": float(np.nanstd(r, ddof=1)),
         "median": float(np.nanmedian(r)),
@@ -312,30 +298,25 @@ def _lag1(v: np.ndarray) -> float:
 # the declared constraint
 # ---------------------------------------------------------------------------
 
+def _closure(variant: str, s0: float, s0_var: float) -> ConstraintSet:
+    """One of the declaration's variants, with b resolved against the record.
+
+    b is the day-0 storage READING, which is why the declaration cannot name a constant: it
+    names the sensor and the index, and the value arrives here. Passing a variance the row did
+    not ask for, or omitting one it did, raises rather than quietly substituting a constant for
+    a measurement."""
+    return DECLARATION.constraint_set(variant, readings={"closure": s0},
+                                      variances={"closure": s0_var})
+
+
 def constraint_open(s0: float, s0_var: float) -> ConstraintSet:
-    """S - G = S0: the gauges close the balance. b is the first storage READING, so the set
-    declares its variance rather than calling itself exact."""
-    return ConstraintSet(
-        version="ridgway-closure-open-v1",
-        A=np.array([[1.0, -1.0]]), b=np.array([s0]),
-        b_var=np.array([s0_var]),
-        row_units=("acre-ft",),
-        description="storage minus cumulative gauged net inflow equals the storage at the epoch: the "
-                    "declared statement that the four gauges account for every drop. b is the day-0 "
-                    "storage reading and carries that reading's declared variance.")
+    """S - G = S0: the gauges close the balance."""
+    return _closure("open", s0, s0_var)
 
 
 def constraint_aug(s0: float, s0_var: float) -> ConstraintSet:
-    """S - G - U = S0 with an ungauged state. An unconstrained U can close any balance,
-    but the shipped finite prior and process variance still allow statistical rejection."""
-    return ConstraintSet(
-        version="ridgway-closure-augmented-v1",
-        A=np.array([[1.0, -1.0, -1.0]]), b=np.array([s0]),
-        b_var=np.array([s0_var]),
-        row_units=("acre-ft",),
-        description="storage minus cumulative gauged net inflow minus cumulative ungauged net inflow "
-                    "equals the storage at the epoch. U can absorb imbalance, but its finite "
-                    "declared uncertainty still permits rejection; U_hat is a model-dependent output.")
+    """S - G - U = S0 with an ungauged state."""
+    return _closure("augmented", s0, s0_var)
 
 
 SPECS = (
@@ -440,7 +421,7 @@ def compute() -> dict:
                 rp = r.res_pre[np.isfinite(r.res_pre[:, 0]), 0]
                 entry["residual_pre"] = {"mean": float(rp.mean()), "sd": float(rp.std(ddof=1)),
                                          "min": float(rp.min()), "max": float(rp.max()),
-                                         "final": float(rp[-1]), "units": "acre-ft"}
+                                         "final": float(rp[-1]), "units": VOLUME_UNIT}
             if r.corr is not None and bool(np.isfinite(r.corr).any()):
                 cn = np.linalg.norm(r.corr[np.isfinite(r.corr).all(axis=1)], axis=1)
                 if cn.size:
@@ -469,9 +450,10 @@ def compute() -> dict:
     out = {
         "site": {
             "reservoir": "Ridgway Reservoir, Uncompahgre River, Colorado",
-            "series": {role: {"monitoring_location_id": SITES[role][0], "parameter_code": SITES[role][1],
-                              "unit": SITES[role][2], "statistic_id": STATISTIC,
-                              "source_id": _selector(role).source_id} for role in COLUMNS},
+            "series": {sen.role: {"monitoring_location_id": dict(sen.match)["monitoring_location_id"],
+                                  "parameter_code": dict(sen.match)["parameter_code"],
+                                  "unit": sen.unit, "statistic_id": dict(sen.match)["statistic_id"],
+                                  "source_id": sen.source_id} for sen in DECLARATION.sensors},
             "gauged_sq_mi": GAUGED_SQ_MI, "total_sq_mi": TOTAL_SQ_MI,
             "gauged_fraction": GAUGED_SQ_MI / TOTAL_SQ_MI,
         },

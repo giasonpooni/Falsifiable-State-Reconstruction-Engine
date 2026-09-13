@@ -115,6 +115,14 @@ vertical image registration, timing checks and fusion with full shared covarianc
 An empty recording kit and preflight checker support preparation for a controlled real trial.
 It has no field validation; general 3-D camera pose and odometry remain planned work.
 
+A site is declared as data rather than as code. `declarations/ridgway.toml` carries that
+reservoir's states and their units, its constraint variants, its four gauges with the
+uncertainty this consumer declares for each and the citation behind it, the record the
+evidence lives in, and every other declared number — process-noise scales, prior widths,
+drainage areas. `results/real_water_balance` regenerates from it with no value moved, which is
+what says the format is sufficient for a real site rather than merely plausible. Whether a
+SECOND site costs only a declaration is not yet measured; that is the next thing to find out.
+
 **Still being developed:** diagnosis of events with unknown onset, field-validated degradation
 magnitudes, and operational alert thresholds. Current fault fits assume specified profiles,
 onset and uncertainty; their amplitude intervals are conditional on that model. Real-data reports measure
