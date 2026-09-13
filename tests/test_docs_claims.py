@@ -22,9 +22,19 @@ from set_lcm.experiments.provenance import REPO_ROOT
 RESULTS = REPO_ROOT / "results"
 WB = json.loads((RESULTS / "real_water_balance.json").read_text(encoding="utf-8"))
 FLUID = json.loads((RESULTS / "real_fluid_baseline.json").read_text(encoding="utf-8"))
-FLUID_DOC = (REPO_ROOT / "docs" / "FLUID_BASELINE.md").read_text(encoding="utf-8")
-# The prose uses a typographic minus; the artifact writes ASCII. Compare on one of them.
-DOC = (REPO_ROOT / "docs" / "RESULTS.md").read_text(encoding="utf-8").replace("\u2212", "-")
+
+
+def _prose(path):
+    """Wrapped markdown, flattened so a phrase assertion does not depend on line breaks.
+
+    The typographic minus is folded to ASCII because the artifacts write ASCII.
+    """
+    text = path.read_text(encoding="utf-8").replace("\u2212", "-")
+    return " ".join(text.split())
+
+
+DOC = _prose(REPO_ROOT / "docs" / "RESULTS.md")
+FLUID_DOC = _prose(REPO_ROOT / "docs" / "FLUID_BASELINE.md")
 CLOSURE = WB["closure_free"]
 MIDDLE = WB["sweep"]["200"]["specs"]
 
