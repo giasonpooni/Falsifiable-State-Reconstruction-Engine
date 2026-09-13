@@ -2,7 +2,7 @@
 
 **Check whether measurements in a fluid system agree with its physical relationships.**
 
-FSRE is a Python research toolkit for engineers and researchers working with water levels,
+FSRT is a Python research toolkit for engineers and researchers working with water levels,
 flow gauges and storage measurements. It estimates the state of a system, checks the estimate
 against a declared balance, and keeps a record of the disagreement and any correction.
 
@@ -18,14 +18,14 @@ time interval, conservation relates them:
 change in stored water = water in − water out
 ```
 
-If the measurements do not support that balance, FSRE can flag the disagreement and show its
+If the measurements do not support that balance, FSRT can flag the disagreement and show its
 size under your stated uncertainties. The cause could be a drifting instrument, an outdated
 rating curve, an unmeasured inflow, or an unsuitable model. **An alarm starts an investigation;
 it does not, by itself, identify a broken sensor.**
 
 ## What you get
 
-| Question | FSRE provides |
+| Question | FSRT provides |
 |---|---|
 | Do the estimates agree with the declared balance? | A consistency score and the residual before correction. |
 | What changed during reconciliation? | The original estimate, corrected estimate, correction and resulting uncertainty. |
@@ -119,7 +119,7 @@ onset and uncertainty; their amplitude intervals are conditional on that model. 
 consistency under declared assumptions; they do not establish the true state or which sensor
 is faulty. Some different faults are indistinguishable with the available measurements.
 
-Use FSRE now to evaluate a measurement model, compare methods, replay evidence and investigate
+Use FSRT now to evaluate a measurement model, compare methods, replay evidence and investigate
 possible faults. Treat it as research software when deciding whether it is suitable for an
 operational workflow.
 
@@ -164,4 +164,4 @@ the measurements, model and declared uncertainty.
 
 ## License
 
-FSRE is available under the [MIT License](LICENSE).
+FSRT is available under the [MIT License](LICENSE).
