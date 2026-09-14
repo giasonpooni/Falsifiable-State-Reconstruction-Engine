@@ -1,6 +1,6 @@
 # What the diagnostic surface says about a real record
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 e65c60119ce2, git 1da70ef98a (source dirty). Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 50a22c67cd05, git cdea185e52. Latency columns are wall-clock on this machine and are not a claim.
 
 The diagnostic surface applied to real records, with the candidate catalogue declared in each site's own TOML. No fault is asserted to exist at either site.
 

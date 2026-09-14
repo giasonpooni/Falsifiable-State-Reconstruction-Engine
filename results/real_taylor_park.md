@@ -1,6 +1,6 @@
 # A second reservoir, and what a second reservoir cost
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 50a22c67cd05, git 1da70ef98a (source dirty). Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 50a22c67cd05, git cdea185e52. Latency columns are wall-clock on this machine and are not a claim.
 
 Taylor Park Reservoir, Taylor River, Colorado, from `declarations/taylor_park.toml`. Three water years of USGS daily values on the same grid as Ridgway: reservoir storage, the outlet gauge and **three** inflow gauges.
 
