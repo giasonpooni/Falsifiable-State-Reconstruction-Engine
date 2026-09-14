@@ -572,6 +572,22 @@ def _provenance_md(man: dict) -> str:
     return "\n".join(L)
 
 
+def merge_manifest_files(prior: list[dict], fresh: list[dict], fixture_outputs) -> list[dict]:
+    """Manifest entries after re-exporting only some sessions.
+
+    Entries just exported replace their predecessors; every other entry is carried through
+    verbatim, bytes and all. The order is the one a FULL export produces -- fixtures in JOBS
+    order, then sessions by output name -- because a manifest assembled one session at a time
+    has to equal the one assembled in a single pass. Without that the incremental path trades
+    an hour of replay for a doubt about whether the result is the same file.
+    """
+    by_output = {f["output"]: f for f in prior}
+    by_output.update({f["output"]: f for f in fresh})
+    fixtures = [o for o in fixture_outputs if o in by_output]
+    sessions = sorted(set(by_output) - set(fixture_outputs))
+    return [by_output[o] for o in fixtures + sessions]
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
@@ -641,12 +657,7 @@ def main(argv: list[str] | None = None) -> int:
         # Replace the entries just exported, keep every other one verbatim, and order the result
         # exactly as a FULL export would: fixtures in JOBS order, then sessions by output name.
         # A manifest built one session at a time must equal the one built in a single pass.
-        by_output = {f["output"]: f for f in prior["files"]}
-        by_output.update({f["output"]: f for f in files})
-        fixture_outputs = [job.out for job in JOBS]
-        ordered = [by_output[o] for o in fixture_outputs if o in by_output]
-        ordered += [by_output[o] for o in sorted(set(by_output) - set(fixture_outputs))]
-        files = ordered
+        files = merge_manifest_files(prior["files"], files, [job.out for job in JOBS])
 
     man = {
         "daf_repository": DAF_URL,

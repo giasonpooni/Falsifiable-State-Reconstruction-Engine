@@ -174,3 +174,46 @@ def test_exporting_one_session_leaves_every_other_manifest_entry_byte_identical(
         assert (data / "manifest.json").read_text(encoding="utf-8") == before
     finally:
         shutil.copy(backup, data / "manifest.json")
+
+
+def _exporter():
+    """The export tool, imported for its pure logic. Its top-level imports are stdlib only, so
+    this needs no DAF checkout -- which matters, because CI has none and the merge property is
+    exactly the thing that must not silently stop holding."""
+    sys.path.insert(0, str(REPO_ROOT / "tools"))
+    try:
+        import export_daf_fixtures
+        return export_daf_fixtures
+    finally:
+        sys.path.pop(0)
+
+
+def test_merging_sessions_one_at_a_time_equals_one_full_export():
+    merge = _exporter().merge_manifest_files
+    fixtures = ["a.json", "b.json"]
+    entries = {name: {"output": name, "sha": name.upper()} for name in
+               ("a.json", "b.json", "s_one.json", "s_two.json", "s_three.json")}
+    full = list(entries.values())
+
+    incremental = merge(fixtures_and_two := [entries["a.json"], entries["b.json"],
+                                             entries["s_one.json"], entries["s_three.json"]],
+                        [entries["s_two.json"]], fixtures)
+    one_pass = merge([], full, fixtures)
+    assert incremental == one_pass
+    assert [f["output"] for f in incremental] == ["a.json", "b.json",
+                                                  "s_one.json", "s_three.json", "s_two.json"]
+    assert fixtures_and_two[0] is incremental[0]        # untouched entries carried verbatim
+
+
+def test_a_re_exported_session_replaces_its_predecessor_and_nothing_else():
+    merge = _exporter().merge_manifest_files
+    prior = [{"output": "a.json", "sha": "OLD-A"}, {"output": "s.json", "sha": "OLD-S"}]
+    merged = merge(prior, [{"output": "s.json", "sha": "NEW-S"}], ["a.json"])
+    assert merged == [{"output": "a.json", "sha": "OLD-A"}, {"output": "s.json", "sha": "NEW-S"}]
+
+
+def test_a_session_new_to_the_manifest_lands_where_a_full_export_would_put_it():
+    merge = _exporter().merge_manifest_files
+    prior = [{"output": "a.json"}, {"output": "s_b.json"}, {"output": "s_d.json"}]
+    merged = merge(prior, [{"output": "s_c.json"}], ["a.json"])
+    assert [f["output"] for f in merged] == ["a.json", "s_b.json", "s_c.json", "s_d.json"]
