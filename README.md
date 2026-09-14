@@ -1,4 +1,4 @@
-# Fluid-Sensor Reconstruction Testbed (WIP).
+# Fluid-State Reconstruction Testbed (WIP).
 
 **Check whether measurements in a fluid system agree with its physical relationships.**
 
