@@ -1,0 +1,1178 @@
+{
+  "schema_version": "fsre-real-diagnosis-v1",
+  "scope": "The diagnostic surface applied to real records, with the candidate catalogue declared in each site's own TOML. No fault is asserted to exist at either site.",
+  "provenance": {
+    "generation": {
+      "python": "3.13.12",
+      "numpy": "2.5.3",
+      "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+      "machine": "x86_64",
+      "source_sha256": "e65c60119ce28d020665b8422da19eaf743851fcc10d52e7ef4e92b38cd66dc3",
+      "git_head": "1da70ef98a34297318072e074b1459b99606b342",
+      "source_dirty": true,
+      "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
+    }
+  },
+  "declared": {
+    "windows": 36,
+    "alpha": 0.01,
+    "interval_level": 0.95,
+    "alignment_sd_swept": [
+      0.0,
+      50.0,
+      200.0,
+      500.0,
+      1000.0
+    ],
+    "alignment_note": "per-day sd of the unmodelled daily-mean alignment error, in acre-ft. The declared instrument sigmas describe instruments and say nothing about it; it is swept rather than chosen because choosing the value that makes a fit work is tuning.",
+    "covariance_source": "the declared instrument sigmas, propagated through the window sum, with the off-diagonal the shared storage reading puts there. Nothing is fitted to the residual's own scatter.",
+    "profiles_known_to_this_study": [
+      "constant_outflow_bias",
+      "constant_volume_per_day",
+      "inflow_rating_scale_error",
+      "storage_scale_error",
+      "unreported_seasonal_inflow"
+    ]
+  },
+  "sites": {
+    "ridgway": {
+      "key": "ridgway",
+      "label": "Ridgway Reservoir, Uncompahgre River, Colorado",
+      "n_days": 1096,
+      "windows": 36,
+      "cumulative_residual": 1526.3603305785123,
+      "catalogue": [
+        {
+          "name": "ungauged_constant",
+          "label": "Constant unmeasured inflow",
+          "profile": "constant_volume_per_day",
+          "amplitude_unit": "acre-ft per day",
+          "description": "Water entering the reservoir that no gauge sees, at a steady rate. The augmented variant carries exactly this term as a state."
+        },
+        {
+          "name": "outflow_reads_low",
+          "label": "Outlet gauge under-reporting by a constant",
+          "profile": "constant_outflow_bias",
+          "amplitude_unit": "ft^3/s",
+          "description": "A steady negative bias on the outlet gauge. Physically distinct from unmeasured inflow and, on this residual, EXACTLY collinear with it: both add a constant volume per day and nothing in a single closure row separates them."
+        },
+        {
+          "name": "storage_scale_error",
+          "label": "Stage-capacity table off by a scale factor",
+          "profile": "storage_scale_error",
+          "amplitude_unit": "fraction",
+          "description": "The storage series is derived from a lake elevation through a stage-capacity table; a proportional error in that table scales every storage change. Its signature follows the storage change rather than the calendar, which is what makes it separable from a constant."
+        },
+        {
+          "name": "inflow_rating_high",
+          "label": "Inflow ratings high by a common fraction",
+          "profile": "inflow_rating_scale_error",
+          "amplitude_unit": "fraction",
+          "description": "Every inflow gauge over-reporting by the same proportion. Its signature follows the inflow volume, so it is largest in snowmelt and near zero in winter."
+        }
+      ],
+      "geometry": [
+        {
+          "a": "ungauged_constant",
+          "b": "outflow_reads_low",
+          "cos": -1.0,
+          "exactly_collinear": true,
+          "zero_signature": false
+        },
+        {
+          "a": "ungauged_constant",
+          "b": "storage_scale_error",
+          "cos": -0.011838484504095758,
+          "exactly_collinear": false,
+          "zero_signature": false
+        },
+        {
+          "a": "ungauged_constant",
+          "b": "inflow_rating_high",
+          "cos": -0.6985480334205751,
+          "exactly_collinear": false,
+          "zero_signature": false
+        },
+        {
+          "a": "outflow_reads_low",
+          "b": "storage_scale_error",
+          "cos": 0.011838484504095775,
+          "exactly_collinear": false,
+          "zero_signature": false
+        },
+        {
+          "a": "outflow_reads_low",
+          "b": "inflow_rating_high",
+          "cos": 0.6985480334205753,
+          "exactly_collinear": false,
+          "zero_signature": false
+        },
+        {
+          "a": "storage_scale_error",
+          "b": "inflow_rating_high",
+          "cos": -0.42167073539030686,
+          "exactly_collinear": false,
+          "zero_signature": false
+        }
+      ],
+      "sweep": [
+        {
+          "alignment_sd": 0.0,
+          "status": "unexplained",
+          "null_statistic": 442.41715039362407,
+          "null_dof": 36,
+          "null_threshold": 58.6192145016862,
+          "min_separation": 1.260512675112579e-16,
+          "adequate": [],
+          "fits": [
+            {
+              "name": "ungauged_constant",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 306.15628265159637,
+              "amplitude": 6.582349058290004,
+              "amplitude_sd": 0.5638912216868981,
+              "interval": [
+                5.477142572585392,
+                7.687555543994615
+              ],
+              "nearest": "outflow_reads_low",
+              "nearest_cos": -0.9999999999999997,
+              "nearest_orthogonal_fraction": 1.260512675112579e-16,
+              "nearest_isolation_amplification": 7933280003794392.0,
+              "amplitude_unit": "acre-ft per day"
+            },
+            {
+              "name": "outflow_reads_low",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 306.15628265159637,
+              "amplitude": -3.318600983554545,
+              "amplitude_sd": 0.2842951576004779,
+              "interval": [
+                -3.87580925343062,
+                -2.76139271367847
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -0.9999999999999997,
+              "nearest_orthogonal_fraction": 2.2697714865677243e-16,
+              "nearest_isolation_amplification": 4405729853942997.5,
+              "amplitude_unit": "ft^3/s"
+            },
+            {
+              "name": "storage_scale_error",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 377.5213033802452,
+              "amplitude": -0.06777164553618722,
+              "amplitude_sd": 0.008412780893981595,
+              "interval": [
+                -0.08426039309821783,
+                -0.051282897974156624
+              ],
+              "nearest": "inflow_rating_high",
+              "nearest_cos": -0.06700847304107735,
+              "nearest_orthogonal_fraction": 0.997752406431928,
+              "nearest_isolation_amplification": 1.0022526566246126,
+              "amplitude_unit": "fraction"
+            },
+            {
+              "name": "inflow_rating_high",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 401.42962456343804,
+              "amplitude": -0.016914098421708615,
+              "amplitude_sd": 0.0026419403126331027,
+              "interval": [
+                -0.022092206283773987,
+                -0.011735990559643243
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -0.8600067450781507,
+              "nearest_orthogonal_fraction": 0.5102826652161376,
+              "nearest_isolation_amplification": 1.959698159796268,
+              "amplitude_unit": "fraction"
+            }
+          ],
+          "explanation": "The no-fault model is rejected and no testable declared single-fault candidate explains the residual. No fault classification is supported. Closest observable candidate pair: separated by 1.26e-16 of a whitened unit direction, so telling those two apart takes an amplitude about 7.93e+15 times the one that rejects no fault."
+        },
+        {
+          "alignment_sd": 50.0,
+          "status": "unexplained",
+          "null_statistic": 136.77166157523996,
+          "null_dof": 36,
+          "null_threshold": 58.6192145016862,
+          "min_separation": 1.4555146645863655e-16,
+          "adequate": [],
+          "fits": [
+            {
+              "name": "ungauged_constant",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 131.008608706387,
+              "amplitude": 4.128682348934723,
+              "amplitude_sd": 1.7198286075702325,
+              "interval": [
+                0.7578802185153983,
+                7.499484479354049
+              ],
+              "nearest": "outflow_reads_low",
+              "nearest_cos": -0.9999999999999998,
+              "nearest_orthogonal_fraction": 1.4555146645863655e-16,
+              "nearest_isolation_amplification": 6870422018621051.0,
+              "amplitude_unit": "acre-ft per day"
+            },
+            {
+              "name": "outflow_reads_low",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 131.008608706387,
+              "amplitude": -2.081544017587925,
+              "amplitude_sd": 0.8670802563166596,
+              "interval": [
+                -3.780990091674336,
+                -0.3820979435015137
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -0.9999999999999998,
+              "nearest_orthogonal_fraction": 1.6537292768255255e-16,
+              "nearest_isolation_amplification": 6046938964033976.0,
+              "amplitude_unit": "ft^3/s"
+            },
+            {
+              "name": "storage_scale_error",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 82.83866365782879,
+              "amplitude": -0.08299441375618422,
+              "amplitude_sd": 0.011301122453605582,
+              "interval": [
+                -0.10514420675012807,
+                -0.060844620762240356
+              ],
+              "nearest": "inflow_rating_high",
+              "nearest_cos": -0.1993689751084758,
+              "nearest_orthogonal_fraction": 0.9799244928892205,
+              "nearest_isolation_amplification": 1.0204867898051906,
+              "amplitude_unit": "fraction"
+            },
+            {
+              "name": "inflow_rating_high",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 131.52630856077084,
+              "amplitude": 0.011148376871528812,
+              "amplitude_sd": 0.004867705338444809,
+              "interval": [
+                0.001607849720823635,
+                0.02068890402223399
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -0.7350491292690526,
+              "nearest_orthogonal_fraction": 0.6780138476172942,
+              "nearest_isolation_amplification": 1.474896130092687,
+              "amplitude_unit": "fraction"
+            }
+          ],
+          "explanation": "The no-fault model is rejected and no testable declared single-fault candidate explains the residual. No fault classification is supported. Closest observable candidate pair: separated by 1.46e-16 of a whitened unit direction, so telling those two apart takes an amplitude about 6.87e+15 times the one that rejects no fault."
+        },
+        {
+          "alignment_sd": 200.0,
+          "status": "consistent",
+          "null_statistic": 20.27898593644698,
+          "null_dof": 36,
+          "null_threshold": 58.6192145016862,
+          "min_separation": 1.1443916996305594e-16,
+          "adequate": [
+            "ungauged_constant",
+            "outflow_reads_low",
+            "storage_scale_error",
+            "inflow_rating_high"
+          ],
+          "fits": [
+            {
+              "name": "ungauged_constant",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 20.18663481437336,
+              "amplitude": 1.8606358280008268,
+              "amplitude_sd": 6.122662086566355,
+              "interval": [
+                -10.139561351178084,
+                13.860833007179739
+              ],
+              "nearest": "outflow_reads_low",
+              "nearest_cos": -1.0,
+              "nearest_orthogonal_fraction": 1.2098374922832816e-16,
+              "nearest_isolation_amplification": 8265572908579126.0,
+              "amplitude_unit": "acre-ft per day"
+            },
+            {
+              "name": "outflow_reads_low",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 20.18663481437336,
+              "amplitude": -0.93807056328375,
+              "amplitude_sd": 3.086842135310538,
+              "interval": [
+                -6.98816997445312,
+                5.11202884788562
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -1.0,
+              "nearest_orthogonal_fraction": 1.1443916996305594e-16,
+              "nearest_isolation_amplification": 8738266804301596.0,
+              "amplitude_unit": "ft^3/s"
+            },
+            {
+              "name": "storage_scale_error",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 9.873347514209373,
+              "amplitude": -0.08805449609956907,
+              "amplitude_sd": 0.02729714148110599,
+              "interval": [
+                -0.14155591028343115,
+                -0.034553081915706996
+              ],
+              "nearest": "inflow_rating_high",
+              "nearest_cos": -0.3948950551313219,
+              "nearest_orthogonal_fraction": 0.9187262353023509,
+              "nearest_isolation_amplification": 1.0884635287147342,
+              "amplitude_unit": "fraction"
+            },
+            {
+              "name": "inflow_rating_high",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 17.3099375601953,
+              "amplitude": 0.02276707394170101,
+              "amplitude_sd": 0.013212913173601652,
+              "interval": [
+                -0.003129760009413049,
+                0.04866390789281507
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -0.7019904366304323,
+              "nearest_orthogonal_fraction": 0.7121863708885585,
+              "nearest_isolation_amplification": 1.4041268421808621,
+              "amplitude_unit": "fraction"
+            }
+          ],
+          "explanation": "No departure from the declared no-fault model was detected after nuisance removal. This is not evidence that the sensors are healthy. Closest observable candidate pair: separated by 1.14e-16 of a whitened unit direction, so telling those two apart takes an amplitude about 8.74e+15 times the one that rejects no fault."
+        },
+        {
+          "alignment_sd": 500.0,
+          "status": "consistent",
+          "null_statistic": 3.5909048574569606,
+          "null_dof": 36,
+          "null_threshold": 58.6192145016862,
+          "min_separation": 1.0749688212373146e-16,
+          "adequate": [
+            "ungauged_constant",
+            "outflow_reads_low",
+            "storage_scale_error",
+            "inflow_rating_high"
+          ],
+          "fits": [
+            {
+              "name": "ungauged_constant",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 3.5813801694311036,
+              "amplitude": 1.4778584437532145,
+              "amplitude_sd": 15.142844319765157,
+              "interval": [
+                -28.201571046483423,
+                31.15728793398985
+              ],
+              "nearest": "outflow_reads_low",
+              "nearest_cos": -1.0,
+              "nearest_orthogonal_fraction": 1.0749688212373146e-16,
+              "nearest_isolation_amplification": 9302595389222324.0,
+              "amplitude_unit": "acre-ft per day"
+            },
+            {
+              "name": "outflow_reads_low",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 3.5813801694311036,
+              "amplitude": -0.7450869653922461,
+              "amplitude_sd": 7.63451734454827,
+              "interval": [
+                -15.708466000053223,
+                14.21829206926873
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -1.0,
+              "nearest_orthogonal_fraction": 1.6883057536160649e-16,
+              "nearest_isolation_amplification": 5923097743747952.0,
+              "amplitude_unit": "ft^3/s"
+            },
+            {
+              "name": "storage_scale_error",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 1.6982773408063874,
+              "amplitude": -0.08838463983430518,
+              "amplitude_sd": 0.06424572309761588,
+              "interval": [
+                -0.21430394326636537,
+                0.037534663597754994
+              ],
+              "nearest": "inflow_rating_high",
+              "nearest_cos": -0.4218370235361819,
+              "nearest_orthogonal_fraction": 0.906671674628768,
+              "nearest_isolation_amplification": 1.102935084422313,
+              "amplitude_unit": "fraction"
+            },
+            {
+              "name": "inflow_rating_high",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 3.0035569474564023,
+              "amplitude": 0.024237871986739712,
+              "amplitude_sd": 0.031626182560246754,
+              "interval": [
+                -0.03774830679983267,
+                0.08622405077331209
+              ],
+              "nearest": "outflow_reads_low",
+              "nearest_cos": 0.6985678757098746,
+              "nearest_orthogonal_fraction": 0.7155437953236636,
+              "nearest_isolation_amplification": 1.397538496644594,
+              "amplitude_unit": "fraction"
+            }
+          ],
+          "explanation": "No departure from the declared no-fault model was detected after nuisance removal. This is not evidence that the sensors are healthy. Closest observable candidate pair: separated by 1.07e-16 of a whitened unit direction, so telling those two apart takes an amplitude about 9.3e+15 times the one that rejects no fault."
+        },
+        {
+          "alignment_sd": 1000.0,
+          "status": "consistent",
+          "null_statistic": 0.911999636219554,
+          "null_dof": 36,
+          "null_threshold": 58.6192145016862,
+          "min_separation": 1.177569344012831e-16,
+          "adequate": [
+            "ungauged_constant",
+            "outflow_reads_low",
+            "storage_scale_error",
+            "inflow_rating_high"
+          ],
+          "fits": [
+            {
+              "name": "ungauged_constant",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 0.9098086679064268,
+              "amplitude": 1.4153013624071815,
+              "amplitude_sd": 30.23645530726527,
+              "interval": [
+                -57.84706205998771,
+                60.677664784802076
+              ],
+              "nearest": "outflow_reads_low",
+              "nearest_cos": -1.0,
+              "nearest_orthogonal_fraction": 1.177569344012831e-16,
+              "nearest_isolation_amplification": 8492068896701033.0,
+              "amplitude_unit": "acre-ft per day"
+            },
+            {
+              "name": "outflow_reads_low",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 0.9098086679064268,
+              "amplitude": -0.7135477702136211,
+              "amplitude_sd": 15.244212884079579,
+              "interval": [
+                -30.591655995671054,
+                29.16456045524381
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -1.0,
+              "nearest_orthogonal_fraction": 1.798766884999431e-16,
+              "nearest_isolation_amplification": 5559364075130371.0,
+              "amplitude_unit": "ft^3/s"
+            },
+            {
+              "name": "storage_scale_error",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 0.42936504966122613,
+              "amplitude": -0.08842626098008796,
+              "amplitude_sd": 0.12728348014003266,
+              "interval": [
+                -0.33789729788147116,
+                0.16104477592129524
+              ],
+              "nearest": "inflow_rating_high",
+              "nearest_cos": -0.42607688466356736,
+              "nearest_orthogonal_fraction": 0.9046869559993608,
+              "nearest_isolation_amplification": 1.105354723386447,
+              "amplitude_unit": "fraction"
+            },
+            {
+              "name": "inflow_rating_high",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 0.7603154666140319,
+              "amplitude": 0.024469170948185282,
+              "amplitude_sd": 0.06282740553978373,
+              "interval": [
+                -0.09867028115188309,
+                0.14760862304825365
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -0.6980370792101934,
+              "nearest_orthogonal_fraction": 0.7160616147006502,
+              "nearest_isolation_amplification": 1.396527867812116,
+              "amplitude_unit": "fraction"
+            }
+          ],
+          "explanation": "No departure from the declared no-fault model was detected after nuisance removal. This is not evidence that the sensors are healthy. Closest observable candidate pair: separated by 1.18e-16 of a whitened unit direction, so telling those two apart takes an amplitude about 8.49e+15 times the one that rejects no fault."
+        }
+      ]
+    },
+    "taylor_park": {
+      "key": "taylor_park",
+      "label": "Taylor Park Reservoir, Taylor River, Colorado",
+      "n_days": 1096,
+      "windows": 36,
+      "cumulative_residual": 63472.049586776855,
+      "catalogue": [
+        {
+          "name": "ungauged_constant",
+          "label": "Constant unmeasured inflow",
+          "profile": "constant_volume_per_day",
+          "amplitude_unit": "acre-ft per day",
+          "description": "Water entering the reservoir that no gauge sees, at a steady rate. The augmented variant carries exactly this term as a state."
+        },
+        {
+          "name": "outflow_reads_low",
+          "label": "Outlet gauge under-reporting by a constant",
+          "profile": "constant_outflow_bias",
+          "amplitude_unit": "ft^3/s",
+          "description": "A steady negative bias on the outlet gauge. Physically distinct from unmeasured inflow and, on this residual, EXACTLY collinear with it: both add a constant volume per day and nothing in a single closure row separates them."
+        },
+        {
+          "name": "seasonal_creeks_unreported",
+          "label": "Seasonal creeks flowing while not reporting",
+          "profile": "unreported_seasonal_inflow",
+          "amplitude_unit": "ft^3/s",
+          "description": "The two seasonal gauges report for part of each year only. This candidate is water they carry on the days they are absent, which the measured net inflow omits entirely. Its signature is the count of absent days, so it is the one candidate here the record's own gaps make separable from a constant."
+        },
+        {
+          "name": "storage_scale_error",
+          "label": "Stage-capacity table off by a scale factor",
+          "profile": "storage_scale_error",
+          "amplitude_unit": "fraction",
+          "description": "The storage series is derived from a lake elevation through a stage-capacity table; a proportional error in that table scales every storage change. Its signature follows the storage change rather than the calendar, which is what makes it separable from a constant."
+        },
+        {
+          "name": "inflow_rating_high",
+          "label": "Inflow ratings high by a common fraction",
+          "profile": "inflow_rating_scale_error",
+          "amplitude_unit": "fraction",
+          "description": "Every inflow gauge over-reporting by the same proportion. Its signature follows the inflow volume, so it is largest in snowmelt and near zero in winter."
+        }
+      ],
+      "geometry": [
+        {
+          "a": "ungauged_constant",
+          "b": "outflow_reads_low",
+          "cos": -1.0,
+          "exactly_collinear": true,
+          "zero_signature": false
+        },
+        {
+          "a": "ungauged_constant",
+          "b": "seasonal_creeks_unreported",
+          "cos": 0.6477930964636978,
+          "exactly_collinear": false,
+          "zero_signature": false
+        },
+        {
+          "a": "ungauged_constant",
+          "b": "storage_scale_error",
+          "cos": -0.013814342072001799,
+          "exactly_collinear": false,
+          "zero_signature": false
+        },
+        {
+          "a": "ungauged_constant",
+          "b": "inflow_rating_high",
+          "cos": -0.6248638053043211,
+          "exactly_collinear": false,
+          "zero_signature": false
+        },
+        {
+          "a": "outflow_reads_low",
+          "b": "seasonal_creeks_unreported",
+          "cos": -0.6477930964636976,
+          "exactly_collinear": false,
+          "zero_signature": false
+        },
+        {
+          "a": "outflow_reads_low",
+          "b": "storage_scale_error",
+          "cos": 0.01381434207200182,
+          "exactly_collinear": false,
+          "zero_signature": false
+        },
+        {
+          "a": "outflow_reads_low",
+          "b": "inflow_rating_high",
+          "cos": 0.6248638053043214,
+          "exactly_collinear": false,
+          "zero_signature": false
+        },
+        {
+          "a": "seasonal_creeks_unreported",
+          "b": "storage_scale_error",
+          "cos": -0.07695999362001418,
+          "exactly_collinear": false,
+          "zero_signature": false
+        },
+        {
+          "a": "seasonal_creeks_unreported",
+          "b": "inflow_rating_high",
+          "cos": -0.09983494256218829,
+          "exactly_collinear": false,
+          "zero_signature": false
+        },
+        {
+          "a": "storage_scale_error",
+          "b": "inflow_rating_high",
+          "cos": -0.59367889463335,
+          "exactly_collinear": false,
+          "zero_signature": false
+        }
+      ],
+      "sweep": [
+        {
+          "alignment_sd": 0.0,
+          "status": "unexplained",
+          "null_statistic": 11523.420425588438,
+          "null_dof": 36,
+          "null_threshold": 58.6192145016862,
+          "min_separation": 1.3455014484288012e-16,
+          "adequate": [],
+          "fits": [
+            {
+              "name": "ungauged_constant",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 444.56269066851434,
+              "amplitude": 61.12755194968834,
+              "amplitude_sd": 0.5807503906753033,
+              "interval": [
+                59.98930209995718,
+                62.2658017994195
+              ],
+              "nearest": "outflow_reads_low",
+              "nearest_cos": -1.0,
+              "nearest_orthogonal_fraction": 1.3455014484288012e-16,
+              "nearest_isolation_amplification": 7432173344500983.0,
+              "amplitude_unit": "acre-ft per day"
+            },
+            {
+              "name": "outflow_reads_low",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 444.56269066851416,
+              "amplitude": -30.81847410796788,
+              "amplitude_sd": 0.2927949886321322,
+              "interval": [
+                -31.392341740540672,
+                -30.244606475395088
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -1.0,
+              "nearest_orthogonal_fraction": 1.3455014484288012e-16,
+              "nearest_isolation_amplification": 7432173344500983.0,
+              "amplitude_unit": "ft^3/s"
+            },
+            {
+              "name": "seasonal_creeks_unreported",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 1045.006484620724,
+              "amplitude": 42.14869651728988,
+              "amplitude_sd": 0.4117526214484195,
+              "interval": [
+                41.34167620871102,
+                42.955716825868734
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": 0.9187071519968509,
+              "nearest_orthogonal_fraction": 0.3949394496246677,
+              "nearest_isolation_amplification": 2.532033710358269,
+              "amplitude_unit": "ft^3/s"
+            },
+            {
+              "name": "storage_scale_error",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 11346.22547140204,
+              "amplitude": -0.07637024676757136,
+              "amplitude_sd": 0.005737180564741429,
+              "interval": [
+                -0.08761491404726772,
+                -0.065125579487875
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -0.23951957636839455,
+              "nearest_orthogonal_fraction": 0.970891534897851,
+              "nearest_isolation_amplification": 1.0299811709710824,
+              "amplitude_unit": "fraction"
+            },
+            {
+              "name": "inflow_rating_high",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 4970.691333192333,
+              "amplitude": -0.21416966788940178,
+              "amplitude_sd": 0.002645738130960993,
+              "interval": [
+                -0.21935521933860963,
+                -0.20898411644019393
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -0.7788693113054843,
+              "nearest_orthogonal_fraction": 0.6271862529635996,
+              "nearest_isolation_amplification": 1.5944227018286345,
+              "amplitude_unit": "fraction"
+            }
+          ],
+          "explanation": "The no-fault model is rejected and no testable declared single-fault candidate explains the residual. No fault classification is supported. Closest observable candidate pair: separated by 1.35e-16 of a whitened unit direction, so telling those two apart takes an amplitude about 7.43e+15 times the one that rejects no fault."
+        },
+        {
+          "alignment_sd": 50.0,
+          "status": "unexplained",
+          "null_statistic": 1309.3390235326747,
+          "null_dof": 36,
+          "null_threshold": 58.6192145016862,
+          "min_separation": 1.0007415106216802e-16,
+          "adequate": [],
+          "fits": [
+            {
+              "name": "ungauged_constant",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 160.43797391726068,
+              "amplitude": 57.54351049390648,
+              "amplitude_sd": 1.6976769018170974,
+              "interval": [
+                54.21612490895943,
+                60.870896078853534
+              ],
+              "nearest": "outflow_reads_low",
+              "nearest_cos": -1.0,
+              "nearest_orthogonal_fraction": 1.4422220147876727e-16,
+              "nearest_isolation_amplification": 6933745219159079.0,
+              "amplitude_unit": "acre-ft per day"
+            },
+            {
+              "name": "outflow_reads_low",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 160.43797391726073,
+              "amplitude": -29.011519874011185,
+              "amplitude_sd": 0.8559121046661202,
+              "interval": [
+                -30.689076773088658,
+                -27.333962974933712
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -1.0,
+              "nearest_orthogonal_fraction": 1.0007415106216802e-16,
+              "nearest_isolation_amplification": 9992590388089132.0,
+              "amplitude_unit": "ft^3/s"
+            },
+            {
+              "name": "seasonal_creeks_unreported",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 416.8930034483195,
+              "amplitude": 38.533978679428344,
+              "amplitude_sd": 1.2898905890706587,
+              "interval": [
+                36.0058395808527,
+                41.06211777800399
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": 0.7438308801754803,
+              "nearest_orthogonal_fraction": 0.6683678790137736,
+              "nearest_isolation_amplification": 1.4961820150237832,
+              "amplitude_unit": "ft^3/s"
+            },
+            {
+              "name": "storage_scale_error",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 1297.2611016250596,
+              "amplitude": 0.03047000444009589,
+              "amplitude_sd": 0.00876751280572504,
+              "interval": [
+                0.013285995106881093,
+                0.04765401377331069
+              ],
+              "nearest": "inflow_rating_high",
+              "nearest_cos": -0.39273168908470973,
+              "nearest_orthogonal_fraction": 0.9196530978519405,
+              "nearest_isolation_amplification": 1.0873665323758797,
+              "amplitude_unit": "fraction"
+            },
+            {
+              "name": "inflow_rating_high",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 717.9977833088277,
+              "amplitude": -0.11165767101725851,
+              "amplitude_sd": 0.004591657450212947,
+              "interval": [
+                -0.1206571542490209,
+                -0.10265818778549612
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -0.6653028443567851,
+              "nearest_orthogonal_fraction": 0.7465735900035383,
+              "nearest_isolation_amplification": 1.3394526854281847,
+              "amplitude_unit": "fraction"
+            }
+          ],
+          "explanation": "The no-fault model is rejected and no testable declared single-fault candidate explains the residual. No fault classification is supported. Closest observable candidate pair: separated by 1e-16 of a whitened unit direction, so telling those two apart takes an amplitude about 9.99e+15 times the one that rejects no fault."
+        },
+        {
+          "alignment_sd": 200.0,
+          "status": "ambiguous",
+          "null_statistic": 108.8988268515559,
+          "null_dof": 36,
+          "null_threshold": 58.6192145016862,
+          "min_separation": 1.0749688212373147e-16,
+          "adequate": [
+            "ungauged_constant",
+            "outflow_reads_low",
+            "seasonal_creeks_unreported",
+            "inflow_rating_high"
+          ],
+          "fits": [
+            {
+              "name": "ungauged_constant",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 19.78165153392959,
+              "amplitude": 57.68899533149588,
+              "amplitude_sd": 6.110999798641799,
+              "interval": [
+                45.71165581662643,
+                69.66633484636533
+              ],
+              "nearest": "outflow_reads_low",
+              "nearest_cos": -0.9999999999999998,
+              "nearest_orthogonal_fraction": 1.0749688212373147e-16,
+              "nearest_isolation_amplification": 9302595389222324.0,
+              "amplitude_unit": "acre-ft per day"
+            },
+            {
+              "name": "outflow_reads_low",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 19.78165153392959,
+              "amplitude": -29.08486847962919,
+              "amplitude_sd": 3.0809623984819083,
+              "interval": [
+                -35.12344381837587,
+                -23.046293140882508
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -0.9999999999999998,
+              "nearest_orthogonal_fraction": 1.2719202621569003e-16,
+              "nearest_isolation_amplification": 7862128073219129.0,
+              "amplitude_unit": "ft^3/s"
+            },
+            {
+              "name": "seasonal_creeks_unreported",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 50.89774856189475,
+              "amplitude": 36.53160301007117,
+              "amplitude_sd": 4.796789889064567,
+              "interval": [
+                27.13006758609874,
+                45.933138434043606
+              ],
+              "nearest": "outflow_reads_low",
+              "nearest_cos": -0.6581771421875752,
+              "nearest_orthogonal_fraction": 0.7528631014346476,
+              "nearest_isolation_amplification": 1.3282627320882257,
+              "amplitude_unit": "ft^3/s"
+            },
+            {
+              "name": "storage_scale_error",
+              "observable": true,
+              "adequate": false,
+              "fit_statistic": 101.32871072374459,
+              "amplitude": 0.0651004420955604,
+              "amplitude_sd": 0.02366097665131644,
+              "interval": [
+                0.018725780019937063,
+                0.11147510417118374
+              ],
+              "nearest": "inflow_rating_high",
+              "nearest_cos": -0.5684113263907503,
+              "nearest_orthogonal_fraction": 0.8227445314498953,
+              "nearest_isolation_amplification": 1.2154441163379515,
+              "amplitude_unit": "fraction"
+            },
+            {
+              "name": "inflow_rating_high",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 55.17296580628744,
+              "amplitude": -0.091354930325508,
+              "amplitude_sd": 0.012463508048222589,
+              "interval": [
+                -0.11578295722104937,
+                -0.06692690342996663
+              ],
+              "nearest": "outflow_reads_low",
+              "nearest_cos": 0.6292147896897275,
+              "nearest_orthogonal_fraction": 0.7772314638739943,
+              "nearest_isolation_amplification": 1.2866180108247922,
+              "amplitude_unit": "fraction"
+            }
+          ],
+          "explanation": "The no-fault model is rejected and multiple declared single-fault candidates remain adequate. The record does not select one of them. Closest observable candidate pair: separated by 1.07e-16 of a whitened unit direction, so telling those two apart takes an amplitude about 9.3e+15 times the one that rejects no fault."
+        },
+        {
+          "alignment_sd": 500.0,
+          "status": "consistent",
+          "null_statistic": 18.056571781391906,
+          "null_dof": 36,
+          "null_threshold": 58.6192145016862,
+          "min_separation": 1.0385185452638062e-16,
+          "adequate": [
+            "ungauged_constant",
+            "outflow_reads_low",
+            "seasonal_creeks_unreported",
+            "storage_scale_error",
+            "inflow_rating_high"
+          ],
+          "fits": [
+            {
+              "name": "ungauged_constant",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 3.4215181951126103,
+              "amplitude": 57.911493602801066,
+              "amplitude_sd": 15.137968860953803,
+              "interval": [
+                28.241619836242794,
+                87.58136736935934
+              ],
+              "nearest": "outflow_reads_low",
+              "nearest_cos": -0.9999999999999998,
+              "nearest_orthogonal_fraction": 1.0385185452638062e-16,
+              "nearest_isolation_amplification": 9629101035898962.0,
+              "amplitude_unit": "acre-ft per day"
+            },
+            {
+              "name": "outflow_reads_low",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 3.4215181951126103,
+              "amplitude": -29.197044691412216,
+              "amplitude_sd": 7.632059300730878,
+              "interval": [
+                -44.15560604871868,
+                -14.238483334105748
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -0.9999999999999998,
+              "nearest_orthogonal_fraction": 1.7109685898544716e-16,
+              "nearest_isolation_amplification": 5844642654048115.0,
+              "amplitude_unit": "ft^3/s"
+            },
+            {
+              "name": "seasonal_creeks_unreported",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 8.76536680917981,
+              "amplitude": 36.33542911044361,
+              "amplitude_sd": 11.920494532973013,
+              "interval": [
+                12.971689147909903,
+                59.69916907297733
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": 0.6497213716989731,
+              "nearest_orthogonal_fraction": 0.7601724404091514,
+              "nearest_isolation_amplification": 1.3154909949928795,
+              "amplitude_unit": "ft^3/s"
+            },
+            {
+              "name": "storage_scale_error",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 16.55400879497194,
+              "amplitude": 0.06924232355265955,
+              "amplitude_sd": 0.05648788180861182,
+              "interval": [
+                -0.04147189035517489,
+                0.179956537460494
+              ],
+              "nearest": "inflow_rating_high",
+              "nearest_cos": -0.5921115178126879,
+              "nearest_orthogonal_fraction": 0.8058560358237414,
+              "nearest_isolation_amplification": 1.2409164361197664,
+              "amplitude_unit": "fraction"
+            },
+            {
+              "name": "inflow_rating_high",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 8.989805157520586,
+              "amplitude": -0.08955576217068723,
+              "amplitude_sd": 0.02974180457743242,
+              "interval": [
+                -0.14784862797768328,
+                -0.03126289636369117
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -0.6247537090358884,
+              "nearest_orthogonal_fraction": 0.7808218766440274,
+              "nearest_isolation_amplification": 1.2807018219033517,
+              "amplitude_unit": "fraction"
+            }
+          ],
+          "explanation": "No departure from the declared no-fault model was detected after nuisance removal. This is not evidence that the sensors are healthy. Closest observable candidate pair: separated by 1.04e-16 of a whitened unit direction, so telling those two apart takes an amplitude about 9.63e+15 times the one that rejects no fault."
+        },
+        {
+          "alignment_sd": 1000.0,
+          "status": "consistent",
+          "null_statistic": 4.539868577428858,
+          "null_dof": 36,
+          "null_threshold": 58.6192145016862,
+          "min_separation": 9.61481343191782e-17,
+          "adequate": [
+            "ungauged_constant",
+            "outflow_reads_low",
+            "seasonal_creeks_unreported",
+            "storage_scale_error",
+            "inflow_rating_high"
+          ],
+          "fits": [
+            {
+              "name": "ungauged_constant",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 0.8658823871909819,
+              "amplitude": 57.95146567329182,
+              "amplitude_sd": 30.23400388717707,
+              "interval": [
+                -1.3060930540192217,
+                117.20902440060286
+              ],
+              "nearest": "outflow_reads_low",
+              "nearest_cos": -0.9999999999999999,
+              "nearest_orthogonal_fraction": 1.3597399555105185e-16,
+              "nearest_isolation_amplification": 7354347395230781.0,
+              "amplitude_unit": "acre-ft per day"
+            },
+            {
+              "name": "outflow_reads_low",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 0.8658823871909819,
+              "amplitude": -29.2171972769513,
+              "amplitude_sd": 15.24297695978511,
+              "interval": [
+                -59.09288313530396,
+                0.6584885814013575
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -0.9999999999999999,
+              "nearest_orthogonal_fraction": 9.61481343191782e-17,
+              "nearest_isolation_amplification": 1.0400617828738616e+16,
+              "amplitude_unit": "ft^3/s"
+            },
+            {
+              "name": "seasonal_creeks_unreported",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 2.216677906230048,
+              "amplitude": 36.306025196785235,
+              "amplitude_sd": 23.81969943828973,
+              "interval": [
+                -10.379727824831583,
+                82.99177821840206
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": 0.648439977805429,
+              "nearest_orthogonal_fraction": 0.7612657848502683,
+              "nearest_isolation_amplification": 1.3136016617332773,
+              "amplitude_unit": "ft^3/s"
+            },
+            {
+              "name": "storage_scale_error",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 4.151575032635712,
+              "amplitude": 0.06988950839987594,
+              "amplitude_sd": 0.11215842456636799,
+              "interval": [
+                -0.14993696431295767,
+                0.2897159811127096
+              ],
+              "nearest": "inflow_rating_high",
+              "nearest_cos": -0.5958668919808469,
+              "nearest_orthogonal_fraction": 0.8030832130240836,
+              "nearest_isolation_amplification": 1.245200975169694,
+              "amplitude_unit": "fraction"
+            },
+            {
+              "name": "inflow_rating_high",
+              "observable": true,
+              "adequate": true,
+              "fit_statistic": 2.2536709200901406,
+              "amplitude": -0.08928140318846793,
+              "amplitude_sd": 0.05904785413994209,
+              "interval": [
+                -0.20501307066712873,
+                0.02645026429019287
+              ],
+              "nearest": "ungauged_constant",
+              "nearest_cos": -0.6240479918371566,
+              "nearest_orthogonal_fraction": 0.7813860146457783,
+              "nearest_isolation_amplification": 1.2797771923948817,
+              "amplitude_unit": "fraction"
+            }
+          ],
+          "explanation": "No departure from the declared no-fault model was detected after nuisance removal. This is not evidence that the sensors are healthy. Closest observable candidate pair: separated by 9.61e-17 of a whitened unit direction, so telling those two apart takes an amplitude about 1.04e+16 times the one that rejects no fault."
+        }
+      ]
+    }
+  },
+  "limitations": [
+    "No fault is asserted to exist at either site. A candidate being adequate means the record does not reject it, which is not evidence that it happened.",
+    "The catalogue is what each site declares. A cause absent from it cannot be found, and the ambiguity reported here is a property of the catalogue and the constraint, not a property of the reservoir.",
+    "One closure row is rank 1, so its residual cannot separate candidates that act on it identically. That is a structural bound, not a limitation of the data.",
+    "The alignment term is swept, not measured. Nothing here establishes its true size; the report says what the diagnosis is at each declared value and no more.",
+    "Windows are equal-length divisions of the record, not calendar months, so seasonality is approximate at the window edges.",
+    "Amplitude intervals are conditional on the single-candidate model and on the declared covariance at that sweep point."
+  ],
+  "claims": {
+    "the_two_constant_rate_candidates_are_exactly_collinear_on_this_residual": true,
+    "that_collinearity_holds_at_both_sites": true,
+    "the_declared_instrument_sigmas_alone_explain_neither_site": true,
+    "the_second_sites_record_is_far_more_inconsistent_than_the_first_at_every_sweep_point": true,
+    "the_engine_never_names_a_single_cause_at_the_second_site": true,
+    "there_is_a_declared_alignment_at_which_it_reports_ambiguity": true,
+    "admitting_enough_alignment_error_makes_the_record_consistent_with_no_fault": true,
+    "the_status_only_ever_loosens_as_more_error_is_admitted": true,
+    "the_separable_candidate_at_the_second_site_is_the_one_its_gaps_create": true,
+    "the_first_sites_catalogue_declares_no_seasonal_candidate_because_it_has_no_gaps": true,
+    "every_declared_fault_resolved_to_a_signature": true
+  }
+}

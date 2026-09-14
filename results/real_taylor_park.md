@@ -1,6 +1,6 @@
 # A second reservoir, and what a second reservoir cost
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 18f5a0d2b23b, git 75ca1e857b. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 50a22c67cd05, git 1da70ef98a (source dirty). Latency columns are wall-clock on this machine and are not a claim.
 
 Taylor Park Reservoir, Taylor River, Colorado, from `declarations/taylor_park.toml`. Three water years of USGS daily values on the same grid as Ridgway: reservoir storage, the outlet gauge and **three** inflow gauges.
 
@@ -54,6 +54,16 @@ So the absent readings account for part of the apparent imbalance and not all of
 At Taylor Park the residual on fully reported days, 9.80%, sits within 0.91 percentage points of its ungauged drainage fraction, 8.90%. It is the obvious explanation and the augmented variant carries exactly that term.
 
 **It is not concluded here.** The same comparison at Ridgway is 0.41% against 7.09% ungauged — no correspondence at all. A relationship that holds at one site and fails at the other is a coincidence or a mechanism, and two sites cannot tell which. Gauge bias, the stage-capacity table, the daily-mean alignment and real ungauged inflow all remain live, and nothing here separates them.
+
+`results/real_diagnosis` takes that question up with a declared catalogue and reaches the same place by a different route: two of the candidates are exactly collinear on this residual, so no amount of data separates them, and the engine reports ambiguity rather than naming one.
+
+## What the augmented model says the ungauged term is
+
+The augmented variant carries a cumulative ungauged state, and one run estimates it rather than reporting its prior: `wb_aug+hard+feedback`. At this site it ends at **29,750 acre-ft** — 6.85 standard deviations from zero, 8.49% of gauged inflow. At Ridgway the same run ends at 2,497 acre-ft, 2.42 sd, 0.68%.
+
+**This is not independent confirmation of anything above**, and it would be easy to present it as though it were. The only run in which U is estimated rather than reported is the one with feedback, and a constraint fed back is absorbed as if it were evidence; U therefore carries the constraint residual rather than measuring it a second time. The number close to the fully-reported cumulative is close to it because it largely IS it.
+
+What it adds is an uncertainty and a contrast. The raw residual is an arithmetic fact with no error bar of its own; this is the declared model's answer with one attached, and it stays more than 3 sd from zero at every point of the declared storage-sigma sweep. Between the two sites it separates by a factor of 2.8 in standard deviations, which is the same direction the closure residual and the drainage fractions point, by the same evidence.
 
 ## What is declared here, and on whose authority
 

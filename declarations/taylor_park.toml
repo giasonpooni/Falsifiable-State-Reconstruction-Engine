@@ -200,3 +200,44 @@ name = "flow0_std"
 value = 1000.0
 unit = "ft^3/s"
 description = "Prior width on each flow state, wider than the largest reading in the record."
+
+# ---------------------------------------------------------------------------
+# candidate explanations, declared so a diagnosis is a stated catalogue rather than a
+# hand-written list inside whichever study runs it. A fault's SIGNATURE depends on the
+# record, so the declaration names a profile and the study resolves it.
+# ---------------------------------------------------------------------------
+
+[[fault]]
+name = "ungauged_constant"
+label = "Constant unmeasured inflow"
+profile = "constant_volume_per_day"
+amplitude_unit = "acre-ft per day"
+description = "Water entering the reservoir that no gauge sees, at a steady rate. The augmented variant carries exactly this term as a state."
+
+[[fault]]
+name = "outflow_reads_low"
+label = "Outlet gauge under-reporting by a constant"
+profile = "constant_outflow_bias"
+amplitude_unit = "ft^3/s"
+description = "A steady negative bias on the outlet gauge. Physically distinct from unmeasured inflow and, on this residual, EXACTLY collinear with it: both add a constant volume per day and nothing in a single closure row separates them."
+
+[[fault]]
+name = "seasonal_creeks_unreported"
+label = "Seasonal creeks flowing while not reporting"
+profile = "unreported_seasonal_inflow"
+amplitude_unit = "ft^3/s"
+description = "The two seasonal gauges report for part of each year only. This candidate is water they carry on the days they are absent, which the measured net inflow omits entirely. Its signature is the count of absent days, so it is the one candidate here the record's own gaps make separable from a constant."
+
+[[fault]]
+name = "storage_scale_error"
+label = "Stage-capacity table off by a scale factor"
+profile = "storage_scale_error"
+amplitude_unit = "fraction"
+description = "The storage series is derived from a lake elevation through a stage-capacity table; a proportional error in that table scales every storage change. Its signature follows the storage change rather than the calendar, which is what makes it separable from a constant."
+
+[[fault]]
+name = "inflow_rating_high"
+label = "Inflow ratings high by a common fraction"
+profile = "inflow_rating_scale_error"
+amplitude_unit = "fraction"
+description = "Every inflow gauge over-reporting by the same proportion. Its signature follows the inflow volume, so it is largest in snowmelt and near zero in winter."

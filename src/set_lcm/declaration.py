@@ -61,7 +61,7 @@ from .schema import ConstraintSet
 SCHEMA = "fsre-declaration-v1"
 
 __all__ = ["SCHEMA", "Declaration", "State", "Row", "Variant", "Sensor", "Scalar", "Record",
-           "load", "loads"]
+           "Fault", "load", "loads"]
 
 
 def _str(value, what: str) -> str:
@@ -337,6 +337,41 @@ class Scalar:
 
 
 @dataclass(frozen=True)
+class Fault:
+    """One candidate explanation, declared so a diagnosis is a stated catalogue and not a
+    hand-written list inside whichever study happens to run it.
+
+    A fault's SIGNATURE cannot live here. It is what this candidate would do to a particular
+    residual, so it depends on the record: how many days each month held, how much water the
+    gauges saw, which of them were reporting. The declaration therefore names a `profile` and
+    the study resolves it, exactly as a row whose b is a reading names a sensor and takes the
+    value at build time.
+
+    `profile` is a free string on purpose. A closed vocabulary here would tie this format to
+    water balances; the study that resolves it owns the vocabulary and must refuse a name it
+    does not know, loudly and with its known names listed.
+
+    `amplitude_unit` is required. A fault amplitude without a unit is a number no one can act
+    on, and every interval this repository reports on one would be unreadable without it.
+    """
+    name: str
+    label: str
+    profile: str
+    amplitude_unit: str
+    description: str
+
+    @staticmethod
+    def parse(t: dict) -> Fault:
+        _only(t, {"name", "label", "profile", "amplitude_unit", "description"}, "[[fault]]")
+        name = _str(t.get("name"), "[[fault]].name")
+        return Fault(name,
+                     _str(t.get("label"), f"fault {name!r} label"),
+                     _str(t.get("profile"), f"fault {name!r} profile"),
+                     _str(t.get("amplitude_unit"), f"fault {name!r} amplitude_unit"),
+                     _str(t.get("description"), f"fault {name!r} description"))
+
+
+@dataclass(frozen=True)
 class Record:
     """Where this site's committed evidence lives, relative to the repository root.
 
@@ -367,6 +402,14 @@ class Declaration:
     sensors: tuple[Sensor, ...] = ()
     scalars: dict[str, Scalar] = field(default_factory=dict)
     record: Record | None = None
+    faults: tuple[Fault, ...] = ()
+
+    def fault(self, name: str) -> Fault:
+        try:
+            return next(f for f in self.faults if f.name == name)
+        except StopIteration:
+            raise KeyError(f"{self.key!r} declares no fault {name!r}; "
+                           f"declared: {[f.name for f in self.faults]}") from None
 
     def sensor(self, role: str) -> Sensor:
         try:
@@ -432,8 +475,8 @@ class Declaration:
 
 def loads(text: str, *, source: str = "<string>") -> Declaration:
     t = tomllib.loads(text)
-    _only(t, {"schema", "key", "label", "note", "state", "variant", "sensor", "scalar", "record"},
-          f"{source} top level")
+    _only(t, {"schema", "key", "label", "note", "state", "variant", "sensor", "scalar", "record",
+              "fault"}, f"{source} top level")
     schema = _str(t.get("schema"), f"{source} schema")
     if schema != SCHEMA:
         raise ValueError(f"{source} declares schema {schema!r}; this loader reads {SCHEMA!r}")
@@ -468,12 +511,16 @@ def loads(text: str, *, source: str = "<string>") -> Declaration:
         if s.name in scalars:
             raise ValueError(f"{source} declares scalar {s.name!r} twice")
         scalars[s.name] = s
+    faults = tuple(Fault.parse(x) for x in _tables(t.get("fault", []), f"{source} [[fault]]"))
+    fault_names = [f.name for f in faults]
+    if len(set(fault_names)) != len(fault_names):
+        raise ValueError(f"{source} declares a fault name twice: {fault_names}")
     record = Record.parse(_table(t["record"], f"{source} [record]")) if "record" in t else None
     return Declaration(key=_str(t.get("key"), f"{source} key"),
                        label=_str(t.get("label"), f"{source} label"),
                        note=_str(t.get("note"), f"{source} note"),
                        states=by_name, variants=by_key, sensors=sensors, scalars=scalars,
-                       record=record)
+                       record=record, faults=faults)
 
 
 def load(path: Path | str) -> Declaration:

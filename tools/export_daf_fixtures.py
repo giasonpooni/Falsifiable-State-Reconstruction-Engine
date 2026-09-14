@@ -579,7 +579,14 @@ def main(argv: list[str] | None = None) -> int:
                     help="directory of recorded live sessions to replay (data/daf/raw)")
     ap.add_argument("--only", choices=("fixtures", "sessions"), default=None,
                     help="export only DAF's committed fixtures, or only the recorded sessions")
+    ap.add_argument("--session", action="append", default=None, metavar="NAME",
+                    help="export only these recorded sessions and MERGE them into the existing "
+                         "manifest, leaving every other entry's bytes untouched; repeatable. "
+                         "Adding one site otherwise replays every session -- an hour of CPU to "
+                         "add a few minutes of evidence.")
     args = ap.parse_args(argv)
+    if args.session and args.only == "fixtures":
+        ap.error("--session selects recorded sessions; --only fixtures excludes all of them")
     root = _daf_root()
     pins = _pins(root)
     d = _import_daf(root)
@@ -588,8 +595,28 @@ def main(argv: list[str] | None = None) -> int:
     gitmodules = (root / ".gitmodules").read_text(encoding="utf-8")
     vendor_url = next((ln.split("=", 1)[1].strip() for ln in gitmodules.splitlines() if ln.strip().startswith("url")),
                       None)
+    prior = None
+    if args.session:
+        manifest_path = out / "manifest.json"
+        if not manifest_path.is_file():
+            ap.error(f"--session merges into an existing {manifest_path}, and there is none; "
+                     "run a full export first")
+        prior = json.loads(manifest_path.read_text(encoding="utf-8"))
+        # Merging entries exported at a different DAF commit would leave one manifest describing
+        # two states of the world. Refuse rather than produce it.
+        if prior.get("daf_commit") != pins["daf_commit"]:
+            ap.error(f"the existing manifest was exported at DAF {prior.get('daf_commit')!r} and this "
+                     f"checkout is at {pins['daf_commit']!r}; a merge would describe two states. "
+                     "Run a full export instead.")
+        if prior.get("vendored_substrate", {}).get("commit") != pins["vendor_commit"]:
+            ap.error("the existing manifest was exported against a different vendored substrate; "
+                     "a merge would describe two states. Run a full export instead.")
+        missing = [n for n in args.session if not (args.raw / n / "index.json").is_file()]
+        if missing:
+            ap.error(f"no recorded session(s) {missing} under {args.raw}")
+
     files = []
-    jobs = () if args.only == "sessions" else JOBS
+    jobs = () if (args.only == "sessions" or args.session) else JOBS
     for job in jobs:
         dicts, meta = _export_one(job, root, d)
         body = "[\n" + ",\n".join(json.dumps(r, sort_keys=True, separators=(",", ":"), ensure_ascii=True,
@@ -598,7 +625,9 @@ def main(argv: list[str] | None = None) -> int:
         files.append(meta)
         print(f"{job.out}: {len(dicts)} observations{' (SYNTHETIC)' if job.synthetic else ''}")
     sessions = []
-    if args.only != "fixtures" and args.raw.is_dir():
+    if args.session:
+        sessions = [args.raw / name for name in args.session]
+    elif args.only != "fixtures" and args.raw.is_dir():
         sessions = sorted(p for p in args.raw.iterdir() if (p / "index.json").is_file())
     for session_dir in sessions:
         dicts, meta = _export_session(session_dir, root, d)
@@ -608,6 +637,17 @@ def main(argv: list[str] | None = None) -> int:
         files.append(meta)
         print(f"{meta['output']}: {len(dicts)} observations from {meta['n_recorded_responses']} recorded "
               f"response(s), {meta['n_distinct_measurement_times']} distinct measurement times")
+    if prior is not None:
+        # Replace the entries just exported, keep every other one verbatim, and order the result
+        # exactly as a FULL export would: fixtures in JOBS order, then sessions by output name.
+        # A manifest built one session at a time must equal the one built in a single pass.
+        by_output = {f["output"]: f for f in prior["files"]}
+        by_output.update({f["output"]: f for f in files})
+        fixture_outputs = [job.out for job in JOBS]
+        ordered = [by_output[o] for o in fixture_outputs if o in by_output]
+        ordered += [by_output[o] for o in sorted(set(by_output) - set(fixture_outputs))]
+        files = ordered
+
     man = {
         "daf_repository": DAF_URL,
         "daf_commit": pins["daf_commit"],

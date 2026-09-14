@@ -253,6 +253,38 @@ What remains: n=2 is not a sample, and no fault is diagnosed at either site. The
 topologies are still not expressed in the declaration format, and `faults` — which
 `second_balance.Topology` carries and the schema does not — is the next field it needs.
 
+## 3e. The diagnostic surface on real evidence
+
+Until now every record `diagnose()` judged was one this repository generated. `muskingum_reach`,
+`fluid_baseline` and `camera_baseline` are synthetic; `real_fluid_baseline` calls it on a real
+record but with an **empty** hypothesis set, as a consistency test with no candidates. The
+isolation half — candidate fits, amplitude intervals, `min_separation`, the `ambiguous` and
+`insufficient_evidence` outcomes — had never met real evidence.
+
+Stage 3d produced what was missing: a real record whose balance does not close by a margin
+that is not arguable. [`results/real_diagnosis.md`](../results/real_diagnosis.md) asks what
+could explain it, with the candidate catalogue declared in each site's own TOML
+(`[[fault]]`, resolved against the record through a named profile, the same split a constraint
+row uses when its right-hand side is a reading).
+
+Two results. **Structural:** `ungauged_constant` and `outflow_reads_low` — water no gauge sees,
+and an outlet gauge reading low — are exactly collinear on a closure residual at both sites
+(cos = -1.0000). A practitioner separates them; one rank-1 row never can, at any covariance,
+with any amount of data. **Empirical:** the covariance is built from the declared instrument
+sigmas, and the unmodelled daily-mean alignment error is swept rather than chosen. Reading the
+sweep downward, Taylor Park goes `unexplained` (nothing in the catalogue accounts for the
+record) to `ambiguous` (several candidates at once) to `consistent` (nothing left to explain).
+Ridgway never reaches ambiguity. **At no point is a single cause named**, which was predicted
+before the table was computed and is the honest outcome for this constraint and catalogue.
+
+Adding a site also stopped costing an hour: `tools/export_daf_fixtures.py --session NAME`
+merges one recorded session into the existing manifest, refusing when the DAF or substrate pins
+differ because a merge would then describe two states. It reproduces a full export's manifest
+byte for byte in 1m39s instead of 57 minutes.
+
+What remains: the catalogue bounds the answer, so a cause absent from it cannot be found; the
+alignment term is swept, never measured; and no fault is asserted to exist at either site.
+
 ## 4. Degradation benchmark — offset/drift/gain baseline implemented; expansion planned
 
 The committed fixed-horizon benchmark supplies offset, drift and gain at two locked

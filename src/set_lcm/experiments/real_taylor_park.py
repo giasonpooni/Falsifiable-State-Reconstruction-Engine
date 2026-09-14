@@ -107,6 +107,7 @@ def compute() -> dict:
     out["provenance"]["generation"] = provenance()
     out["reporting_split"] = reporting_split()
     out["comparison_with_ridgway"] = _comparison()
+    out["ungauged_estimate"] = _ungauged_estimate(out)
     out["second_site_cost"] = {
         "declaration_only": False,
         "what_the_declaration_covered": [
@@ -152,6 +153,40 @@ def _comparison() -> dict:
     }
 
 
+UNGAUGED_SPEC = "wb_aug+hard+feedback"
+
+
+def _ungauged_estimate(out: dict) -> dict:
+    """What the augmented model itself says the ungauged term is, at both sites.
+
+    NOT independent evidence, and the report says so in those words. This is the run where
+    the constraint is fed back, so U absorbs the constraint residual: it is largely the same
+    information routed through a state rather than a second measurement of it. What it adds is
+    the model's own answer, with a standard deviation attached, to the question a reader asks
+    next -- and the contrast between the two sites, which the raw residual alone does not give
+    with an uncertainty.
+    """
+    def at(report: dict, sigma_key: str) -> dict:
+        cell = report["sweep"][sigma_key]["specs"][UNGAUGED_SPEC]["ungauged_cumulative"]
+        return {k: cell[k] for k in
+                ("final", "final_sd", "final_in_sd", "final_as_fraction_of_gauged_inflow", "units")}
+
+    base = f"{SITE.storage_sigma_base:g}"
+    ridgway = json.loads((REPO_ROOT / "results" / "real_water_balance.json").read_text(encoding="utf-8"))
+    return {
+        "spec": UNGAUGED_SPEC,
+        "storage_sigma": SITE.storage_sigma_base,
+        "independent": False,
+        "why_not_independent":
+            "the only run in which U is estimated rather than reported is the one with feedback, "
+            "and a constraint fed back is absorbed as if it were evidence; U therefore carries the "
+            "constraint residual rather than measuring it a second time",
+        "taylor_park": at(out, base),
+        "ridgway": at(ridgway, base),
+        "across_the_sweep": {k: at(out, k) for k in out["sweep"]},
+    }
+
+
 def claims(r: dict) -> dict:
     """Every qualitative sentence render() prints, as a computed condition.
 
@@ -183,6 +218,15 @@ def claims(r: dict) -> dict:
         "the_same_correspondence_fails_at_ridgway":
             abs(cmp["ridgway"]["residual_over_gauged_inflow"]
                 - cmp["ridgway"]["ungauged_drainage_fraction"]) > 0.05,
+        "the_augmented_model_puts_the_ungauged_term_far_from_zero_here":
+            r["ungauged_estimate"]["taylor_park"]["final_in_sd"] > 3.0,
+        "it_puts_it_much_nearer_zero_at_the_first_site":
+            r["ungauged_estimate"]["ridgway"]["final_in_sd"]
+            < 0.5 * r["ungauged_estimate"]["taylor_park"]["final_in_sd"],
+        "the_estimate_is_reported_as_not_independent":
+            r["ungauged_estimate"]["independent"] is False,
+        "the_estimate_stays_far_from_zero_across_the_whole_declared_sweep": all(
+            cell["final_in_sd"] > 3.0 for cell in r["ungauged_estimate"]["across_the_sweep"].values()),
         "the_second_site_was_not_a_declaration_alone":
             r["second_site_cost"]["declaration_only"] is False
             and len(r["second_site_cost"]["what_it_did_not_cover"]) >= 2,
@@ -317,6 +361,34 @@ def render(report: dict) -> str:
       f"or a mechanism, and two sites cannot tell which. Gauge bias, the stage-capacity table, "
       f"the daily-mean alignment and real ungauged inflow all remain live, and nothing here "
       f"separates them.")
+    A("")
+    A("`results/real_diagnosis` takes that question up with a declared catalogue and reaches the "
+      "same place by a different route: two of the candidates are exactly collinear on this "
+      "residual, so no amount of data separates them, and the engine reports ambiguity rather "
+      "than naming one.")
+    A("")
+
+    A("## What the augmented model says the ungauged term is")
+    A("")
+    u, ur = report["ungauged_estimate"]["taylor_park"], report["ungauged_estimate"]["ridgway"]
+    A(f"The augmented variant carries a cumulative ungauged state, and one run estimates it "
+      f"rather than reporting its prior: `{report['ungauged_estimate']['spec']}`. At this site "
+      f"it ends at **{u['final']:,.0f} {u['units']}** — {u['final_in_sd']:.2f} standard "
+      f"deviations from zero, {u['final_as_fraction_of_gauged_inflow'] * 100:.2f}% of gauged "
+      f"inflow. At Ridgway the same run ends at {ur['final']:,.0f} {ur['units']}, "
+      f"{ur['final_in_sd']:.2f} sd, {ur['final_as_fraction_of_gauged_inflow'] * 100:.2f}%.")
+    A("")
+    A(f"**This is not independent confirmation of anything above**, and it would be easy to "
+      f"present it as though it were. {report['ungauged_estimate']['why_not_independent'][0].upper()}"
+      f"{report['ungauged_estimate']['why_not_independent'][1:]}. The number close to the "
+      f"fully-reported cumulative is close to it because it largely IS it.")
+    A("")
+    A("What it adds is an uncertainty and a contrast. The raw residual is an arithmetic fact "
+      "with no error bar of its own; this is the declared model's answer with one attached, and "
+      f"it stays more than 3 sd from zero at every point of the declared storage-sigma sweep. "
+      f"Between the two sites it separates by a factor of "
+      f"{u['final_in_sd'] / ur['final_in_sd']:.1f} in standard deviations, which is the same "
+      f"direction the closure residual and the drainage fractions point, by the same evidence.")
     A("")
 
     A("## What is declared here, and on whose authority")

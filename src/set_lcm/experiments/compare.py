@@ -104,6 +104,7 @@ TOLERANCE: dict[str, float] = {
     "real_noaa_month.json": 1e-8,   # never generated on a second build; see its exception
     "real_water_balance.json": 1e-8,
     "real_taylor_park.json": 1e-8,      # the second site, same bridge and kernel
+    "real_diagnosis.json": 1e-8,        # linear algebra on two committed records
     "second_balance.json": 1e-8,   # a design study: linear algebra on declared matrices
     "errors_in_variables.json": 1e-8,   # seeded Monte Carlo; the seed is declared in the report
     "eiv_projection.json": 1e-8,        # seeded Monte Carlo; the seed is declared in the report
