@@ -359,19 +359,30 @@ def test_the_frame_digest_domain_separator_is_frozen():
     assert _frame_quality.frame_content_hash(frame) == expected
 
 
-def test_every_namespaced_artifact_schema_keeps_its_frozen_prefix():
-    """Only the namespaced ones. `schema_version` is not uniform across results/ -- eight
-    artifacts carry a namespaced string, three carry a bare integer 1, and five carry none --
-    which is worth fixing but is a change to the artifacts' public shape, not a rename
-    question. What this pins is the boundary: a namespaced version keeps the frozen prefix."""
-    namespaced = {}
+def test_every_artifact_declares_a_namespaced_schema_version():
+    """It used to take three forms at once -- eight namespaced strings, three bare integers and
+    five absent -- so a consumer could not read the field at all: an integer 1 does not say what
+    it versions, and an absent one does not say what shape to expect. Every artifact now carries
+    one, and it keeps the frozen prefix."""
+    versions = {}
     for path in sorted((REPO_ROOT / "results").glob("*.json")):
         version = json.loads(path.read_text(encoding="utf-8")).get("schema_version")
-        if isinstance(version, str):
-            namespaced[path.name] = version
-    assert len(namespaced) >= 8, namespaced
-    for name, version in namespaced.items():
-        assert version.startswith("fsre-"), (name, version)
+        assert isinstance(version, str), (path.name, version)
+        assert version.startswith("fsre-"), (path.name, version)
+        versions[path.name] = version
+    assert len(versions) == len(list((REPO_ROOT / "results").glob("*.json")))
+    assert len(set(versions.values())) == len(versions), "two artifacts share a schema version"
+
+
+def test_the_bundle_manifest_keeps_its_own_integer_contract():
+    """Not every `schema_version` in the tree is an artifact version. camera_bundle writes one
+    into its own manifest and validates it on the way back in -- a closed handshake between a
+    writer and a reader in one module, not a contract with a consumer of results/. Normalising
+    it would mean changing both halves for no reader's benefit, so it stays an integer and this
+    says that is deliberate."""
+    source = (REPO_ROOT / "src" / "set_lcm" / "experiments" / "camera_bundle.py").read_text(encoding="utf-8")
+    assert '"schema_version": 1' in source
+    assert 'manifest.get("schema_version") != 1' in source
 
 
 def test_the_declarations_state_the_frozen_schema():

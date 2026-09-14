@@ -238,7 +238,7 @@ def main(out_dir: Path, n_seeds: int = N_SEEDS, *, quiet: bool = False) -> int:
     text = render(nulls, sweep, n_seeds, cusum).replace("\n\n", "\n\n" + header_line(prov) + "\n\n", 1)
     (out_dir / "calibration.md").write_text(text, encoding="utf-8")
     (out_dir / "calibration.json").write_text(
-        json.dumps({"n_seeds": n_seeds, "provenance": prov, "null": nulls, "threshold_sweep": sweep,
+        json.dumps({"schema_version": "fsre-calibration-v1", "n_seeds": n_seeds, "provenance": prov, "null": nulls, "threshold_sweep": sweep,
                     "cusum_null": cusum}, indent=2),
         encoding="utf-8")
     if not quiet:

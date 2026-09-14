@@ -345,6 +345,7 @@ def compute() -> dict:
             "raw_flag_counts": entry["raw_flag_counts"],
         }
     out = {
+        "schema_version": "fsre-real-noaa-v1",
         "provenance": {
             "daf_commit": man["daf_commit"],
             "daf_commit_published": man["daf_commit_published"],

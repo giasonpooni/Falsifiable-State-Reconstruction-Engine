@@ -525,7 +525,8 @@ def main(out_dir: Path, *, quiet: bool = False) -> int:
     out_dir = Path(out_dir)
     out_dir.mkdir(exist_ok=True)
     prov = provenance()
-    summary = {"seed": SEED, "n_seeds": N_SEEDS, "detect_within": DETECT_WITHIN, "provenance": prov, "scenarios": {}}
+    summary = {"schema_version": "fsre-phase1-summary-v1", "seed": SEED, "n_seeds": N_SEEDS,
+               "detect_within": DETECT_WITHIN, "provenance": prov, "scenarios": {}}
     md = ["# SET + LCM Phase 1 results", "", header_line(prov), "",
           f"Two-reservoir material transfer, 600 steps, hidden truth, {N_SEEDS} seeds per scenario "
           "(mean ± sd across seeds where shown). Declared constraint: m1 + m2 = 100 kg, exact, in every "

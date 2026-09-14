@@ -1,13 +1,13 @@
 {
-  "schema_version": 1,
+  "schema_version": "fsre-camera-baseline-v1",
   "provenance": {
     "python": "3.13.12",
     "numpy": "2.5.3",
     "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
     "machine": "x86_64",
-    "source_sha256": "622f88b48553d276a806615c2649c91f398872559e1fef398e3a66492fd3e4a0",
-    "git_head": "e2f294487d914d881a59043de0a4df729d4d3cd7",
-    "source_dirty": false,
+    "source_sha256": "1baf7ee49925d8342e1f9e74fe8cbf7fc97da25835ccc35f057b356fe32dd105",
+    "git_head": "9602053a79b97e33727a7b0a9570f85a0e421eb6",
+    "source_dirty": true,
     "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
   },
   "design": {

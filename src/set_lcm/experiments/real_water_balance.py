@@ -432,6 +432,7 @@ def compute(*, site: Site = SITE, sweep_sigmas: tuple[float, ...] | None = None)
         sweep[f"{sigma:g}"] = {"storage_sigma": sigma, "specs": per_spec}
 
     out = {
+        "schema_version": "fsre-real-water-balance-v1",
         "site": {
             "reservoir": site.label,
             "series": {sen.role: {"monitoring_location_id": dict(sen.match)["monitoring_location_id"],

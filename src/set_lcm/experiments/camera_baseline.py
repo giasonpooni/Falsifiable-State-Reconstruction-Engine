@@ -421,7 +421,7 @@ def run_experiment() -> dict:
                     "anchor_reference_heights_m": trial.calibration_evidence.reference_heights.tolist(),
                     "anchor_reference_covariance_m2": trial.calibration_evidence.reference_covariance.tolist()}
         cases[scenario] = {"aggregate": _aggregate(records), "per_seed": records}
-    return {"schema_version": 1, "provenance": provenance(),
+    return {"schema_version": "fsre-camera-baseline-v1", "provenance": provenance(),
             "design": {
                 "scope": "Rendered synthetic tank-level observations only; no field validation, general image segmentation, 3-D odometry or operational fault-diagnosis claim.",
                 "n_frames": N_FRAMES, "calibration_development_seeds": list(CALIBRATION_SEEDS),

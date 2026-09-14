@@ -233,7 +233,7 @@ def main(out_dir: Path, n_seeds: int = N_SEEDS, *, quiet: bool = False) -> int:
     text = render(results, n_seeds).replace("\n\n", "\n\n" + header_line(prov) + "\n\n", 1)
     (out_dir / "sweep.md").write_text(text, encoding="utf-8")
     (out_dir / "sweep.json").write_text(
-        json.dumps({"n_seeds": n_seeds, "provenance": prov,
+        json.dumps({"schema_version": "fsre-sweep-v1", "n_seeds": n_seeds, "provenance": prov,
                     "axes": {a: {k: v for k, v in AXES[a].items() if k not in ("specs", "declared_specs")}
                              for a in AXES},
                     "results": {a: {str(p): r for p, r in pts.items()} for a, pts in results.items()}},

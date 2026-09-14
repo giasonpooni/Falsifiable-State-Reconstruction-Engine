@@ -199,7 +199,7 @@ def run_experiment() -> dict:
                             "runs": runs})
     outcomes = [run for record in records for run in record["runs"].values()]
     return {
-        "schema_version": 1, "provenance": provenance(),
+        "schema_version": "fsre-invariant-layer-v1", "provenance": provenance(),
         "design": {
             "scope": "Numerical equivalence and coordinate contracts for the additive Gaussian layer; not a performance or fault-classification benchmark.",
             "n_steps": N_STEPS, "seeds": list(SEEDS), "scenarios": list(SCENARIOS),

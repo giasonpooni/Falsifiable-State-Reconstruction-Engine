@@ -312,7 +312,7 @@ def run_benchmark(n_eval: int = N_EVALUATION, *, n_development: int = N_DEVELOPM
                 "evaluation": run_case(case, evaluation, config=config),
             }
     return {
-        "schema_version": 1, "config": asdict(config), "provenance": provenance(),
+        "schema_version": "fsre-fluid-baseline-v1", "config": asdict(config), "provenance": provenance(),
         "design": {
             "scope": "Synthetic Gaussian fixed-horizon evidence only; no field validation or operational false-alarm claim.",
             "development_seeds": list(development), "evaluation_seeds": list(evaluation),
