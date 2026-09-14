@@ -1,6 +1,6 @@
 # Synthetic fluid measurement benchmark
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 50a22c67cd05, git cdea185e52. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 bb2c81fe09d9, git 6f716eda3b. Latency columns are wall-clock on this machine and are not a claim.
 
 **Synthetic research evidence only. No field validation or operational alarm performance is established.**
 
