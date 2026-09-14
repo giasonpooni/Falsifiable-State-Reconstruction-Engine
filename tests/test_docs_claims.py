@@ -287,13 +287,14 @@ def test_the_clone_command_names_the_repository_that_exists():
 
 
 def test_the_package_docstring_and_the_readme_title_are_the_same_project():
-    words = [w for w in DIST_NAME.split("-")]
+    def squashed(text):
+        return _re.sub(r"[^a-z0-9]", "", text.lower())
+
     headline = _set_lcm.__doc__.splitlines()[0]
     title = README_RAW.splitlines()[0].lstrip("# ").strip()
-    for w in words:
-        assert w.lower() in headline.lower(), (w, headline)
-        assert w.lower() in title.lower().replace("-", " ").replace(" ", "") or \
-               w.lower() in title.lower(), (w, title)
+    for word in DIST_NAME.split("-"):
+        assert word in squashed(headline), (word, headline)
+        assert word in squashed(title), (word, title)
 
 
 def test_one_acronym_everywhere():
@@ -318,3 +319,61 @@ def test_no_superseded_name_survives_anywhere():
         text = path.read_text(encoding="utf-8", errors="ignore")
         found += [f"{path.relative_to(REPO_ROOT)}: {s}" for s in stale if s in text]
     assert not found, found
+
+
+# ---------------------------------------------------------------------------
+# the boundary between a name and an identifier
+#
+# The rename moved the project from FSRE to FSRT. It deliberately did NOT move the lowercase
+# `fsre-` identifiers, because they are not prose: schema strings are version contracts,
+# `fsre-frame-v1` is a hash domain separator mixed into every frame digest, and the DAF plan
+# ids are recorded in committed evidence. Renaming them to match the project would invalidate
+# committed declarations, every frame checksum, and the evidence replay -- for appearance.
+#
+# Which makes this the dangerous kind of inconsistency: the tidy-looking fix is the destructive
+# one. These pin the identifiers so that fix fails loudly instead of quietly rewriting history.
+# ---------------------------------------------------------------------------
+
+import hashlib as _hashlib
+
+import numpy as _np
+
+from set_lcm import declaration as _declaration
+from set_lcm import frame_quality as _frame_quality
+from set_lcm import recording as _recording
+
+
+def test_the_schema_identifiers_are_frozen_and_do_not_follow_the_project_name():
+    assert _declaration.SCHEMA == "fsre-declaration-v1"
+    assert _recording.SCHEMA == "fsre-tank-recording-v1"
+
+
+def test_the_frame_digest_domain_separator_is_frozen():
+    """Pinned by value, not by reading the source: any change to the separator OR to how the
+    digest is built changes this number, and every checksum recorded against a real frame."""
+    frame = _np.arange(6, dtype=_np.uint8).reshape(2, 3)
+    expected = _hashlib.sha256(
+        b"fsre-frame-v1\0"
+        + b'{"dtype":"|u1","shape":[2,3]}'
+        + b"\0" + frame.tobytes(order="C")).hexdigest()
+    assert _frame_quality.frame_content_hash(frame) == expected
+
+
+def test_every_namespaced_artifact_schema_keeps_its_frozen_prefix():
+    """Only the namespaced ones. `schema_version` is not uniform across results/ -- eight
+    artifacts carry a namespaced string, three carry a bare integer 1, and five carry none --
+    which is worth fixing but is a change to the artifacts' public shape, not a rename
+    question. What this pins is the boundary: a namespaced version keeps the frozen prefix."""
+    namespaced = {}
+    for path in sorted((REPO_ROOT / "results").glob("*.json")):
+        version = json.loads(path.read_text(encoding="utf-8")).get("schema_version")
+        if isinstance(version, str):
+            namespaced[path.name] = version
+    assert len(namespaced) >= 8, namespaced
+    for name, version in namespaced.items():
+        assert version.startswith("fsre-"), (name, version)
+
+
+def test_the_declarations_state_the_frozen_schema():
+    for path in sorted((REPO_ROOT / "declarations").glob("*.toml")):
+        assert f'schema = "{_declaration.SCHEMA}"' in path.read_text(encoding="utf-8"), path.name

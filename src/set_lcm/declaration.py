@@ -58,6 +58,10 @@ import numpy as np
 
 from .schema import ConstraintSet
 
+# FROZEN IDENTIFIER. The project is FSRT; this string stays `fsre-`, and that is a
+# decision rather than a leftover of the rename. It is the version contract every
+# declaration file states and this loader refuses to read anything else, so changing it
+# invalidates every committed declaration for a cosmetic reason.
 SCHEMA = "fsre-declaration-v1"
 
 __all__ = ["SCHEMA", "Declaration", "State", "Row", "Variant", "Sensor", "Scalar", "Record",

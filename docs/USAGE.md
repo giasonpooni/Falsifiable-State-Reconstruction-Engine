@@ -224,6 +224,17 @@ site = load("declarations/ridgway.toml")
 cs = site.constraint_set("open", readings={"closure": s0}, variances={"closure": s0_var})
 ```
 
+Two more tables an author writes. `[[scalar]]` carries a declared number that is neither a
+coefficient nor a sigma — a prior width, a process-noise scale, a drainage area — with its unit
+and the reason for it, so the justification sits beside the value. `[[fault]]` declares a
+candidate explanation for a diagnosis: a name, a label, a required `amplitude_unit`, and a
+`profile` that a study resolves against the record. A fault's *signature* cannot live in the
+declaration, because what a candidate would do to a residual depends on how many days each
+window held and what the gauges saw — the same split a row uses when its right-hand side is a
+reading. `profile` is a free string: a closed vocabulary would tie this format to water
+balances, so the study that resolves it owns the vocabulary and refuses a name it does not
+know, listing the ones it does.
+
 A row whose right-hand side is a *reading* cannot be resolved when the file is read, so the
 declaration names the sensor and the index and the value arrives at build time. Supplying a
 reading for a row that declared a constant, or omitting one a row asked for, raises rather

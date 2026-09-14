@@ -77,6 +77,10 @@ def frame_content_hash(frame: np.ndarray) -> str:
         raise ValueError("frame must be a nonempty 2-D or 3-D real numeric array")
     metadata = json.dumps({"dtype": frame.dtype.str, "shape": list(frame.shape)},
                           sort_keys=True, separators=(",", ":")).encode("utf-8")
+    # FROZEN IDENTIFIER, and the costliest one to change. This is the hash's DOMAIN
+    # SEPARATOR: it is mixed into every frame digest, so editing it to match the project's
+    # name would silently change every digest ever computed and invalidate the checksums
+    # recorded against real frames. The project is FSRT; this stays `fsre-frame-v1`.
     return hashlib.sha256(b"fsre-frame-v1\0" + metadata + b"\0" + frame.tobytes(order="C")).hexdigest()
 
 

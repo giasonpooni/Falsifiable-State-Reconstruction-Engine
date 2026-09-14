@@ -217,3 +217,18 @@ def test_a_session_new_to_the_manifest_lands_where_a_full_export_would_put_it():
     prior = [{"output": "a.json"}, {"output": "s_b.json"}, {"output": "s_d.json"}]
     merged = merge(prior, [{"output": "s_c.json"}], ["a.json"])
     assert [f["output"] for f in merged] == ["a.json", "s_b.json", "s_c.json", "s_d.json"]
+
+
+def test_the_declared_covariance_is_positive_definite_by_construction():
+    """Not by luck. Adjacent windows share a storage reading, which puts -sigma_S^2 on the
+    off-diagonal and makes the storage part of each row exactly cancel; what leaves the matrix
+    strictly diagonally dominant is the flow variance, which is positive on every real day.
+    diagnose() would refuse a non-PD covariance, but far from the reason -- this states it."""
+    for key in ("ridgway", "taylor_park"):
+        site = site_from(REPO_ROOT / "declarations" / f"{key}.toml")
+        rec = rd._record(site)
+        for alignment_sd in rd.ALIGNMENT_SWEEP:
+            cov = rd.covariance(rec, alignment_sd)
+            off = np.abs(cov).sum(axis=1) - np.abs(np.diag(cov))
+            assert (np.diag(cov) - off).min() > 0.0, (key, alignment_sd)
+            assert np.linalg.eigvalsh(cov).min() > 0.0, (key, alignment_sd)

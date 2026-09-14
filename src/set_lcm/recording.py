@@ -15,6 +15,9 @@ import re
 
 from .recording_clock import compare_capture_clocks, parse_capture_utc
 
+# FROZEN IDENTIFIER. The project is FSRT; this string stays `fsre-`, and that is a
+# decision rather than a leftover of the rename. It is the version contract a
+# recording kit states, and a kit written before the rename must still be readable after it.
 SCHEMA = "fsre-tank-recording-v1"
 FRAME_COLUMNS = ("sample_id", "frame_id", "capture_utc", "exposure_start_utc", "exposure_end_utc",
                  "present", "frame_path", "frame_sha256", "source_video_id", "source_frame_index")
