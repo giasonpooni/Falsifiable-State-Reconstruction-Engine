@@ -1,9 +1,9 @@
-# Fluid-Sensor Reconstruction Testbed (WIP)
+# Fluid-State Reconstruction Testbed (WIP)
 
 **Check whether measurements in a fluid system agree with its physical relationships.**
 
-Short name **FSRE**, which is what the code, the docs and the module namespace use.
-FSRE is a Python research toolkit for engineers and researchers working with water levels,
+Short name **FSRT**, which is what the code and the docs use; the importable package is `set_lcm`.
+FSRT is a Python research toolkit for engineers and researchers working with water levels,
 flow gauges and storage measurements. It estimates the state of a system, checks the estimate
 against a declared balance, and keeps a record of the disagreement and any correction.
 
@@ -19,14 +19,14 @@ time interval, conservation relates them:
 change in stored water = water in − water out
 ```
 
-If the measurements do not support that balance, FSRE can flag the disagreement and show its
+If the measurements do not support that balance, FSRT can flag the disagreement and show its
 size under your stated uncertainties. The cause could be a drifting instrument, an outdated
 rating curve, an unmeasured inflow, or an unsuitable model. **An alarm starts an investigation;
 it does not, by itself, identify a broken sensor.**
 
 ## What you get
 
-| Question | FSRE provides |
+| Question | FSRT provides |
 |---|---|
 | Do the estimates agree with the declared balance? | A consistency score and the residual before correction. |
 | What changed during reconciliation? | The original estimate, corrected estimate, correction and resulting uncertainty. |
@@ -44,8 +44,8 @@ You need [uv](https://docs.astral.sh/uv/getting-started/installation/) and a che
 repository. The project supports Python 3.12 and 3.13; its runtime dependency is NumPy.
 
 ```bash
-git clone https://github.com/giasonpooni/Fluid-Sensor-Reconstruction-Testbed.git
-cd Fluid-Sensor-Reconstruction-Testbed
+git clone https://github.com/giasonpooni/Fluid-State-Reconstruction-Testbed.git
+cd Fluid-State-Reconstruction-Testbed
 uv run --frozen --python 3.13 python examples/quickstart.py
 ```
 
@@ -129,7 +129,7 @@ onset and uncertainty; their amplitude intervals are conditional on that model. 
 consistency under declared assumptions; they do not establish the true state or which sensor
 is faulty. Some different faults are indistinguishable with the available measurements.
 
-Use FSRE now to evaluate a measurement model, compare methods, replay evidence and investigate
+Use FSRT now to evaluate a measurement model, compare methods, replay evidence and investigate
 possible faults. Treat it as research software when deciding whether it is suitable for an
 operational workflow.
 
@@ -175,10 +175,10 @@ the slower reproducibility checks. Reports are generated from code and include p
 - [Contributor brief](docs/COLLABORATOR_BRIEF.md): architecture and working conventions.
 - [Data provenance](data/daf/PROVENANCE.md): where the committed measurements came from.
 
-“State reconstruction” means estimating a physical system from measurements. FSRE retains
+“State reconstruction” means estimating a physical system from measurements. FSRT retains
 the evidence needed to challenge its estimates. Whether a fault can be detected depends on
 the measurements, model and declared uncertainty.
 
 ## License
 
-FSRE is available under the [MIT License](LICENSE).
+FSRT is available under the [MIT License](LICENSE).

@@ -1,4 +1,4 @@
-"""Fluid State Reconstruction Engine (FSRE).
+"""Fluid State Reconstruction Testbed (FSRT).
 
 Subpackages:
     set_lcm.schema       typed envelopes (Observation, ConstraintSet, StateEstimate, Status)

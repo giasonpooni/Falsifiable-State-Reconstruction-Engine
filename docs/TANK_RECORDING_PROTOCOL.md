@@ -232,7 +232,7 @@ the data. Avoid changing several conditions at once in the first trial.
 | Timing/data-integrity control | Preserve any actual acquisition drops or stalls. Separately labeled replay copies may inject drops, duplicated payloads or clock offsets to test software admission; these are injected data defects, not observed device faults. |
 
 Declare intervention magnitudes from the equipment's range and the experimental
-question. Keep that declaration separate from any magnitude estimated by FSRE.
+question. Keep that declaration separate from any magnitude estimated by FSRT.
 Do not infer that visibility loss, frame repetition or disagreement proves a
 particular broken sensor. In particular, camera and gauge drift can remain
 confounded in their difference, while a shared level bias may cancel entirely.

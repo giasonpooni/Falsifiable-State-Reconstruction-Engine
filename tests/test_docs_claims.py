@@ -251,3 +251,70 @@ def test_the_docs_do_not_still_say_the_projection_ignores_the_declaration():
                       "The projection is unchanged",
                       "implemented for the test, not the projection"):
             assert stale not in doc, (name, stale)
+
+
+# ---------------------------------------------------------------------------
+# the project's own name
+#
+# It had drifted into three variants at once -- the repository called itself one thing, the
+# README another, and the packaging a third -- and the README's clone command named a
+# repository that does not exist. Nothing checked it, so nothing caught it. These derive every
+# spelling from the packaging name and require the rest to agree.
+# ---------------------------------------------------------------------------
+
+import re as _re
+import tomllib as _tomllib
+
+import set_lcm as _set_lcm
+
+_PYPROJECT = _tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+DIST_NAME = _PYPROJECT["project"]["name"]
+README_RAW = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+
+
+def test_the_clone_command_names_the_repository_that_exists():
+    """A clone command is the one line a new reader runs first. It named a repository that is
+    not there: the owner had moved, the name had not."""
+    urls = [u.removesuffix(".git")
+            for u in _re.findall(r"github\.com/[\w.-]+/([\w.-]+)", README_RAW)]
+    assert urls, "the README should show how to clone the project"
+    for slug in set(urls):
+        if slug.lower().replace("-", "") == DIST_NAME.replace("-", ""):
+            break
+    else:
+        raise AssertionError(
+            f"no clone URL in the README matches the distribution name {DIST_NAME!r}; found {sorted(set(urls))}")
+
+
+def test_the_package_docstring_and_the_readme_title_are_the_same_project():
+    words = [w for w in DIST_NAME.split("-")]
+    headline = _set_lcm.__doc__.splitlines()[0]
+    title = README_RAW.splitlines()[0].lstrip("# ").strip()
+    for w in words:
+        assert w.lower() in headline.lower(), (w, headline)
+        assert w.lower() in title.lower().replace("-", " ").replace(" ", "") or \
+               w.lower() in title.lower(), (w, title)
+
+
+def test_one_acronym_everywhere():
+    acronyms = set(_re.findall(r"\b([A-Z]{4})\b", _set_lcm.__doc__.splitlines()[0]))
+    assert len(acronyms) == 1, acronyms
+    acronym = acronyms.pop()
+    assert acronym in README_RAW
+    initials = "".join(w[0] for w in DIST_NAME.split("-")).upper()
+    assert acronym == initials, (acronym, initials)
+
+
+def test_no_superseded_name_survives_anywhere():
+    stale = ("FSRE", "Fluid-Sensor", "falsifiable-state-reconstruction")
+    found = []
+    for path in REPO_ROOT.rglob("*"):
+        if not path.is_file() or path.suffix not in {".md", ".py", ".toml"}:
+            continue
+        if any(part in {".git", ".venv", "__pycache__"} for part in path.parts):
+            continue
+        if path.name == "test_docs_claims.py":
+            continue                      # this file names them in order to forbid them
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        found += [f"{path.relative_to(REPO_ROOT)}: {s}" for s in stale if s in text]
+    assert not found, found

@@ -12,7 +12,7 @@ wheels = [
 ]
 
 [[package]]
-name = "falsifiable-state-reconstruction-engine"
+name = "fluid-state-reconstruction-testbed"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

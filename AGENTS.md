@@ -1,6 +1,6 @@
 # Development workflow
 
-Maintain FSRE as one project on `main`.
+Maintain FSRT as one project on `main`.
 
 - Work directly on `main` and push completed, validated changes to `origin/main`.
 - Do not create development branches, separate project copies, or pull requests unless

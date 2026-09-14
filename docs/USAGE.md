@@ -1,6 +1,6 @@
-# Using FSRE
+# Using FSRT
 
-FSRE is a Python library and a collection of reproducible experiments. Start with the small
+FSRT is a Python library and a collection of reproducible experiments. Start with the small
 example, then choose whether you need to check raw fluid measurements, reconcile an existing
 estimate or replay a sequence of measurements through an estimator.
 

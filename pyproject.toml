@@ -1,5 +1,5 @@
 [project]
-name = "falsifiable-state-reconstruction-engine"
+name = "fluid-state-reconstruction-testbed"
 version = "0.1.0"
 description = "Estimate fluid-system states, check declared physical balances, and preserve evidence of measurement disagreement."
 license = "MIT"

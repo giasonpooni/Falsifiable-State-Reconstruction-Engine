@@ -1,6 +1,6 @@
 # Additive invariant filtering for fluid states
 
-FSRE now has an invariant state/error layer for affine fluid models. It propagates
+FSRT now has an invariant state/error layer for affine fluid models. It propagates
 uncertainty, estimates the invariant error from measurements, and retracts that
 correction onto the predicted state. It supports correlated measurements, missing
 readings and fixed changes of state coordinates. It also retains the innovation
@@ -45,7 +45,7 @@ posterior mean = retract(predicted_mean, correction)
 ```
 
 Error propagation is independent of the nominal trajectory. On an additive group,
-the group-affine condition reduces to affine dynamics; this gives FSRE a concrete
+the group-affine condition reduces to affine dynamics; this gives FSRT a concrete
 instance of the geometry underlying IEKF methods. The general theory and its
 stability conditions are given by [Barrau and Bonnabel](https://arxiv.org/abs/1410.1465).
 Their nonlinear convergence results are not a blanket guarantee for arbitrary

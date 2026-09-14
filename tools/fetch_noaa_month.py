@@ -50,7 +50,7 @@ from _daf_session import (
 
 SOURCE_ID = "noaa-water-level-measurements"   # the operator's DAF source id; not part of any evidence id
 PRODUCT = "water_level"
-USER_AGENT = "falsifiable-state-reconstruction-engine/0.1 (research; one-off archival fetch)"
+USER_AGENT = "fluid-state-reconstruction-testbed/0.1 (research; one-off archival fetch)"
 
 
 def _windows_expected(begin: str, end: str, window_days: int, lookback_days: int) -> list[tuple[str, str]]:

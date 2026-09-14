@@ -173,7 +173,7 @@ source kinds remain attached. Applying it to successive complete windows can
 show changes in frequency content. Sampling frequency, detrending, window
 choice, and PSD normalization are explicit choices in the
 [SciPy STFT documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.stft.html);
-FSRE implements its bounded NumPy periodogram directly and does not require
+FSRT implements its bounded NumPy periodogram directly and does not require
 SciPy or provide a general STFT reconstruction pipeline.
 
 A spectrum cannot recover missing physical timestamps or recognize a consistently

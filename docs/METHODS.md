@@ -1,6 +1,6 @@
 # Methods and interpretation
 
-FSRE combines established estimation and reconciliation methods with preserved evidence,
+FSRT combines established estimation and reconciliation methods with preserved evidence,
 explicit assumptions and reproducible experiments. Numerical results are in the generated
 [reports](../results/); future work is in the [roadmap](ROADMAP.md).
 
