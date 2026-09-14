@@ -1,6 +1,6 @@
 # P4b: a real reservoir water balance through the reconciliation kernel
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 50a22c67cd05, git cdea185e52. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 bb2c81fe09d9, git 1ff5aa7f66 (source dirty). Latency columns are wall-clock on this machine and are not a claim.
 
 Ridgway Reservoir, Uncompahgre River, Colorado, 1096 days from 2022-10-01, four USGS daily-mean series admitted by DAF. Gauged drainage 246.2 of 265 sq mi = 0.929.
 
@@ -31,7 +31,7 @@ over 1095 days, in acre-ft per day:
 |---|---|---|---|---|---|---|---|
 | 1.39 | 64.12 | 4.74 | -100.47 | 81.61 | -552.23 | 555.82 | +0.173 |
 
-As a flow: mean **+0.703 ft³/s**, sd 32.33 ft³/s, against a mean gauged inflow of 169.5 ft³/s. Over the whole record the imbalance accumulates to 1,526 acre-ft, +0.41% of the 368,576 acre-ft that flowed in.
+As a flow: mean **+0.703 ft³/s**, sd 32.33 ft³/s, against a mean gauged inflow of 169.6 ft³/s. Over the whole record the imbalance accumulates to 1,526 acre-ft, +0.41% of the 368,396 acre-ft that flowed in.
 
 **That cumulative is not evidence of a net imbalance, and must not be read as one.** It is a sum of 1,095 daily residuals, so it grows as sqrt(n) even when the gauges close exactly. Against its own standard error it is indistinguishable from zero:
 

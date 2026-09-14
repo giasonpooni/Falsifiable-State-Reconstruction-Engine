@@ -1,6 +1,6 @@
 # What the diagnostic surface says about a real record
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 50a22c67cd05, git cdea185e52. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 bb2c81fe09d9, git 1ff5aa7f66 (source dirty). Latency columns are wall-clock on this machine and are not a claim.
 
 The diagnostic surface applied to real records, with the candidate catalogue declared in each site's own TOML. No fault is asserted to exist at either site.
 
@@ -31,7 +31,7 @@ Each site's candidates live in its own TOML. A fault's *signature* cannot: it is
 | `storage_scale_error` | fraction | Stage-capacity table off by a scale factor |
 | `inflow_rating_high` | fraction | Inflow ratings high by a common fraction |
 
-The first site declares no seasonal candidate because it has no gaps for one to live in: every Ridgway series is complete. That difference is not a convenience — it is what makes anything separable at the second site at all, as the next table shows.
+The first site declares no seasonal candidate because it has no gaps for one to live in: every Ridgway series is complete. That is the only difference between the two catalogues, and the next section is careful about what it does and does not buy.
 
 ## The structural result, which no covariance can change
 
@@ -42,16 +42,23 @@ Two candidates a practitioner thinks of as entirely different things — water n
 | taylor_park | `ungauged_constant` vs `outflow_reads_low` | -1.0000 |
 | ridgway | `ungauged_constant` vs `outflow_reads_low` | -1.0000 |
 
-This is the rank-1 bound arriving in a real catalogue. One closure row gives a scalar per window, so every pair of candidates it can see at all is collinear in that one direction; no covariance, no amount of data and no threshold choice separates them. A catalogue holding only those two could never resolve, at any site, ever. Reporting that is the engine working — the alternative is naming one of them and being right half the time.
+They are collinear because they perturb the residual **identically**: both add a constant volume to every day. That is a property of the two candidates, not of the covariance or the record, so no covariance, no quantity of data and no threshold choice separates them, and no aggregation scheme would either. A catalogue holding only those two could never resolve, at any site, ever. Reporting that is the engine working — the alternative is naming one of them and being right half the time.
 
-What breaks the tie at Taylor Park Reservoir is the record's own gaps. `seasonal_creeks_unreported` follows the count of absent days rather than the calendar, so it points somewhere else:
+**It does not follow that nothing is separable.** A candidate whose effect varies over the record points somewhere else entirely, and the same table says so — a stage-capacity scale error follows the storage change rather than the calendar, and comes out nearly orthogonal to the constant pair at **both** sites:
+
+| site | pair | cos |
+| --- | --- | ---: |
+| taylor_park | `ungauged_constant` vs `storage_scale_error` | -0.0131 |
+| ridgway | `ungauged_constant` vs `storage_scale_error` | -0.0118 |
+
+So what the second site's gaps add is **one more candidate**, not separability itself. `seasonal_creeks_unreported` follows the count of absent days, and it is the less separable of the two time-varying candidates, not the more:
 
 | pair | cos |
 | --- | ---: |
-| `seasonal_creeks_unreported` vs `ungauged_constant` | +0.6478 |
-| `seasonal_creeks_unreported` vs `outflow_reads_low` | -0.6478 |
-| `seasonal_creeks_unreported` vs `storage_scale_error` | -0.0770 |
-| `seasonal_creeks_unreported` vs `inflow_rating_high` | -0.0998 |
+| `seasonal_creeks_unreported` vs `ungauged_constant` | +0.6404 |
+| `seasonal_creeks_unreported` vs `outflow_reads_low` | -0.6404 |
+| `seasonal_creeks_unreported` vs `storage_scale_error` | -0.0772 |
+| `seasonal_creeks_unreported` vs `inflow_rating_high` | -0.0985 |
 
 ## What the engine says, against how much unmodelled error is admitted
 
@@ -61,11 +68,11 @@ The covariance is the declared instrument sigmas, propagated through the window 
 
 | alignment sd (acre-ft/day) | null χ² | threshold | status | candidates not rejected |
 | ---: | ---: | ---: | --- | ---: |
-| 0 | 11,523.4 | 58.6 | `unexplained` | 0 |
-| 50 | 1,309.3 | 58.6 | `unexplained` | 0 |
-| 200 | 108.9 | 58.6 | `ambiguous` | 4 |
-| 500 | 18.1 | 58.6 | `consistent` | 5 |
-| 1,000 | 4.5 | 58.6 | `consistent` | 5 |
+| 0 | 11,618.4 | 58.6 | `unexplained` | 0 |
+| 50 | 1,328.7 | 58.6 | `unexplained` | 0 |
+| 200 | 110.1 | 58.6 | `ambiguous` | 4 |
+| 500 | 18.2 | 58.6 | `consistent` | 5 |
+| 1,000 | 4.6 | 58.6 | `consistent` | 5 |
 
 **Ridgway Reservoir, Uncompahgre River, Colorado** — cumulative residual 1,526 acre-ft over 36 windows:
 

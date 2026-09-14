@@ -50,18 +50,16 @@ from __future__ import annotations
 import json
 import math
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 
-from ..bridge.daf import BridgedSeries, DeclaredSigma, SeriesSelector, bridge, load_records
+from ..bridge.daf import BridgedSeries, bridge, load_records
 from ..lcm import constraint_bases, detectability
-from ..declaration import load as load_declaration
 from ..schema import ConstraintSet
 from .balance_site import Site, site_from
 from ..testbed.cusum import CusumConfig
-from ..testbed.estimators_balance import CFS_DAY_TO_ACRE_FT, BalanceConfig
+from ..testbed.estimators_balance import CFS_DAY_TO_ACRE_FT
 from ..testbed.runner import EstimatorSpec, RunResult, run
 from ..testbed.truth_free import evaluate_truth_free
 from .provenance import REPO_ROOT
@@ -90,7 +88,6 @@ DECLARATION = SITE.decl
 # view of one reviewable document. Every function below takes a keyword-only `site` so that a
 # SECOND reservoir needs a declaration and a caller, not a copy of this file.
 DATA_DIR, MANIFEST_PATH, OBSERVATIONS = SITE.data_dir, SITE.manifest_path, SITE.observations
-VOLUME_UNIT = SITE.volume_unit
 COLUMNS, SELECTORS, SOURCE_IDS = SITE.columns, SITE.selectors, SITE.source_ids
 GAUGED_SQ_MI, TOTAL_SQ_MI = SITE.gauged_area, SITE.total_area
 FLOW_SIGMA_RELATIVE, FLOW_SIGMA_FLOOR = SITE.flow_sigma_relative, SITE.flow_sigma_floor
@@ -154,7 +151,12 @@ def closure_residual(bs: BridgedSeries, *, site: Site = SITE) -> dict:
     inflow_volume = CFS_DAY_TO_ACRE_FT * net_cfs[:-1]  # acre-ft over day k
     r = dS - inflow_volume
     finite = np.isfinite(r)
-    total_in = CFS_DAY_TO_ACRE_FT * np.nansum(inflow_total)
+    # The denominator has to cover the SAME days as the numerator. r[k] pairs the storage
+    # change over day k with day k's inflow, so it exists for days 0..n-2 and not at all where
+    # a storage reading is absent; summing inflow over every day of the record instead would
+    # divide a partial numerator by a whole denominator. At a site with no gaps that is one
+    # day in eleven hundred; at one with gaps it is every gap as well.
+    total_in = CFS_DAY_TO_ACRE_FT * float(np.nansum(np.where(finite, inflow_total[:-1], 0.0)))
     cum = float(np.nansum(r))
     return {
         "n_days": int(finite.sum()),
@@ -171,7 +173,7 @@ def closure_residual(bs: BridgedSeries, *, site: Site = SITE) -> dict:
         "gauged_inflow_volume": float(total_in),
         "mean_as_cfs": float(np.nanmean(r) / CFS_DAY_TO_ACRE_FT),
         "sd_as_cfs": float(np.nanstd(r, ddof=1) / CFS_DAY_TO_ACRE_FT),
-        "mean_throughput_cfs": float(np.nanmean(inflow_total)),
+        "mean_throughput_cfs": float(np.nanmean(inflow_total[:-1][finite])),
         "lag1_autocorr": _lag1(r[finite]),
         **_cumulative_uncertainty(cum, float(np.nanstd(r, ddof=1)), int(finite.sum()), _lag1(r[finite])),
         # None, not NaN, for a day the residual cannot be computed on -- json.dumps runs with

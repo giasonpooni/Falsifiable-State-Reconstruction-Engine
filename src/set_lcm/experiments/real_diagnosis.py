@@ -86,19 +86,40 @@ def _record(site: Site) -> dict:
     var_net = (np.where(mask[:, 1], var[:, 1], 0.0)
                + np.nansum(np.where(mask[:, 2:], var[:, 2:], 0.0), axis=1))
 
+    # A day whose storage reading is absent has no computable residual, and the declared R at
+    # such a day is NaN. Two things follow, and both were wrong before they were checked:
+    #
+    #   the window's residual is a sum over the days that CONTRIBUTED, not over its calendar
+    #   length, so a signature counting calendar days would claim an effect over days the
+    #   residual never saw. Every profile below counts contributing days instead.
+    #
+    #   a window edge landing on an absent storage reading would put NaN in the covariance.
+    #   diagnose() refuses that, so it fails loudly rather than silently -- but it fails far
+    #   from its cause, so it is caught here with the day named.
+    contributed = np.isfinite(daily)
     windows = []
     for a, b in zip(edges, edges[1:]):
+        for edge in (a, b):
+            if not np.isfinite(var_storage[edge]) or not np.isfinite(storage[edge]):
+                raise ValueError(
+                    f"{site.key!r}: window edge at day {edge} has no storage reading, so the "
+                    f"window residual and its variance are undefined there. Choose a window "
+                    f"count whose edges miss the gaps (this record has {int((~np.isfinite(storage)).sum())})")
+        took = contributed[a:b]
         windows.append({
-            "days": int(b - a),
+            "days": int(took.sum()),                  # days that contributed, not calendar length
+            "calendar_days": int(b - a),
             "residual": float(np.nansum(daily[a:b])),
             "storage_change": float(storage[b] - storage[a]),
-            "absent_days": int(absent[a:b].sum()),
-            "inflow_cfs_days": float(np.nansum(inflow_total[a:b])),
+            "absent_days": int((absent[a:b] & took).sum()),
+            "inflow_cfs_days": float(np.nansum(np.where(took, inflow_total[a:b], 0.0))),
             "var_declared": float(var_storage[b] + var_storage[a]
-                                  + CFS_DAY_TO_ACRE_FT ** 2 * np.nansum(var_net[a:b])),
+                                  + CFS_DAY_TO_ACRE_FT ** 2
+                                  * np.nansum(np.where(took, var_net[a:b], 0.0))),
             "var_shared_storage": float(var_storage[b]),
         })
-    return {"windows": windows, "n_days": int(n)}
+    return {"windows": windows, "n_days": int(n),
+            "days_without_a_computable_residual": int((~contributed).sum())}
 
 
 def covariance(rec: dict, alignment_sd: float) -> np.ndarray:
@@ -108,6 +129,7 @@ def covariance(rec: dict, alignment_sd: float) -> np.ndarray:
     m = len(w)
     cov = np.zeros((m, m))
     for i, cell in enumerate(w):
+        # the alignment term accumulates over contributing days, for the same reason
         cov[i, i] = cell["var_declared"] + cell["days"] * alignment_sd ** 2
     for i in range(m - 1):
         # window i ends on the storage reading window i+1 starts on, with the opposite sign
@@ -191,6 +213,7 @@ def diagnose_site(key: str) -> dict:
         "n_days": rec["n_days"],
         "windows": len(rec["windows"]),
         "cumulative_residual": float(residual.sum()),
+        "days_without_a_computable_residual": rec["days_without_a_computable_residual"],
         "catalogue": [{"name": f.name, "label": f.label, "profile": f.profile,
                        "amplitude_unit": f.amplitude_unit, "description": f.description}
                       for f in site.decl.faults],
@@ -262,15 +285,29 @@ def claims(r: dict) -> dict:
         "the_status_only_ever_loosens_as_more_error_is_admitted": all(
             a["null_statistic"] >= b["null_statistic"]
             for a, b in zip(tp["sweep"], tp["sweep"][1:])),
-        "the_separable_candidate_at_the_second_site_is_the_one_its_gaps_create": any(
+        "the_candidate_the_gaps_create_points_away_from_the_constant_pair": any(
             p["cos"] is not None and abs(p["cos"]) < 0.75
             for p in tp["geometry"]
             if "seasonal_creeks_unreported" in (p["a"], p["b"])),
         "the_first_sites_catalogue_declares_no_seasonal_candidate_because_it_has_no_gaps":
             all(f["name"] != "seasonal_creeks_unreported" for f in rg["catalogue"]),
-        "every_declared_fault_resolved_to_a_signature": all(
-            len(s["geometry"]) == len(s["catalogue"]) * (len(s["catalogue"]) - 1) // 2
+        # A pair count is not a test: _cosines always emits C(n,2) pairs, so comparing it to
+        # C(n,2) could never fail. What can fail is a candidate that resolves to nothing --
+        # declaring the seasonal creeks at a site whose series are complete would do it.
+        "no_declared_candidate_resolves_to_a_zero_signature": not any(
+            p["zero_signature"] for s in (tp, rg) for p in s["geometry"]),
+        "not_every_pair_of_candidates_is_collinear": any(
+            not p["exactly_collinear"] for s in (tp, rg) for p in s["geometry"]),
+        "a_time_varying_candidate_is_near_orthogonal_to_the_constant_pair_at_both_sites": all(
+            any(abs(p["cos"]) < 0.1 for p in s["geometry"]
+                if {p["a"], p["b"]} == {"ungauged_constant", "storage_scale_error"})
             for s in (tp, rg)),
+        "the_gaps_add_a_candidate_rather_than_separability": (
+            len(tp["catalogue"]) == len(rg["catalogue"]) + 1
+            and max(abs(p["cos"]) for p in tp["geometry"]
+                    if "seasonal_creeks_unreported" in (p["a"], p["b"]))
+            > max(abs(p["cos"]) for p in tp["geometry"]
+                  if {p["a"], p["b"]} == {"ungauged_constant", "storage_scale_error"})),
     }
 
 
@@ -316,9 +353,9 @@ def render(report: dict) -> str:
         for f in site["catalogue"]:
             A(f"| `{f['name']}` | {f['amplitude_unit']} | {f['label']} |")
         A("")
-    A(f"The first site declares no seasonal candidate because it has no gaps for one to live "
-      f"in: every Ridgway series is complete. That difference is not a convenience — it is what "
-      f"makes anything separable at the second site at all, as the next table shows.")
+    A("The first site declares no seasonal candidate because it has no gaps for one to live in: "
+      "every Ridgway series is complete. That is the only difference between the two "
+      "catalogues, and the next section is careful about what it does and does not buy.")
     A("")
 
     A("## The structural result, which no covariance can change")
@@ -335,15 +372,28 @@ def render(report: dict) -> str:
             if p["exactly_collinear"]:
                 A(f"| {site['key']} | `{p['a']}` vs `{p['b']}` | {p['cos']:+.4f} |")
     A("")
-    A("This is the rank-1 bound arriving in a real catalogue. One closure row gives a scalar per "
-      "window, so every pair of candidates it can see at all is collinear in that one direction; "
-      "no covariance, no amount of data and no threshold choice separates them. A catalogue "
-      "holding only those two could never resolve, at any site, ever. Reporting that is the "
-      "engine working — the alternative is naming one of them and being right half the time.")
+    A("They are collinear because they perturb the residual **identically**: both add a constant "
+      "volume to every day. That is a property of the two candidates, not of the covariance or "
+      "the record, so no covariance, no quantity of data and no threshold choice separates "
+      "them, and no aggregation scheme would either. A catalogue holding only those two could "
+      "never resolve, at any site, ever. Reporting that is the engine working — the alternative "
+      "is naming one of them and being right half the time.")
     A("")
-    A(f"What breaks the tie at {tp['label'].split(',')[0]} is the record's own gaps. "
-      f"`seasonal_creeks_unreported` follows the count of absent days rather than the calendar, "
-      f"so it points somewhere else:")
+    A("**It does not follow that nothing is separable.** A candidate whose effect varies over "
+      "the record points somewhere else entirely, and the same table says so — a stage-capacity "
+      "scale error follows the storage change rather than the calendar, and comes out nearly "
+      "orthogonal to the constant pair at **both** sites:")
+    A("")
+    A("| site | pair | cos |")
+    A("| --- | --- | ---: |")
+    for site in (tp, rg):
+        for p in site["geometry"]:
+            if {p["a"], p["b"]} == {"ungauged_constant", "storage_scale_error"}:
+                A(f"| {site['key']} | `{p['a']}` vs `{p['b']}` | {p['cos']:+.4f} |")
+    A("")
+    A(f"So what the second site's gaps add is **one more candidate**, not separability itself. "
+      f"`seasonal_creeks_unreported` follows the count of absent days, and it is the less "
+      f"separable of the two time-varying candidates, not the more:")
     A("")
     A("| pair | cos |")
     A("| --- | ---: |")

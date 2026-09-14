@@ -226,7 +226,7 @@ name = "seasonal_creeks_unreported"
 label = "Seasonal creeks flowing while not reporting"
 profile = "unreported_seasonal_inflow"
 amplitude_unit = "ft^3/s"
-description = "The two seasonal gauges report for part of each year only. This candidate is water they carry on the days they are absent, which the measured net inflow omits entirely. Its signature is the count of absent days, so it is the one candidate here the record's own gaps make separable from a constant."
+description = "The two seasonal gauges report for part of each year only. This candidate is water they carry on the days they are absent, which the measured net inflow omits entirely. Its signature is the count of absent days rather than the calendar, so it is not collinear with a constant rate -- though it is the LESS separable of the two candidates here that vary over the record; a stage-capacity scale error points further away still."
 
 [[fault]]
 name = "storage_scale_error"

@@ -61,6 +61,13 @@ def test_the_cumulative_is_never_quoted_in_the_doc_without_its_standard_error():
     assert "contains zero" in DOC
 
 
+def test_the_throughput_and_inflow_volume_the_doc_quotes_are_the_artifacts_own():
+    """Both divide the closure residual, so both move when its day set does -- which is
+    exactly what happened when the denominator was aligned with the numerator."""
+    assert _shown(CLOSURE["mean_throughput_cfs"], 1) in DOC
+    assert _shown(CLOSURE["gauged_inflow_volume"]) in DOC
+
+
 def test_the_doc_does_not_claim_the_two_routes_are_independent():
     assert "share no code path" not in DOC
     assert "not independent" in DOC

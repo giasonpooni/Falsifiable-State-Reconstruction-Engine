@@ -891,7 +891,7 @@ differences, `r_k = (S_{k+1} − S_k) − c (q_in1 + q_in2 − q_out)_k`:
 
 | mean | sd | as a flow | 3-year cumulative |
 |---|---|---|---|
-| +1.39 acre-ft/day | 64.1 acre-ft/day | **+0.703 ft³/s** against 169.5 ft³/s of mean gauged inflow | +1,526 acre-ft, +0.41% of the 368,576 that flowed in |
+| +1.39 acre-ft/day | 64.1 acre-ft/day | **+0.703 ft³/s** against 169.6 ft³/s of mean gauged inflow | +1,526 acre-ft, +0.41% of the 368,396 that flowed in |
 
 **The cumulative is not the finding, and must not be read as one.** It is a sum of 1,095 daily
 residuals of sd 64.12, so it grows as √n even when the gauges close exactly: its standard error is

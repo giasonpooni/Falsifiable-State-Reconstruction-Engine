@@ -78,11 +78,18 @@ def test_a_declared_inflow_count_that_contradicts_the_sensors_is_refused():
 
 def test_the_shared_study_runs_on_either_site_unchanged():
     """compute() is the Ridgway study. It is site-generic, and this is what says so."""
-    assert wb.compute.__defaults__ is None          # keyword-only site, no positional default
     cs_r = wb.constraint_open(1.0, 1.0, site=wb.SITE)
     cs_t = wb.constraint_open(1.0, 1.0, site=tp.SITE)
     assert cs_r.version != cs_t.version
     np.testing.assert_array_equal(cs_r.A, cs_t.A)   # same physics, different declaration
+
+    # and the study really runs end to end on the site it is handed, not just builds its rows
+    for site, expected in ((wb.SITE, 2), (tp.SITE, 3)):
+        bridged = wb.load(site.storage_sigma_base, site=site)
+        assert len(bridged.observations[0].y) == expected + 2
+        closure = wb.closure_residual(bridged, site=site)
+        assert closure["units"] == f"{site.volume_unit} per day"
+        assert closure["n_days"] > 1000
 
 
 # ---------------------------------------------------------------------------

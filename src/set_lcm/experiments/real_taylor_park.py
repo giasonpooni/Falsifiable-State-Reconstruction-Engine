@@ -59,9 +59,6 @@ from .provenance import REPO_ROOT, header_line, provenance
 DECLARATION_PATH = REPO_ROOT / "declarations" / "taylor_park.toml"
 SITE = site_from(DECLARATION_PATH)
 
-RIDGWAY = wb.SITE          # the first site, for the comparisons this report draws
-
-
 def reporting_split(site=SITE) -> dict:
     """The closure residual split by whether every gauge reported that day.
 
@@ -171,8 +168,17 @@ def _ungauged_estimate(out: dict) -> dict:
         return {k: cell[k] for k in
                 ("final", "final_sd", "final_in_sd", "final_as_fraction_of_gauged_inflow", "units")}
 
-    base = f"{SITE.storage_sigma_base:g}"
     ridgway = json.loads((REPO_ROOT / "results" / "real_water_balance.json").read_text(encoding="utf-8"))
+    # Both sites must be read at the SAME declared sigma or the contrast is between two
+    # different assumptions wearing one sentence. They agree today; indexing the first site's
+    # sweep with this site's key would have gone on working right up until they did not.
+    other_base = float(ridgway["declared"]["storage_sigma_base"])
+    if other_base != SITE.storage_sigma_base:
+        raise ValueError(
+            f"this site declares a storage sigma of {SITE.storage_sigma_base} and the first site "
+            f"declares {other_base}; a cross-site ungauged comparison at two different declared "
+            "uncertainties is not the comparison this report describes")
+    base = f"{SITE.storage_sigma_base:g}"
     return {
         "spec": UNGAUGED_SPEC,
         "storage_sigma": SITE.storage_sigma_base,
@@ -227,9 +233,14 @@ def claims(r: dict) -> dict:
             r["ungauged_estimate"]["independent"] is False,
         "the_estimate_stays_far_from_zero_across_the_whole_declared_sweep": all(
             cell["final_in_sd"] > 3.0 for cell in r["ungauged_estimate"]["across_the_sweep"].values()),
+        # Not a literal this module wrote: the filters really do take their width from the
+        # declaration now, and the two sites really do have different widths. That is the
+        # change the sentence describes, so that is what the guard should check.
         "the_second_site_was_not_a_declaration_alone":
             r["second_site_cost"]["declaration_only"] is False
-            and len(r["second_site_cost"]["what_it_did_not_cover"]) >= 2,
+            and len(r["second_site_cost"]["what_it_did_not_cover"]) >= 2
+            and SITE.cfg.n_inflows != wb.SITE.cfg.n_inflows
+            and SITE.cfg.n_inflows == len(SITE.columns) - 2,
     }
 
 
