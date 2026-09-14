@@ -1,0 +1,64 @@
+# A second reservoir, and what a second reservoir cost
+
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 1193cb293257, git 3af69775eb (source dirty). Latency columns are wall-clock on this machine and are not a claim.
+
+Taylor Park Reservoir, Taylor River, Colorado, from `declarations/taylor_park.toml`. Three water years of USGS daily values on the same grid as Ridgway: reservoir storage, the outlet gauge and **three** inflow gauges.
+
+## What the second site cost
+
+When Ridgway's constants moved into a declaration, the claim was that a second reservoir would cost a declaration rather than a module. That was a hypothesis, and this is its test. The answer is a declaration **plus two one-time costs that only a second site could have exposed**:
+
+- estimators_balance assumed exactly two gauged inflows (N_SENSORS = 4 and three hand-indexed state layouts); the count now comes from BalanceConfig.n_inflows
+- the study's functions read this module's globals rather than a declaration; experiments.balance_site.Site is the view that replaced them
+- the closure and alignment residuals summed two named inflow columns; they now sum every inflow column the site declares
+
+The declaration itself needed nothing new — same schema, no added fields. What it could not cover was code that had quietly encoded the first site's shape. No test could have found it: every test had two inflow gauges, because every site did. None of it is paid again by a third site.
+
+## What the evidence looks like here
+
+| series | missing days of 1,096 |
+| --- | ---: |
+| `usgs:USGS-09108500:00054:00003` | 6 |
+| `usgs:USGS-09109000:00060:00003` | 0 |
+| `usgs:USGS-09107000:00060:00003` | 0 |
+| `usgs:USGS-09107500:00060:00003` | 454 |
+| `usgs:USGS-09108250:00060:00003` | 454 |
+
+Two of the three inflow gauges are seasonal: they report for part of each year only. Every Ridgway series is complete, every day, so **the bridge's missing-reading path had never been exercised by real evidence** — only by synthetic tests. Here it carries 454 absent days on each of two columns.
+
+## The balance does not close, and the absent readings are not the whole reason
+
+Ridgway's three-year cumulative residual is indistinguishable from zero. This one is not, and the study's shared `claims()` **refused to print Ridgway's sentences about it** — the guard working on a site transfer rather than on a wording slip.
+
+Where gauges are intermittent, an imbalance the evidence shows and an imbalance the evidence's absence creates would otherwise be confounded. This record can separate them:
+
+| days | n | mean (acre-ft per day) | cumulative | residual / gauged inflow |
+| --- | ---: | ---: | ---: | ---: |
+| every gauge reporting | 641 | 48.22 | 30,910 | 9.80% |
+| a seasonal gauge absent | 444 | 73.34 | 32,562 | 94.30% |
+| all days | 1,085 | 58.50 | 63,472 | 18.14% |
+
+The last column divides by gauged inflow **as measured on those same days**, so the middle row's 94.30% is not an imbalance of that size: on a day a seasonal creek is absent it is missing from the denominator too, and the remaining gauges are at their winter low. It is reported because the absence is the point, not because the ratio is comparable to the row above it.
+
+So the absent readings account for part of the apparent imbalance and not all of it. On the 641 days when **every gauge reports**, storage still rises 48.22 acre-ft per day more than the gauges account for — 9.80% of gauged inflow. That is present in fully observed data and this study does not say what it is.
+
+## One comparison, and the conclusion not drawn from it
+
+| | Ridgway | Taylor Park |
+| --- | ---: | ---: |
+| inflow gauges | 2 | 3 |
+| series complete | yes | no |
+| ungauged drainage | 7.09% | 8.90% |
+| residual / gauged inflow | 0.41% | 9.80% (fully reported days) |
+
+At Taylor Park the residual on fully reported days, 9.80%, sits within 0.91 percentage points of its ungauged drainage fraction, 8.90%. It is the obvious explanation and the augmented variant carries exactly that term.
+
+**It is not concluded here.** The same comparison at Ridgway is 0.41% against 7.09% ungauged — no correspondence at all. A relationship that holds at one site and fails at the other is a coincidence or a mechanism, and two sites cannot tell which. Gauge bias, the stage-capacity table, the daily-mean alignment and real ungauged inflow all remain live, and nothing here separates them.
+
+## What this does not establish
+
+- Two sites is not a sample. Nothing here is evidence about reservoirs in general.
+- No fault is diagnosed. A balance that does not close says the declared model and the declared uncertainties disagree with the record; it does not say which is wrong.
+- The seasonal gauges' absence is treated as absence, not as zero flow. A creek that is not reporting is not a creek that is not flowing, and the split above is what keeps those apart rather than a correction that merges them.
+- The same daily-mean alignment approximation the Ridgway study documents applies here, and is not re-derived.
+- The declared storage sigma is this consumer's, not USGS's, at both sites alike.

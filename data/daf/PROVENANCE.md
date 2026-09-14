@@ -27,6 +27,7 @@ Nothing is fetched: DAF's own per-measurement NOAA binding (`daf.orchestration.b
 | `SYNTHETIC_noaa_window_20260101_20260103_revised.observations.json` (SYNTHETIC) | `tests/fixtures/noaa_window_synthetic_20260101_20260103_revised.json` (a DAF fixture, replayed) | 4 | 9999999 / MLLW / metric / gmt | 2026-08-26T00:00:00Z |
 | `noaa_8454000_202401_mllw.observations.json` | `data/daf/raw/noaa_8454000_202401_mllw` (30 recorded live response(s)) | 21360 | noaa-water-level-measurements, 7440 distinct measurement times | 2026-09-12T00:00:00Z |
 | `usgs_ridgway_wy2023_2025.observations.json` | `data/daf/raw/usgs_ridgway_wy2023_2025` (20 recorded live response(s)) | 4416 | usgs-daily-values, 1096 distinct measurement times | 2026-09-12T00:00:00Z |
+| `usgs_taylor_park_wy2023_2025.observations.json` | `data/daf/raw/usgs_taylor_park_wy2023_2025` (25 recorded live response(s)) | 4606 | usgs-daily-values, 1096 distinct measurement times | 2026-09-14T00:00:00Z |
 
 Per file:
 
@@ -104,6 +105,16 @@ Per file:
 - 4416 observation(s) over 1096 distinct measurement times. The two differ because DAF re-requests a trailing safety window, so a reading acquired through two overlapping windows is two observations under two records; collapsing them on content is the consumer's job (`set_lcm.bridge.daf`).
 - Extraction method(s) `json:usgs_daily_value_v1`.
 - Output sha256 `52bda68f83ad203c849f3d65fccd9e65e91749ce3c9e374e53d1cf2c423fc3b1`.
+
+### `usgs_taylor_park_wy2023_2025.observations.json` -- replayed from a recorded live session
+
+- One DAF plan per series: storage, outflow and inflows are acquired as independent series and never joined here. Deciding that a storage value and a flow value describe the same day is a consumer's declaration -- the storage series is a daily MEAN, so it is half a day out of step with an end-of-day reading, and which alignment is right is an argument rather than a fact. Each response is the raw HTTPS body, byte for byte.
+- Recorded by `tools/fetch_noaa_month.py` / `tools/fetch_usgs_reservoir.py` into `data/daf/raw/usgs_taylor_park_wy2023_2025`: 25 HTTPS response(s) kept byte for byte under the sha256 of their own bytes, carrying 4606 item(s) in total. `index.json` sha256 `876beb88e6f3cb9b4d5a6e7e23be27f5506dc86013b3781cdc7e428badb5611a`; each response's own sha256 is checked against it before the replay serves it, and a URL the session never recorded is refused rather than fetched.
+- Replayed through `daf.orchestration.bindings.usgs_daily_values_binding` (adapter id `usgs-daily-values`, DAF code version `ffa4ad8e403eb33487eb68adab4818d0753e4de043607be5d5cb09737f863060`) and `execute_plan`, plan(s) `fsre-usgs-USGS-09108500-00054-00003`, `fsre-usgs-USGS-09109000-00060-00003`, `fsre-usgs-USGS-09107000-00060-00003`, `fsre-usgs-USGS-09107500-00060-00003`, `fsre-usgs-USGS-09108250-00060-00003`, outcomes ['ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'DUPLICATE', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'DUPLICATE', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'DUPLICATE', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'DUPLICATE', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'ACQUIRED', 'DUPLICATE'].
+- Recorded against DAF `ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2`, exported at `ff92a737f702c5c8ccfe0fb6494b2c2b2af91cb2`. These need not be equal: what must match, and is checked, is the binding version -- a hash of the adapter's and extractor's own source, which is what decides the bytes requested and the content extracted.
+- 4606 observation(s) over 1096 distinct measurement times. The two differ because DAF re-requests a trailing safety window, so a reading acquired through two overlapping windows is two observations under two records; collapsing them on content is the consumer's job (`set_lcm.bridge.daf`).
+- Extraction method(s) `json:usgs_daily_value_v1`.
+- Output sha256 `33cc28a82be6ede044cc21df37f7d2d365c00d6d599ac811de401124d44f347d`.
 
 ## Licence
 

@@ -221,6 +221,38 @@ expressed in the format either, so `faults` — which `Topology` carries and thi
 not — is the next field it needs. Estimator configuration stays in code deliberately: a
 declaration says what the system is and what evidence exists for it, not how to filter it.
 
+## 3d. A second real site — built, and it answered the question it was built to ask
+
+`declarations/` was added on the claim that a second reservoir would cost a declaration rather
+than a module. [`results/real_taylor_park.md`](../results/real_taylor_park.md) is the test of
+that claim, and the answer is a declaration **plus two one-time costs that only a second site
+could have exposed**: `estimators_balance` assumed exactly two gauged inflows (`N_SENSORS = 4`
+and three hand-indexed state layouts), and the study's functions read one module's globals
+rather than a declaration. No test could have found either — every test had two inflow gauges,
+because every site did. Neither is paid again by a third site.
+
+Taylor Park is deliberately not a clone: three gauged inflows, two of them seasonal gauges
+reporting on 642 of 1,096 days, against Ridgway's four complete series. So the bridge's
+missing-reading path, which no real evidence had ever exercised here, now carries 454 absent
+days on each of two columns.
+
+What it found is not what Ridgway found. Ridgway's balance closes to 0.41% of gauged inflow
+with an interval containing zero; Taylor Park's does not close, and the shared `claims()`
+**refused to print Ridgway's sentences about it** — the guard firing on a site transfer rather
+than on a wording slip. Splitting the record by whether every gauge reported separates an
+imbalance the evidence shows from one its absence creates: on the 641 fully reported days the
+residual is still 9.80% of gauged inflow. The absent readings account for about half of the
+apparent imbalance and no more.
+
+That 9.80% sits within a percentage point of this site's ungauged drainage fraction (8.90%),
+and the augmented variant carries exactly that term. It is not concluded: the same comparison
+at Ridgway is 0.41% against 7.09%, no correspondence at all. A relationship that holds at one
+site and fails at the other is a coincidence or a mechanism, and two sites cannot tell which.
+
+What remains: n=2 is not a sample, and no fault is diagnosed at either site. The design-study
+topologies are still not expressed in the declaration format, and `faults` — which
+`second_balance.Topology` carries and the schema does not — is the next field it needs.
+
 ## 4. Degradation benchmark — offset/drift/gain baseline implemented; expansion planned
 
 The committed fixed-horizon benchmark supplies offset, drift and gain at two locked

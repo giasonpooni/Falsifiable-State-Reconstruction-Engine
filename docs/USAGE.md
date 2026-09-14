@@ -253,6 +253,7 @@ uv run --frozen --python 3.13 python -m set_lcm.experiments.eiv_projection --qui
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_noaa
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_noaa_month --quiet
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_water_balance
+uv run --frozen --python 3.13 python -m set_lcm.experiments.real_taylor_park --quiet
 uv run --frozen --python 3.13 python -m set_lcm.experiments.fluid_baseline --quiet
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_fluid_baseline --quiet
 uv run --frozen --python 3.13 python -m set_lcm.experiments.invariant_layer --quiet

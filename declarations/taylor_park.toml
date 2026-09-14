@@ -1,0 +1,202 @@
+# Taylor Park Reservoir, declared as data.
+#
+# The second site. It exists to test one claim made when the first was declared: that a
+# second reservoir costs a declaration rather than a module. It is deliberately NOT a
+# clone of Ridgway -- three gauged inflows instead of two, and two of the three report
+# for part of each year only -- because a site that differed in nothing would have tested
+# nothing.
+
+schema = "fsre-declaration-v1"
+key = "taylor_park"
+label = "Taylor Park Reservoir, Taylor River, Colorado"
+note = """
+Three water years of USGS daily values on the same grid as Ridgway: reservoir storage, the outlet gauge and THREE inflow gauges. The three inflows cover 231.4 sq mi of the 254 sq mi above the reservoir (91.1%), a gauged fraction close to Ridgway's, which is what makes the two sites comparable. What differs is the evidence pattern: Texas Creek and Willow Creek are seasonal gauges and report on roughly 642 of the 1,096 days, where every Ridgway series is complete. The balance is written on cumulative volumes exactly as Ridgway's is, so nothing about the physics changes -- only how much of it is observed.
+"""
+
+[record]
+directory = "data/daf"
+manifest = "manifest.json"
+observations = "usgs_taylor_park_wy2023_2025.observations.json"
+
+# ---------------------------------------------------------------------------
+# states
+# ---------------------------------------------------------------------------
+[[state]]
+name = "storage"
+unit = "acre-ft"
+description = "Reservoir storage, derived from a measured lake elevation through a stage-capacity table."
+
+[[state]]
+name = "cumulative_gauged"
+unit = "acre-ft"
+description = "Cumulative gauged net inflow since the epoch: the running integral of the three inflows minus the outflow. Zero at the epoch by definition."
+
+[[state]]
+name = "cumulative_ungauged"
+unit = "acre-ft"
+description = "Cumulative net inflow the five gauges do not see -- including, here, whatever the two seasonal creeks carry while they are not reporting. Zero at the epoch by definition. A model-dependent output, never a measurement."
+
+# ---------------------------------------------------------------------------
+# variants
+# ---------------------------------------------------------------------------
+[[variant]]
+key = "open"
+version = "taylor-park-closure-open-v1"
+label = "Open balance: the five gauges account for every drop"
+description = """
+storage minus cumulative gauged net inflow equals the storage at the epoch: the declared statement that the five gauges account for every drop. b is the day-0 storage reading and carries that reading's declared variance.
+"""
+states = ["storage", "cumulative_gauged"]
+
+  [[variant.row]]
+  name = "closure"
+  unit = "acre-ft"
+  description = "Storage minus every cumulative net inflow term equals the storage at the epoch."
+  coefficients = { storage = 1.0, cumulative_gauged = -1.0 }
+  b = { from = "reading", sensor = "storage", index = 0, var_from_sensor = true }
+
+[[variant]]
+key = "augmented"
+version = "taylor-park-closure-augmented-v1"
+label = "Augmented balance: an ungauged state absorbs what the gauges miss"
+description = """
+storage minus cumulative gauged net inflow minus cumulative ungauged net inflow equals the storage at the epoch. U can absorb imbalance, but its finite declared uncertainty still permits rejection; U_hat is a model-dependent output. At this site U also absorbs the two seasonal creeks whenever they are not reporting, which is a different thing from ungauged drainage and the report must not conflate them.
+"""
+states = ["storage", "cumulative_gauged", "cumulative_ungauged"]
+
+  [[variant.row]]
+  name = "closure"
+  unit = "acre-ft"
+  description = "Storage minus every cumulative net inflow term equals the storage at the epoch."
+  coefficients = { storage = 1.0, cumulative_gauged = -1.0, cumulative_ungauged = -1.0 }
+  b = { from = "reading", sensor = "storage", index = 0, var_from_sensor = true }
+
+# ---------------------------------------------------------------------------
+# sensors, in the column order the balance filters read
+# ---------------------------------------------------------------------------
+# Taylor Park Reservoir storage, from a measured lake elevation through a stage-capacity table.
+[[sensor]]
+role = "storage"
+source_id = "usgs:USGS-09108500:00054:00003"
+extraction_method = "json:usgs_daily_value_v1"
+property = "reservoir_storage"
+match = { monitoring_location_id = "USGS-09108500", parameter_code = "00054", statistic_id = "00003", unit = "Acre-ft" }
+sigma = 200.0
+citation = """
+NOT a source statement. Reservoir storage is derived from a measured lake elevation through a stage-capacity table whose uncertainty at this reservoir this repository has no source for. This value is one point of a declared sweep (STORAGE_SIGMA_SWEEP); every conclusion in the report is computed at each point, and the report says which survive the range.
+"""
+
+# Taylor River below Taylor Park Reservoir: the outlet gauge, drainage area 254 sq mi.
+[[sensor]]
+role = "outflow"
+source_id = "usgs:USGS-09109000:00060:00003"
+extraction_method = "json:usgs_daily_value_v1"
+property = "discharge"
+match = { monitoring_location_id = "USGS-09109000", parameter_code = "00060", statistic_id = "00003", unit = "ft^3/s" }
+relative = 0.05
+sigma_floor = 1.0
+citation = """
+USGS rates a daily discharge record 'Good' when about 95% of daily values are within 10% of their true value (USGS surface-water accuracy classes, as published per site and period in the annual water-data reports). Read as a two-sided 95% normal interval, that is 2 sigma, so sigma = 5% of the reading. Two assumptions here are this consumer's and not USGS's: that this site and period are rated 'Good' (the rating itself was not acquired -- it is not in the daily-values API), and that the error is normal. Floored at 1.0 ft^3/s because a percentage states nothing at zero flow.
+"""
+
+# Taylor River at Taylor Park, drainage area 128 sq mi. Year-round record.
+[[sensor]]
+role = "inflow_taylor"
+source_id = "usgs:USGS-09107000:00060:00003"
+extraction_method = "json:usgs_daily_value_v1"
+property = "discharge"
+match = { monitoring_location_id = "USGS-09107000", parameter_code = "00060", statistic_id = "00003", unit = "ft^3/s" }
+relative = 0.05
+sigma_floor = 1.0
+citation = """
+USGS rates a daily discharge record 'Good' when about 95% of daily values are within 10% of their true value (USGS surface-water accuracy classes, as published per site and period in the annual water-data reports). Read as a two-sided 95% normal interval, that is 2 sigma, so sigma = 5% of the reading. Two assumptions here are this consumer's and not USGS's: that this site and period are rated 'Good' (the rating itself was not acquired -- it is not in the daily-values API), and that the error is normal. Floored at 1.0 ft^3/s because a percentage states nothing at zero flow.
+"""
+
+# Texas Creek at Taylor Park, drainage area 40.4 sq mi. A SEASONAL gauge: it reports for part of each year only.
+[[sensor]]
+role = "inflow_texas"
+source_id = "usgs:USGS-09107500:00060:00003"
+extraction_method = "json:usgs_daily_value_v1"
+property = "discharge"
+match = { monitoring_location_id = "USGS-09107500", parameter_code = "00060", statistic_id = "00003", unit = "ft^3/s" }
+relative = 0.05
+sigma_floor = 1.0
+citation = """
+USGS rates a daily discharge record 'Good' when about 95% of daily values are within 10% of their true value (USGS surface-water accuracy classes, as published per site and period in the annual water-data reports). Read as a two-sided 95% normal interval, that is 2 sigma, so sigma = 5% of the reading. Two assumptions here are this consumer's and not USGS's: that this site and period are rated 'Good' (the rating itself was not acquired -- it is not in the daily-values API), and that the error is normal. Floored at 1.0 ft^3/s because a percentage states nothing at zero flow.
+"""
+
+# Willow Creek above Taylor Park Reservoir, drainage area 63 sq mi. A SEASONAL gauge, like Texas Creek.
+[[sensor]]
+role = "inflow_willow"
+source_id = "usgs:USGS-09108250:00060:00003"
+extraction_method = "json:usgs_daily_value_v1"
+property = "discharge"
+match = { monitoring_location_id = "USGS-09108250", parameter_code = "00060", statistic_id = "00003", unit = "ft^3/s" }
+relative = 0.05
+sigma_floor = 1.0
+citation = """
+USGS rates a daily discharge record 'Good' when about 95% of daily values are within 10% of their true value (USGS surface-water accuracy classes, as published per site and period in the annual water-data reports). Read as a two-sided 95% normal interval, that is 2 sigma, so sigma = 5% of the reading. Two assumptions here are this consumer's and not USGS's: that this site and period are rated 'Good' (the rating itself was not acquired -- it is not in the daily-values API), and that the error is normal. Floored at 1.0 ft^3/s because a percentage states nothing at zero flow.
+"""
+
+# ---------------------------------------------------------------------------
+# declared scalars
+# ---------------------------------------------------------------------------
+[[scalar]]
+name = "n_inflows"
+value = 3.0
+unit = "gauges"
+description = "Gauged inflows. The filters read 2 + n_inflows columns; before this site they assumed two, which was a property of Ridgway and not of a water balance."
+
+[[scalar]]
+name = "gauged_drainage_area"
+value = 231.4
+unit = "sq mi"
+description = "Drainage area of the three inflow gauges combined: 128 sq mi at Taylor River, 40.4 sq mi at Texas Creek and 63 sq mi at Willow Creek (USGS site service, drain_area_va)."
+
+[[scalar]]
+name = "total_drainage_area"
+value = 254.0
+unit = "sq mi"
+description = "Total drainage area above the reservoir, as USGS reports it for the reservoir and for the outlet gauge alike (USGS site service, drain_area_va)."
+
+[[scalar]]
+name = "prior_storage_std"
+value = 20000.0
+unit = "acre-ft"
+description = "Prior width on storage: wide enough that the first storage reading sets S rather than the prior."
+
+[[scalar]]
+name = "q_storage"
+value = 500.0
+unit = "acre-ft / sqrt(day)"
+description = "Process noise on storage, the same declared value as Ridgway. Stated, never fitted."
+
+[[scalar]]
+name = "q_flow"
+value = 50.0
+unit = "ft^3/s / sqrt(day)"
+description = "Process noise on each flow state, the same declared value as Ridgway. It carries more weight here: a seasonal gauge that stops reporting leaves its rate state to drift at exactly this rate."
+
+[[scalar]]
+name = "q_ungauged"
+value = 200.0
+unit = "acre-ft / sqrt(day)"
+description = "Process noise on the ungauged state; the augmented variant only."
+
+[[scalar]]
+name = "cumulative0_std"
+value = 1.0
+unit = "acre-ft"
+description = "Prior width on the cumulative states at the epoch, where they are zero by definition to within a rounding."
+
+[[scalar]]
+name = "flow0"
+value = 0.0
+unit = "ft^3/s"
+description = "Prior mean on each flow state. Declared for completeness and made irrelevant by flow0_std."
+
+[[scalar]]
+name = "flow0_std"
+value = 1000.0
+unit = "ft^3/s"
+description = "Prior width on each flow state, wider than the largest reading in the record."

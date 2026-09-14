@@ -59,6 +59,7 @@ from ..bridge.daf import BridgedSeries, DeclaredSigma, SeriesSelector, bridge, l
 from ..lcm import constraint_bases, detectability
 from ..declaration import load as load_declaration
 from ..schema import ConstraintSet
+from .balance_site import Site, site_from
 from ..testbed.cusum import CusumConfig
 from ..testbed.estimators_balance import CFS_DAY_TO_ACRE_FT, BalanceConfig
 from ..testbed.runner import EstimatorSpec, RunResult, run
@@ -82,87 +83,57 @@ DAY_ZONE_CITATION = (
 # names are kept because the rest of this module and its tests use them, but each is now a
 # view of one reviewable document instead of a constant beside the code that consumes it.
 DECLARATION_PATH = REPO_ROOT / "declarations" / "ridgway.toml"
-DECLARATION = load_declaration(DECLARATION_PATH)
+SITE = site_from(DECLARATION_PATH)
+DECLARATION = SITE.decl
 
-# Which record, and where: the last thing that tied this module to one reservoir.
-DATA_DIR = REPO_ROOT / DECLARATION.record.directory
-MANIFEST_PATH = DATA_DIR / DECLARATION.record.manifest
-OBSERVATIONS = DECLARATION.record.observations
-
-# The unit every volume in this report is quoted in, taken from the state that declares it
-# rather than retyped into each string.
-VOLUME_UNIT = DECLARATION.states["storage"].unit
-
-# The declared sensor order IS the column order the estimators in testbed.estimators_balance
-# expect, which used to be a comment next to a hand-written tuple and is now a property of the
-# document: reorder the [[sensor]] tables and the columns move with them.
-COLUMNS = tuple(sen.role for sen in DECLARATION.sensors)
-SELECTORS = tuple(SeriesSelector(source_id=sen.source_id, extraction_method=sen.extraction_method,
-                                 property=sen.property, match=sen.match)
-                  for sen in DECLARATION.sensors)
-SOURCE_IDS = tuple(sel.source_id for sel in SELECTORS)
-
-GAUGED_SQ_MI = DECLARATION.scalar("gauged_drainage_area")
-TOTAL_SQ_MI = DECLARATION.scalar("total_drainage_area")
-
-FLOW_SIGMA_RELATIVE = DECLARATION.sensor("outflow").relative
-FLOW_SIGMA_FLOOR = DECLARATION.sensor("outflow").sigma_floor
-FLOW_SIGMA_CITATION = DECLARATION.sensor("outflow").citation
-STORAGE_SIGMA_BASE = DECLARATION.sensor("storage").sigma
-STORAGE_SIGMA_CITATION = DECLARATION.sensor("storage").citation
+# These names are kept because this module's own report and its tests use them, but each is a
+# view of one reviewable document. Every function below takes a keyword-only `site` so that a
+# SECOND reservoir needs a declaration and a caller, not a copy of this file.
+DATA_DIR, MANIFEST_PATH, OBSERVATIONS = SITE.data_dir, SITE.manifest_path, SITE.observations
+VOLUME_UNIT = SITE.volume_unit
+COLUMNS, SELECTORS, SOURCE_IDS = SITE.columns, SITE.selectors, SITE.source_ids
+GAUGED_SQ_MI, TOTAL_SQ_MI = SITE.gauged_area, SITE.total_area
+FLOW_SIGMA_RELATIVE, FLOW_SIGMA_FLOOR = SITE.flow_sigma_relative, SITE.flow_sigma_floor
+FLOW_SIGMA_CITATION = SITE.flow_sigma_citation
+STORAGE_SIGMA_BASE, STORAGE_SIGMA_CITATION = SITE.storage_sigma_base, SITE.storage_sigma_citation
+CFG, PRIOR_STORAGE_STD = SITE.cfg, SITE.prior_storage_std
 
 # The sweep is an analysis choice, not a property of the site: the declaration says what this
 # consumer declares for the storage series, and this says which neighbourhood of that value
 # every conclusion is recomputed at.
 STORAGE_SIGMA_SWEEP = (50.0, STORAGE_SIGMA_BASE, 800.0)     # acre-ft
 
-CFG = BalanceConfig(
-    q_storage=DECLARATION.scalar("q_storage"),
-    q_flow=DECLARATION.scalar("q_flow"),
-    q_ungauged=DECLARATION.scalar("q_ungauged"),
-    cumulative0_std=DECLARATION.scalar("cumulative0_std"),
-    flow0=DECLARATION.scalar("flow0"),
-    flow0_std=DECLARATION.scalar("flow0_std"),
-)
-PRIOR_STORAGE_STD = DECLARATION.scalar("prior_storage_std")
 
-
-def declared_sigma(storage_sigma: float) -> dict:
+def declared_sigma(storage_sigma: float, *, site: Site = SITE) -> dict:
     """The consumer-declared R for each column. `storage_sigma` is the sweep's current point;
     every other number, and every citation, is the declaration's."""
-    storage = DECLARATION.sensor("storage")
-    out = {storage.source_id: DeclaredSigma(sigma=storage_sigma, citation=storage.citation)}
-    for sen in DECLARATION.sensors:
-        if sen.role != storage.role:
-            out[sen.source_id] = DeclaredSigma(relative=sen.relative, sigma_floor=sen.sigma_floor,
-                                               citation=sen.citation)
-    return out
+    return site.declared_sigma(storage_sigma)
 
 
-def load(storage_sigma: float) -> BridgedSeries:
+def load(storage_sigma: float, *, site: Site = SITE) -> BridgedSeries:
     """The committed DAF observations, checked against the manifest, through the bridge with
     every choice declared."""
-    man = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
-    entry = next(f for f in man["files"] if f["output"] == OBSERVATIONS)
+    man = json.loads(site.manifest_path.read_text(encoding="utf-8"))
+    entry = next(f for f in man["files"] if f["output"] == site.observations)
     import hashlib
-    raw = (DATA_DIR / OBSERVATIONS).read_bytes()
+    raw = (site.data_dir / site.observations).read_bytes()
     got = hashlib.sha256(raw).hexdigest()
     if got != entry["output_sha256"]:
-        raise ValueError(f"{OBSERVATIONS} hashes to {got}; the manifest says {entry['output_sha256']}")
+        raise ValueError(f"{site.observations} hashes to {got}; the manifest says {entry['output_sha256']}")
     return bridge(
-        load_records(DATA_DIR / OBSERVATIONS), series=list(SELECTORS),
+        load_records(site.data_dir / site.observations), series=list(site.selectors),
         time_zone="UTC", time_semantics="calendar_day", day_anchor="midpoint",
         day_zone_citation=DAY_ZONE_CITATION, cadence_s=86400,
         arrival_policy="replay", latency_s=0.0, conflict_policy="refuse",
-        daf_commit=man["daf_commit"], declared_sigma=declared_sigma(storage_sigma))
+        daf_commit=man["daf_commit"], declared_sigma=site.declared_sigma(storage_sigma))
 
 
 # ---------------------------------------------------------------------------
 # closure arithmetic on the readings, before filtering or uncertainty weighting
 # ---------------------------------------------------------------------------
 
-def closure_residual(bs: BridgedSeries) -> dict:
-    """r_k = (S_{k+1} - S_k) - c (qin1 + qin2 - qout)_k, in acre-ft per day.
+def closure_residual(bs: BridgedSeries, *, site: Site = SITE) -> dict:
+    """r_k = (S_{k+1} - S_k) - c (sum of inflows - qout)_k, in the site's volume unit per day.
 
     Every quantity is a reading. No estimator or declared uncertainty is needed, but
     the daily-mean time alignment is approximate: even perfect gauges can leave a residual.
@@ -173,17 +144,21 @@ def closure_residual(bs: BridgedSeries) -> dict:
     with the mean flow of day k only to the extent that flows vary smoothly.
     """
     Y = np.array([o.y for o in bs.observations], dtype=float)
-    S, qout, qin1, qin2 = Y[:, 0], Y[:, 1], Y[:, 2], Y[:, 3]
-    net_cfs = qin1 + qin2 - qout
+    S, qout, qin = Y[:, 0], Y[:, 1], Y[:, 2:]
+    # Every inflow column the site declares, not two. np.nansum treats a gauge that is not
+    # reporting as contributing nothing, which is what a seasonal creek's absence means to a
+    # sum of measured inflows -- and NOT what it means to the balance, which the report says.
+    inflow_total = np.nansum(qin, axis=1)
+    net_cfs = inflow_total - qout
     dS = np.diff(S)                                   # acre-ft, day k -> k+1
     inflow_volume = CFS_DAY_TO_ACRE_FT * net_cfs[:-1]  # acre-ft over day k
     r = dS - inflow_volume
     finite = np.isfinite(r)
-    total_in = CFS_DAY_TO_ACRE_FT * np.nansum(qin1 + qin2)
+    total_in = CFS_DAY_TO_ACRE_FT * np.nansum(inflow_total)
     cum = float(np.nansum(r))
     return {
         "n_days": int(finite.sum()),
-        "units": f"{VOLUME_UNIT} per day",
+        "units": f"{site.volume_unit} per day",
         "mean": float(np.nanmean(r)),
         "sd": float(np.nanstd(r, ddof=1)),
         "median": float(np.nanmedian(r)),
@@ -196,10 +171,14 @@ def closure_residual(bs: BridgedSeries) -> dict:
         "gauged_inflow_volume": float(total_in),
         "mean_as_cfs": float(np.nanmean(r) / CFS_DAY_TO_ACRE_FT),
         "sd_as_cfs": float(np.nanstd(r, ddof=1) / CFS_DAY_TO_ACRE_FT),
-        "mean_throughput_cfs": float(np.nanmean(qin1 + qin2)),
+        "mean_throughput_cfs": float(np.nanmean(inflow_total)),
         "lag1_autocorr": _lag1(r[finite]),
         **_cumulative_uncertainty(cum, float(np.nanstd(r, ddof=1)), int(finite.sum()), _lag1(r[finite])),
-        "series": r.tolist(),
+        # None, not NaN, for a day the residual cannot be computed on -- json.dumps runs with
+        # allow_nan=False throughout this repository, and a null says "no value for this day"
+        # while keeping the series aligned with the record. Ridgway's series has no such day;
+        # a site with an absent storage reading does, which is how this was found.
+        "series": [None if not np.isfinite(v) else float(v) for v in r],
     }
 
 
@@ -219,8 +198,8 @@ def alignment_comparison(bs: BridgedSeries) -> dict:
     the other two do not. The report says so.
     """
     Y = np.array([o.y for o in bs.observations], dtype=float)
-    S, qout, qin1, qin2 = Y[:, 0], Y[:, 1], Y[:, 2], Y[:, 3]
-    net = qin1 + qin2 - qout
+    S, qout = Y[:, 0], Y[:, 1]
+    net = np.nansum(Y[:, 2:], axis=1) - qout          # every inflow column the site declares
     dS = np.diff(S)
     out = {}
     for name, flow in (("same_day", net[:-1]),
@@ -298,25 +277,24 @@ def _lag1(v: np.ndarray) -> float:
 # the declared constraint
 # ---------------------------------------------------------------------------
 
-def _closure(variant: str, s0: float, s0_var: float) -> ConstraintSet:
+def _closure(variant: str, s0: float, s0_var: float, *, site: Site = SITE) -> ConstraintSet:
     """One of the declaration's variants, with b resolved against the record.
 
     b is the day-0 storage READING, which is why the declaration cannot name a constant: it
     names the sensor and the index, and the value arrives here. Passing a variance the row did
     not ask for, or omitting one it did, raises rather than quietly substituting a constant for
     a measurement."""
-    return DECLARATION.constraint_set(variant, readings={"closure": s0},
-                                      variances={"closure": s0_var})
+    return site.constraint(variant, s0, s0_var)
 
 
-def constraint_open(s0: float, s0_var: float) -> ConstraintSet:
+def constraint_open(s0: float, s0_var: float, *, site: Site = SITE) -> ConstraintSet:
     """S - G = S0: the gauges close the balance."""
-    return _closure("open", s0, s0_var)
+    return _closure("open", s0, s0_var, site=site)
 
 
-def constraint_aug(s0: float, s0_var: float) -> ConstraintSet:
+def constraint_aug(s0: float, s0_var: float, *, site: Site = SITE) -> ConstraintSet:
     """S - G - U = S0 with an ungauged state."""
-    return _closure("augmented", s0, s0_var)
+    return _closure("augmented", s0, s0_var, site=site)
 
 
 SPECS = (
@@ -333,25 +311,26 @@ SPECS = (
 )
 
 
-def run_one(spec: EstimatorSpec, bs: BridgedSeries, s0: float, s0_var: float) -> RunResult:
+def run_one(spec: EstimatorSpec, bs: BridgedSeries, s0: float, s0_var: float,
+            *, site: Site = SITE) -> RunResult:
     if spec.kind == "wb_closed":
         cs = None
     elif spec.kind == "wb_aug":
-        cs = constraint_aug(s0, s0_var)
+        cs = constraint_aug(s0, s0_var, site=site)
     else:
-        cs = constraint_open(s0, s0_var)
-    return run(bs.inputs, bs.observations, cs, spec, (s0,), PRIOR_STORAGE_STD, est_cfg=CFG)
+        cs = constraint_open(s0, s0_var, site=site)
+    return run(bs.inputs, bs.observations, cs, spec, (s0,), site.prior_storage_std, est_cfg=site.cfg)
 
 
 # ---------------------------------------------------------------------------
 # what the constraint is structurally blind to
 # ---------------------------------------------------------------------------
 
-def blind_directions(s0: float, s0_var: float) -> dict:
+def blind_directions(s0: float, s0_var: float, *, site: Site = SITE) -> dict:
     """d(f) for the open constraint, per named direction, plus the one the state space
     cannot express at all."""
-    cs = constraint_open(s0, s0_var)
-    P = np.diag([STORAGE_SIGMA_BASE ** 2, 100.0 ** 2])       # a representative reported covariance
+    cs = constraint_open(s0, s0_var, site=site)
+    P = np.diag([site.storage_sigma_base ** 2, 100.0 ** 2])  # a representative reported covariance
     row, null = constraint_bases(cs)
     named = {
         "storage_only": np.array([1.0, 0.0]),
@@ -388,19 +367,22 @@ def blind_directions(s0: float, s0_var: float) -> dict:
 # the report
 # ---------------------------------------------------------------------------
 
-def compute() -> dict:
-    base = load(STORAGE_SIGMA_BASE)
+def compute(*, site: Site = SITE, sweep_sigmas: tuple[float, ...] | None = None) -> dict:
+    """The whole study for one site. Site-generic: every number it reads comes from the
+    declaration, and the inflow arithmetic sums whatever inflow columns that site declares."""
+    sweep_sigmas = STORAGE_SIGMA_SWEEP if sweep_sigmas is None else tuple(sweep_sigmas)
+    base = load(site.storage_sigma_base, site=site)
     Y = np.array([o.y for o in base.observations], dtype=float)
     s0 = float(Y[0, 0])
-    closure = closure_residual(base)
+    closure = closure_residual(base, site=site)
 
     sweep: dict[str, dict] = {}
-    for sigma in STORAGE_SIGMA_SWEEP:
-        bs = load(sigma)
+    for sigma in sweep_sigmas:
+        bs = load(sigma, site=site)
         s0_var = sigma ** 2
         per_spec: dict[str, dict] = {}
         for spec in SPECS:
-            r = run_one(spec, bs, s0, s0_var)
+            r = run_one(spec, bs, s0, s0_var, site=site)
             n = len(r.x)
             ev = evaluate_truth_free(r, {"all": (0, n)})
             entry = {
@@ -421,7 +403,7 @@ def compute() -> dict:
                 rp = r.res_pre[np.isfinite(r.res_pre[:, 0]), 0]
                 entry["residual_pre"] = {"mean": float(rp.mean()), "sd": float(rp.std(ddof=1)),
                                          "min": float(rp.min()), "max": float(rp.max()),
-                                         "final": float(rp[-1]), "units": VOLUME_UNIT}
+                                         "final": float(rp[-1]), "units": site.volume_unit}
             if r.corr is not None and bool(np.isfinite(r.corr).any()):
                 cn = np.linalg.norm(r.corr[np.isfinite(r.corr).all(axis=1)], axis=1)
                 if cn.size:
@@ -449,25 +431,25 @@ def compute() -> dict:
 
     out = {
         "site": {
-            "reservoir": "Ridgway Reservoir, Uncompahgre River, Colorado",
+            "reservoir": site.label,
             "series": {sen.role: {"monitoring_location_id": dict(sen.match)["monitoring_location_id"],
                                   "parameter_code": dict(sen.match)["parameter_code"],
                                   "unit": sen.unit, "statistic_id": dict(sen.match)["statistic_id"],
-                                  "source_id": sen.source_id} for sen in DECLARATION.sensors},
-            "gauged_sq_mi": GAUGED_SQ_MI, "total_sq_mi": TOTAL_SQ_MI,
-            "gauged_fraction": GAUGED_SQ_MI / TOTAL_SQ_MI,
+                                  "source_id": sen.source_id} for sen in site.decl.sensors},
+            "gauged_sq_mi": site.gauged_area, "total_sq_mi": site.total_area,
+            "gauged_fraction": site.gauged_area / site.total_area,
         },
         "declared": {
-            "flow_sigma_relative": FLOW_SIGMA_RELATIVE,
-            "flow_sigma_floor": FLOW_SIGMA_FLOOR,
-            "flow_sigma_citation": FLOW_SIGMA_CITATION,
-            "storage_sigma_sweep": list(STORAGE_SIGMA_SWEEP),
-            "storage_sigma_base": STORAGE_SIGMA_BASE,
-            "storage_sigma_citation": STORAGE_SIGMA_CITATION,
+            "flow_sigma_relative": site.flow_sigma_relative,
+            "flow_sigma_floor": site.flow_sigma_floor,
+            "flow_sigma_citation": site.flow_sigma_citation,
+            "storage_sigma_sweep": list(sweep_sigmas),
+            "storage_sigma_base": site.storage_sigma_base,
+            "storage_sigma_citation": site.storage_sigma_citation,
             "day_zone_citation": DAY_ZONE_CITATION,
-            "config": {k: getattr(CFG, k) for k in
+            "config": {k: getattr(site.cfg, k) for k in
                        ("q_storage", "q_flow", "q_ungauged", "cumulative0_std", "flow0", "flow0_std")},
-            "prior_storage_std": PRIOR_STORAGE_STD,
+            "prior_storage_std": site.prior_storage_std,
             "cfs_day_to_acre_ft": CFS_DAY_TO_ACRE_FT,
         },
         "record": {
@@ -475,13 +457,14 @@ def compute() -> dict:
             "first_day": base.provenance["epoch_iso"],
             "storage_acre_ft": {"first": s0, "min": float(np.nanmin(Y[:, 0])), "max": float(np.nanmax(Y[:, 0]))},
             "outflow_cfs": {"min": float(np.nanmin(Y[:, 1])), "max": float(np.nanmax(Y[:, 1]))},
-            "inflow_cfs": {"min": float(np.nanmin(Y[:, 2] + Y[:, 3])), "max": float(np.nanmax(Y[:, 2] + Y[:, 3]))},
+            "inflow_cfs": {"min": float(np.nanmin(np.nansum(Y[:, 2:], axis=1))),
+                           "max": float(np.nanmax(np.nansum(Y[:, 2:], axis=1)))},
             "n_missing": base.provenance["n_missing"],
         },
         "closure_free": {k: v for k, v in closure.items() if k != "series"},
         "alignment": alignment_comparison(base),
         "closure_series": closure["series"],
-        "blind": blind_directions(s0, STORAGE_SIGMA_BASE ** 2),
+        "blind": blind_directions(s0, site.storage_sigma_base ** 2, site=site),
         "sweep": sweep,
         "provenance": {"bridge": base.provenance, "daf_commit": base.provenance["daf_commit"]},
     }
@@ -500,6 +483,7 @@ def claims(r: dict) -> dict:
     record where they failed would make the text false rather than merely dull.
     """
     closure = r["closure_free"]
+    swept = tuple(r["declared"]["storage_sigma_sweep"])
     interval = closure["cumulative_ci95_ar1"]
     augmented = [entry["ungauged_cumulative"] for cell in r["sweep"].values()
                  for entry in cell["specs"].values() if entry.get("ungauged_cumulative")]
@@ -522,7 +506,7 @@ def claims(r: dict) -> dict:
         "a_wider_declared_sigma_never_rejects_more": (
             lambda rates: rates == sorted(rates, reverse=True)
         )([r["sweep"][f"{sigma:g}"]["specs"]["wb_open"]["consistency_stat"]["fraction_over_threshold"]
-           for sigma in sorted(STORAGE_SIGMA_SWEEP)]),
+           for sigma in sorted(swept)]),
     }
 
 

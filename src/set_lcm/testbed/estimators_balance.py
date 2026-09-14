@@ -91,9 +91,23 @@ SQ_FT_PER_ACRE = 43560.0
 CFS_DAY_TO_ACRE_FT = SECONDS_PER_DAY / SQ_FT_PER_ACRE
 CLOCK_TOLERANCE_S = 1e-9
 
-# sensor column order, as the experiment declares its selectors
-S_COL, QOUT_COL, QIN1_COL, QIN2_COL = 0, 1, 2, 3
-N_SENSORS = 4
+# Sensor column order, as the experiment declares its selectors: storage, then the outlet
+# gauge, then one column per inflow gauge. The COUNT is not fixed here. It was, as
+# `N_SENSORS = 4`, and that made the filters silently specific to a reservoir with exactly two
+# gauged inflows -- which is a property of Ridgway, not of a water balance. A site with three
+# inflow gauges could not be run at all, and nothing said so until the shapes disagreed.
+S_COL, QOUT_COL = 0, 1
+FIRST_INFLOW_COL = 2
+
+
+def n_sensors(n_inflows: int) -> int:
+    """Storage, the outlet gauge, and one column per inflow gauge."""
+    return FIRST_INFLOW_COL + int(n_inflows)
+
+
+def inflow_names(n_inflows: int) -> tuple[str, ...]:
+    """The rate states' names, in state order: the outlet gauge then each inflow."""
+    return ("qout",) + tuple(f"qin{i + 1}" for i in range(int(n_inflows)))
 
 
 @dataclass(frozen=True)
@@ -111,8 +125,15 @@ class BalanceConfig:
     cumulative0_std: float = 1.0    # prior sd on G and U at the epoch, acre-ft
     flow0: float = 0.0          # prior mean on each rate state, ft^3/s
     flow0_std: float = 1000.0   # prior sd on each rate state, ft^3/s
+    n_inflows: int = 2          # gauged inflows; the sensor record is 2 + n_inflows columns
 
     def __post_init__(self):
+        if isinstance(self.n_inflows, bool) or not isinstance(self.n_inflows, int):
+            raise ValueError(f"BalanceConfig.n_inflows must be an integer; got {self.n_inflows!r}")
+        if self.n_inflows < 1:
+            raise ValueError(
+                f"BalanceConfig.n_inflows must be at least 1; got {self.n_inflows}. A balance with no "
+                "gauged inflow has nothing to close against the storage gauge")
         for name in ("q_storage", "q_flow", "q_ungauged", "storage0_std", "cumulative0_std", "flow0_std"):
             v = float(getattr(self, name))
             if not np.isfinite(v) or v < 0.0:
@@ -123,9 +144,12 @@ class BalanceConfig:
 
 
 class _BalanceKF:
-    """A linear KF over four gauges with a constant F, Q and H, the Joseph update per
+    """A linear KF over a reservoir's gauges with a constant F, Q and H, the Joseph update per
     sensor, the innovation record, and forward reporting -- the same contract as
-    estimators_water._SingleSeriesKF, for four sensors instead of one.
+    estimators_water._SingleSeriesKF, for several sensors instead of one.
+
+    The sensor count comes from H, not from a constant: a site with three gauged inflows is
+    the same filter with a wider record.
 
     Sensors are updated one at a time (sequential scalar updates, which is exact for a
     diagonal R and is what the bridge always produces), so a day with some gauges reporting
@@ -151,6 +175,7 @@ class _BalanceKF:
         self.dt_days = dt_s / SECONDS_PER_DAY
         self.F, self.Q, self._H = F, Q, H
         self.N = F.shape[0]
+        self.n_sensors = int(H.shape[0])
         self.x0 = np.asarray(x0, dtype=float).copy()
         self.P0 = P0
         self._x = self.x0.copy()
@@ -175,15 +200,18 @@ class _BalanceKF:
             raise ValueError(f"observations must be ingested in sampling order: got step {j}, "
                              f"expected {len(self.xf)}")
         y = np.asarray(obs.y, dtype=float)
-        if y.size != N_SENSORS:
-            raise ValueError(f"{type(self).__name__} reads {N_SENSORS} gauges (storage, outflow, two "
-                             f"inflows); this observation carries {y.size}")
+        if y.size != self.n_sensors:
+            n_in = self.n_sensors - FIRST_INFLOW_COL
+            raise ValueError(
+                f"{type(self).__name__} was built for {self.n_sensors} gauges (storage, the outlet "
+                f"gauge and {n_in} inflow{'' if n_in == 1 else 's'}); this observation carries "
+                f"{y.size}. The count is declared by BalanceConfig.n_inflows, not assumed")
         if j > 0:
             self._x, self._P = self.predict(self._x, self._P)
         Hm = self.H(j)
-        nu_full = np.full(N_SENSORS, np.nan)
-        s_full = np.full(N_SENSORS, np.nan)
-        for i in range(N_SENSORS):
+        nu_full = np.full(self.n_sensors, np.nan)
+        s_full = np.full(self.n_sensors, np.nan)
+        for i in range(self.n_sensors):
             if not bool(obs.mask[i]):
                 continue
             h = Hm[i]
@@ -274,6 +302,13 @@ class _BalanceKF:
         return self.reported(x, P, k)
 
 
+def _one_storage(x0, name: str) -> float:
+    s0 = np.asarray(x0, dtype=float).reshape(-1)
+    if s0.size != 1:
+        raise ValueError(f"{name}'s declared prior is one storage; got {s0.size} values")
+    return float(s0[0])
+
+
 class WaterBalanceOpen(_BalanceKF):
     """x = [S, G, qout, qin1, qin2]; reports [S, G] and the three rates. See the module
     docstring: S and G are linked only by the declared constraint."""
@@ -281,30 +316,28 @@ class WaterBalanceOpen(_BalanceKF):
     model_version = "reservoir-balance-open-v1"
     config_cls = BalanceConfig
     n_report = 2
-    aug_names = ("qout", "qin1", "qin2")
-    aug_nominal = (None, None, None)
 
     def __init__(self, x0, p0_std: float, dt: float, u_cmd: np.ndarray, cfg: BalanceConfig, *, clock):
-        s0 = np.asarray(x0, dtype=float).reshape(-1)
-        if s0.size != 1:
-            raise ValueError(f"{type(self).__name__}'s declared prior is one storage; got {s0.size} values")
+        s0 = _one_storage(x0, type(self).__name__)
+        n_in, m = cfg.n_inflows, n_sensors(cfg.n_inflows)
+        n = 2 + 1 + n_in                            # [S, G, qout, qin_1..n]
         t = np.asarray(clock, dtype=float)
         dt_days = float(t[1] - t[0]) / SECONDS_PER_DAY
         c = CFS_DAY_TO_ACRE_FT * dt_days
-        F = np.eye(5)
-        F[1, 2:5] = [-c, c, c]                      # G' = G + c dt (qin1 + qin2 - qout)
+        F = np.eye(n)
+        F[1, 2:] = [-c] + [c] * n_in                # G' = G + c dt (sum inflows - qout)
         q_s = cfg.q_storage ** 2 * dt_days
         q_f = cfg.q_flow ** 2 * dt_days
-        Q = np.diag([q_s, 0.0, q_f, q_f, q_f])
+        Q = np.diag([q_s, 0.0] + [q_f] * (1 + n_in))
         sd_s = cfg.storage0_std or float(p0_std)
-        P0 = np.diag([sd_s ** 2, cfg.cumulative0_std ** 2,
-                      cfg.flow0_std ** 2, cfg.flow0_std ** 2, cfg.flow0_std ** 2])
-        H = np.zeros((N_SENSORS, 5))
+        P0 = np.diag([sd_s ** 2, cfg.cumulative0_std ** 2] + [cfg.flow0_std ** 2] * (1 + n_in))
+        H = np.zeros((m, n))
         H[S_COL, 0] = 1.0
-        H[QOUT_COL, 2] = 1.0
-        H[QIN1_COL, 3] = 1.0
-        H[QIN2_COL, 4] = 1.0
-        super().__init__([s0[0], 0.0, cfg.flow0, cfg.flow0, cfg.flow0], P0, F, Q, H, clock, u_cmd)
+        for i in range(1 + n_in):                   # the outlet gauge, then each inflow
+            H[QOUT_COL + i, 2 + i] = 1.0
+        self.aug_names = inflow_names(n_in)
+        self.aug_nominal = (None,) * len(self.aug_names)
+        super().__init__([s0, 0.0] + [cfg.flow0] * (1 + n_in), P0, F, Q, H, clock, u_cmd)
         if abs(self.dt - float(dt)) > CLOCK_TOLERANCE_S:
             raise ValueError(f"dt {dt} disagrees with the clock's {self.dt}")
         self.cfg = cfg
@@ -317,34 +350,33 @@ class WaterBalanceAugmented(_BalanceKF):
     model_version = "reservoir-balance-augmented-v1"
     config_cls = BalanceConfig
     n_report = 3
-    aug_names = ("qout", "qin1", "qin2")
-    aug_nominal = (None, None, None)
 
     def __init__(self, x0, p0_std: float, dt: float, u_cmd: np.ndarray, cfg: BalanceConfig, *, clock):
-        s0 = np.asarray(x0, dtype=float).reshape(-1)
-        if s0.size != 1:
-            raise ValueError(f"{type(self).__name__}'s declared prior is one storage; got {s0.size} values")
+        s0 = _one_storage(x0, type(self).__name__)
         if cfg.q_ungauged <= 0.0:
             raise ValueError("wb_aug needs a positive q_ungauged: a cumulative ungauged term that cannot "
                              "move is not an augmented state, it is the open filter with an extra zero")
+        n_in, m = cfg.n_inflows, n_sensors(cfg.n_inflows)
+        n = 3 + 1 + n_in                            # [S, G, U, qout, qin_1..n]
         t = np.asarray(clock, dtype=float)
         dt_days = float(t[1] - t[0]) / SECONDS_PER_DAY
         c = CFS_DAY_TO_ACRE_FT * dt_days
-        F = np.eye(6)
-        F[1, 3:6] = [-c, c, c]
+        F = np.eye(n)
+        F[1, 3:] = [-c] + [c] * n_in
         q_s = cfg.q_storage ** 2 * dt_days
         q_u = cfg.q_ungauged ** 2 * dt_days
         q_f = cfg.q_flow ** 2 * dt_days
-        Q = np.diag([q_s, 0.0, q_u, q_f, q_f, q_f])
+        Q = np.diag([q_s, 0.0, q_u] + [q_f] * (1 + n_in))
         sd_s = cfg.storage0_std or float(p0_std)
-        P0 = np.diag([sd_s ** 2, cfg.cumulative0_std ** 2, cfg.cumulative0_std ** 2,
-                      cfg.flow0_std ** 2, cfg.flow0_std ** 2, cfg.flow0_std ** 2])
-        H = np.zeros((N_SENSORS, 6))
+        P0 = np.diag([sd_s ** 2, cfg.cumulative0_std ** 2, cfg.cumulative0_std ** 2]
+                     + [cfg.flow0_std ** 2] * (1 + n_in))
+        H = np.zeros((m, n))
         H[S_COL, 0] = 1.0
-        H[QOUT_COL, 3] = 1.0
-        H[QIN1_COL, 4] = 1.0
-        H[QIN2_COL, 5] = 1.0
-        super().__init__([s0[0], 0.0, 0.0, cfg.flow0, cfg.flow0, cfg.flow0], P0, F, Q, H, clock, u_cmd)
+        for i in range(1 + n_in):
+            H[QOUT_COL + i, 3 + i] = 1.0
+        self.aug_names = inflow_names(n_in)
+        self.aug_nominal = (None,) * len(self.aug_names)
+        super().__init__([s0, 0.0, 0.0] + [cfg.flow0] * (1 + n_in), P0, F, Q, H, clock, u_cmd)
         if abs(self.dt - float(dt)) > CLOCK_TOLERANCE_S:
             raise ValueError(f"dt {dt} disagrees with the clock's {self.dt}")
         self.cfg = cfg
@@ -358,29 +390,28 @@ class WaterBalanceClosed(_BalanceKF):
     model_version = "reservoir-balance-closed-v1"
     config_cls = BalanceConfig
     n_report = 1
-    aug_names = ("qout", "qin1", "qin2")
-    aug_nominal = (None, None, None)
 
     def __init__(self, x0, p0_std: float, dt: float, u_cmd: np.ndarray, cfg: BalanceConfig, *, clock):
-        s0 = np.asarray(x0, dtype=float).reshape(-1)
-        if s0.size != 1:
-            raise ValueError(f"{type(self).__name__}'s declared prior is one storage; got {s0.size} values")
+        s0 = _one_storage(x0, type(self).__name__)
+        n_in, m = cfg.n_inflows, n_sensors(cfg.n_inflows)
+        n = 1 + 1 + n_in                            # [S, qout, qin_1..n]
         t = np.asarray(clock, dtype=float)
         dt_days = float(t[1] - t[0]) / SECONDS_PER_DAY
         c = CFS_DAY_TO_ACRE_FT * dt_days
-        F = np.eye(4)
-        F[0, 1:4] = [-c, c, c]                      # S' = S + c dt (qin1 + qin2 - qout)
+        F = np.eye(n)
+        F[0, 1:] = [-c] + [c] * n_in                # S' = S + c dt (sum inflows - qout)
         q_s = cfg.q_storage ** 2 * dt_days
         q_f = cfg.q_flow ** 2 * dt_days
-        Q = np.diag([q_s, q_f, q_f, q_f])
+        Q = np.diag([q_s] + [q_f] * (1 + n_in))
         sd_s = cfg.storage0_std or float(p0_std)
-        P0 = np.diag([sd_s ** 2, cfg.flow0_std ** 2, cfg.flow0_std ** 2, cfg.flow0_std ** 2])
-        H = np.zeros((N_SENSORS, 4))
+        P0 = np.diag([sd_s ** 2] + [cfg.flow0_std ** 2] * (1 + n_in))
+        H = np.zeros((m, n))
         H[S_COL, 0] = 1.0
-        H[QOUT_COL, 1] = 1.0
-        H[QIN1_COL, 2] = 1.0
-        H[QIN2_COL, 3] = 1.0
-        super().__init__([s0[0], cfg.flow0, cfg.flow0, cfg.flow0], P0, F, Q, H, clock, u_cmd)
+        for i in range(1 + n_in):
+            H[QOUT_COL + i, 1 + i] = 1.0
+        self.aug_names = inflow_names(n_in)
+        self.aug_nominal = (None,) * len(self.aug_names)
+        super().__init__([s0] + [cfg.flow0] * (1 + n_in), P0, F, Q, H, clock, u_cmd)
         if abs(self.dt - float(dt)) > CLOCK_TOLERANCE_S:
             raise ValueError(f"dt {dt} disagrees with the clock's {self.dt}")
         self.cfg = cfg
