@@ -1,6 +1,6 @@
 # A second independent balance: the two-reach Muskingum design
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 83bd31b9b0fe, git 2d859bbc25. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 622f88b48553, git e2f294487d. Latency columns are wall-clock on this machine and are not a claim.
 
 Simulated two-reach Muskingum records with known injected faults. Synthetic throughout: no field validation and no real record.
 
