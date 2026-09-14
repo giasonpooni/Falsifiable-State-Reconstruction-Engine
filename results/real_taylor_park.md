@@ -1,6 +1,6 @@
 # A second reservoir, and what a second reservoir cost
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 51c948e3468a, git a1761bc717. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 18f5a0d2b23b, git 539166bb23 (source dirty). Latency columns are wall-clock on this machine and are not a claim.
 
 Taylor Park Reservoir, Taylor River, Colorado, from `declarations/taylor_park.toml`. Three water years of USGS daily values on the same grid as Ridgway: reservoir storage, the outlet gauge and **three** inflow gauges.
 
@@ -54,6 +54,17 @@ So the absent readings account for part of the apparent imbalance and not all of
 At Taylor Park the residual on fully reported days, 9.80%, sits within 0.91 percentage points of its ungauged drainage fraction, 8.90%. It is the obvious explanation and the augmented variant carries exactly that term.
 
 **It is not concluded here.** The same comparison at Ridgway is 0.41% against 7.09% ungauged — no correspondence at all. A relationship that holds at one site and fails at the other is a coincidence or a mechanism, and two sites cannot tell which. Gauge bias, the stage-capacity table, the daily-mean alignment and real ungauged inflow all remain live, and nothing here separates them.
+
+## What is declared here, and on whose authority
+
+USGS states no per-value uncertainty in the daily-values API, so every sigma below is this consumer's declaration and travels with its reason. They are the same declarations the Ridgway study makes, which is part of what makes the two sites comparable — and the reason the second site's imbalance cannot be attributed to a different uncertainty budget.
+
+- NOT a source statement. Reservoir storage is derived from a measured lake elevation through a stage-capacity table whose uncertainty at this reservoir this repository has no source for. This value is one point of a declared sweep (STORAGE_SIGMA_SWEEP); every conclusion in the report is computed at each point, and the report says which survive the range.
+  - *declared at: declared.storage_sigma_citation, provenance.bridge.R_source.usgs:USGS-09108500:00054:00003.citation*
+- The USGS Water Data OGC API defines a daily item's `time` only as the date the observation represents and states no time zone (measured: every value is a bare 'YYYY-MM-DD'). Legacy NWIS practice is the site's local standard-time day, which this API does not say. Read here as a UTC day anchored at its midpoint -- an assumption of this consumer, not a statement of the source. It shifts every series by the same amount, so it cannot change a same-day difference between them; it would matter to an alignment against a sub-daily series, and none is used.
+  - *declared at: declared.day_zone_citation, provenance.bridge.time.day_zone_citation*
+- USGS rates a daily discharge record 'Good' when about 95% of daily values are within 10% of their true value (USGS surface-water accuracy classes, as published per site and period in the annual water-data reports). Read as a two-sided 95% normal interval, that is 2 sigma, so sigma = 5% of the reading. Two assumptions here are this consumer's and not USGS's: that this site and period are rated 'Good' (the rating itself was not acquired -- it is not in the daily-values API), and that the error is normal. Floored at 1.0 ft^3/s because a percentage states nothing at zero flow.
+  - *declared at: declared.flow_sigma_citation, provenance.bridge.R_source.usgs:USGS-09107000:00060:00003.citation, provenance.bridge.R_source.usgs:USGS-09107500:00060:00003.citation*
 
 ## What this does not establish
 

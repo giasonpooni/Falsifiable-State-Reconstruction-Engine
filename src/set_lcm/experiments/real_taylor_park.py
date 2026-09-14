@@ -189,6 +189,29 @@ def claims(r: dict) -> dict:
     }
 
 
+def _citations(node, path: str = "") -> dict[str, list[str]]:
+    """Every declared citation in the report, keyed by the string, with where it was declared.
+
+    Walked out of the report rather than listed by hand, so a citation cannot be added to the
+    declaration and then quietly not reach the page. That is the rule this repository applies
+    to every consumer-declared number, and the second site is where it was nearly broken: the
+    report told a reader the balance does not close without once showing the declared
+    uncertainty that judgement rests on.
+    """
+    found: dict[str, list[str]] = {}
+    def walk(n, p=""):
+        if isinstance(n, dict):
+            for k, v in n.items():
+                walk(v, f"{p}.{k}")
+        elif isinstance(n, list):
+            for i, v in enumerate(n):
+                walk(v, f"{p}[{i}]")
+        elif isinstance(n, str) and "citation" in p.rsplit(".", 1)[-1].lower():
+            found.setdefault(" ".join(n.split()), []).append(p.lstrip("."))
+    walk(node, path)
+    return found
+
+
 def render(report: dict) -> str:
     failed = [name for name, held in report["claims"].items() if not held]
     if failed:
@@ -294,6 +317,19 @@ def render(report: dict) -> str:
       f"or a mechanism, and two sites cannot tell which. Gauge bias, the stage-capacity table, "
       f"the daily-mean alignment and real ungauged inflow all remain live, and nothing here "
       f"separates them.")
+    A("")
+
+    A("## What is declared here, and on whose authority")
+    A("")
+    A("USGS states no per-value uncertainty in the daily-values API, so every sigma below is "
+      "this consumer's declaration and travels with its reason. They are the same declarations "
+      "the Ridgway study makes, which is part of what makes the two sites comparable — and the "
+      "reason the second site's imbalance cannot be attributed to a different uncertainty "
+      "budget.")
+    A("")
+    for text, where in sorted(_citations(report).items()):
+        A(f"- {text}")
+        A(f"  - *declared at: {', '.join(sorted(set(where))[:3])}*")
     A("")
 
     A("## What this does not establish")
