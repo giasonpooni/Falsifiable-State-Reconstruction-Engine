@@ -111,24 +111,82 @@ def test_extra_circuits_buy_coverage_and_not_conditioning(report):
                       for n in study.CIRCUIT_SWEEP}
     assert max(amplifications) - min(amplifications) < 1e-9
     for n in study.CIRCUIT_SWEEP:
-        cell = by_variant(report, n, "energy + duty")
-        assert cell["tightest_pair_is_within_one_circuit"]
-        assert cell["tightest_separated_pair"]["b"].endswith("fouling")
+        hardest = by_variant(report, n, "energy + duty")["tightest_separated_pair"]
+        assert hardest["kind"] == "within one circuit"
+        assert hardest["every_tied_pair_involves_fouling"]
 
 
 def test_the_header_metered_curve_hands_over_from_between_meters_to_within_a_circuit(report):
     first = by_variant(report, study.CIRCUIT_SWEEP[0], FULL)
     last = by_variant(report, study.CIRCUIT_SWEEP[-1], FULL)
-    assert not first["tightest_pair_is_within_one_circuit"]
-    assert "header flow-meter bias" in (first["tightest_separated_pair"]["a"],
-                                        first["tightest_separated_pair"]["b"])
-    assert last["tightest_pair_is_within_one_circuit"]
+    assert first["tightest_separated_pair"]["kind"] == "against the header meter"
+    assert last["tightest_separated_pair"]["kind"] == "within one circuit"
+    assert last["tightest_separated_pair"]["every_tied_pair_involves_fouling"]
     amplifications = [by_variant(report, n, FULL)["amplification_at_reference_prior"]
                       for n in study.CIRCUIT_SWEEP]
     assert all(a > b for a, b in zip(amplifications, amplifications[1:]))
     floor = by_variant(report, study.CIRCUIT_SWEEP[-1], "energy + duty")[
         "amplification_at_reference_prior"]
     assert floor < amplifications[-1] < floor * 1.05
+
+
+def test_the_binding_pair_is_a_family_and_the_report_says_how_large(report):
+    """A manifold is symmetric under relabelling circuits, so the minimum is attained once
+    per circuit. Naming one member would present an arbitrary choice among equals."""
+    for entry in report["sweep"]:
+        hardest = entry["by_variant"][FULL]["tightest_separated_pair"]
+        assert hardest["n_tied"] == entry["circuits"]
+        assert hardest["n_tied"] < hardest["n_separated_pairs"] or entry["circuits"] == 1
+        assert hardest["kind"] in ("within one circuit", "against the header meter")
+
+
+def test_which_family_binds_is_conditional_on_the_declared_heat_load(report):
+    """The handover is not a property of the circuit count, and the report must not imply it is."""
+    def kind(entry, scale):
+        return next(p["binding_pair_kind"]
+                    for p in entry["by_variant"][FULL]["amplification_by_prior"]
+                    if p["prior_scale"] == scale)
+
+    tight = min(report["declared"]["prior_scales_swept"])
+    loose = max(report["declared"]["prior_scales_swept"])
+    assert all(kind(e, tight) == "against the header meter" for e in report["sweep"]), (
+        "at a tight heat-load prior the handover does not happen anywhere in this sweep")
+    handovers = {}
+    for scale in (tight, 1.0, loose):
+        handovers[scale] = next(
+            (e["circuits"] for e in report["sweep"] if kind(e, scale) == "within one circuit"), None)
+    assert handovers[tight] is None
+    assert handovers[loose] is not None and handovers[1.0] is not None
+    assert handovers[loose] < handovers[1.0], "a looser heat load moves the handover earlier"
+
+
+def test_the_declared_rows_are_independent_and_the_operating_point_satisfies_them(report):
+    """Two silent-failure guards.
+
+    A dependent row set would make `declared_rows` something other than the residual
+    dimension the report describes, and `reduced()` would quietly SVD-reduce it on the exact
+    path. An operating point off the declared relation would poison every `Cov(E x)` number
+    without any of them looking wrong, because that covariance is a quadratic form evaluated
+    exactly there.
+    """
+    for entry in report["sweep"]:
+        for variant, cell in entry["by_variant"].items():
+            assert cell["declared_rows_are_independent"], (entry["circuits"], variant)
+            assert cell["residual_rank"] == cell["declared_rows"]
+            assert cell["operating_point_row_residual"] <= 1e-12, (entry["circuits"], variant)
+
+
+def test_conservation_alone_separates_circuits_perfectly_or_not_at_all(report):
+    """Energy balances are one row per circuit, so the geometry is binary: everything inside
+    a circuit collapses into that row, and everything across circuits is orthogonal."""
+    for entry in report["sweep"]:
+        hardest = entry["by_variant"]["energy only"]["tightest_separated_pair"]
+        if hardest is None:          # one circuit: a single row separates nothing at all
+            assert entry["circuits"] == 1
+            continue
+        assert hardest["every_separated_pair_is_orthogonal"]
+        assert hardest["isolation_amplification"] == pytest.approx(1.0)
+        assert hardest["kind"] == "between circuits"
 
 
 def test_the_declared_heat_load_binds_an_order_of_magnitude_harder_than_the_meter_count(report):

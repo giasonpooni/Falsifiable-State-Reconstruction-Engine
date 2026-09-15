@@ -223,22 +223,69 @@ def _circuit_of(name: str) -> str | None:
     return parts[1] if parts[:1] == ["circuit"] else None
 
 
+def _pair_kind(a: str, b: str) -> str:
+    """What KIND of question a pair asks -- which is what survives the ties below."""
+    circuit_a, circuit_b = _circuit_of(a), _circuit_of(b)
+    if circuit_a is None or circuit_b is None:
+        return "against the header meter"
+    return "within one circuit" if circuit_a == circuit_b else "between circuits"
+
+
+def _hardest(cell: dict) -> dict | None:
+    """The binding pairs, plural, and what shape they share.
+
+    The tightest pair is almost never unique here: a manifold is symmetric under relabelling
+    its circuits, so whatever binds circuit 1 binds every other circuit identically, and the
+    minimum is attained by a whole family at once. Reporting one representative would present
+    an arbitrary choice among equals as a finding. What is actually stable, and what the
+    report states, is the SHAPE of that family -- whether the question it leaves open is
+    inside one circuit, between circuits, or against the header meter.
+    """
+    pairs = cell["pairs"]
+    if pairs is None:
+        return None
+    separated = [p for p in pairs if p["distinguishable"] and np.isfinite(p["cos"])
+                 and np.isfinite(p["orthogonal_fraction"]) and p["orthogonal_fraction"] > 0.0]
+    if not separated:
+        return None
+    worst = max(p["isolation_amplification"] for p in separated)
+    tied = [p for p in separated
+            if abs(p["isolation_amplification"] - worst) <= 1e-9 * worst]
+    kinds = sorted({_pair_kind(p["a"], p["b"]) for p in tied})
+    return {
+        "isolation_amplification": float(worst),
+        "a": tied[0]["a"], "b": tied[0]["b"],          # one representative of the family
+        "n_tied": len(tied), "n_separated_pairs": len(separated),
+        "kind": kinds[0] if len(kinds) == 1 else "mixed",
+        "kinds": kinds,
+        "every_tied_pair_involves_fouling": all(
+            p["a"].endswith("fouling") or p["b"].endswith("fouling") for p in tied),
+        "every_separated_pair_is_orthogonal": all(
+            abs(p["isolation_amplification"] - 1.0) <= 1e-12 for p in separated),
+    }
+
+
 def _cell(top: Topology, variant: str, scale: float, *, declare_A_var: bool = False) -> dict:
     cell = evaluate(top, variant, scale, declare_A_var=declare_A_var)
-    tight = cell["tightest_separated_pair"]
+    hardest = _hardest(cell)
+    rows = top.variants[variant][0]
+    x = np.array(top.operating_point, dtype=float)
     return {
         "variant": variant, "prior_scale": scale,
         "A_declared_uncertain": declare_A_var,
         "refused": cell["refused"], "refusal": cell["refusal"],
         "declared_rows": cell["declared_rows"], "n_faults": cell["n_faults"],
         "residual_rank": cell["residual_rank"],
+        # The declared rows must be independent, or `declared_rows` is not the dimension of
+        # the residual this report describes; and the declared operating point must satisfy
+        # them, because Cov(E x) is evaluated there and an inconsistent state would poison
+        # every A_var number without any of them looking wrong.
+        "declared_rows_are_independent": cell["residual_rank"] == cell["declared_rows"],
+        "operating_point_row_residual": float(np.abs(rows @ x).max()),
         "invisible": cell["invisible"], "isolable": cell["isolable"],
         "n_isolable": cell["n_isolable"],
         "confounded_pairs": cell["confounded_pairs"],
-        "tightest_separated_pair": tight,
-        "tightest_pair_is_within_one_circuit": (
-            None if tight is None else
-            _circuit_of(tight["a"]) is not None and _circuit_of(tight["a"]) == _circuit_of(tight["b"])),
+        "tightest_separated_pair": hardest,
     }
 
 
@@ -261,16 +308,22 @@ def compute() -> dict:
             by_variant[v] = {
                 "declared_rows": reference["declared_rows"],
                 "residual_rank": reference["residual_rank"],
+                "declared_rows_are_independent": reference["declared_rows_are_independent"],
+                "operating_point_row_residual": reference["operating_point_row_residual"],
                 "refused": [c["prior_scale"] for c in mine if c["refused"]],
                 "invisible": reference["invisible"],
                 "isolable": reference["isolable"],
                 "n_isolable": reference["n_isolable"],
                 "confounded_pairs": reference["confounded_pairs"],
                 "tightest_separated_pair": reference["tightest_separated_pair"],
-                "tightest_pair_is_within_one_circuit": reference["tightest_pair_is_within_one_circuit"],
                 "amplification_at_reference_prior": _amplification(reference),
                 "amplification_by_prior": [
-                    {"prior_scale": c["prior_scale"], "isolation_amplification": _amplification(c)}
+                    {"prior_scale": c["prior_scale"],
+                     "isolation_amplification": _amplification(c),
+                     "binding_pair_kind": (None if c["tightest_separated_pair"] is None
+                                           else c["tightest_separated_pair"]["kind"]),
+                     "n_tied_at_hardest": (None if c["tightest_separated_pair"] is None
+                                           else c["tightest_separated_pair"]["n_tied"])}
                     for c in mine],
                 "with_supply_temperature_declared_uncertain": {
                     "isolable": declared["isolable"],
@@ -341,6 +394,8 @@ def compute() -> dict:
             "The duty coefficient is one declared operating point. The effectiveness is swept rather than asserted, and the supply temperature's uncertainty is declared as A_var rather than assumed away, but the FORM of the duty relation is not varied.",
             "Fouling is declared as a process change that conserves energy. That it is a different KIND of thing from an instrument bias is an assumption of the catalogue, not a finding.",
             "The prior is declared, not measured. The heat-load axis it sweeps is the one the report finds binding, so a shop's real number for it matters more than anything else here.",
+            "The tightest pair is a family, not a pair: a manifold is symmetric under relabelling its circuits, so the minimum is attained once per circuit. The report gives the size and shape of that family rather than naming a member, and a reader must not take any one pair as the binding one.",
+            "Which family binds is conditional on the declared heat-load prior as well as on the circuit count, and the report tabulates that rather than resolving it. A conclusion about the circuit count alone is not available from this study.",
         ],
     }
     out["claims"] = claims(out)
@@ -356,6 +411,10 @@ def claims(r: dict) -> dict:
 
     def amp(variant):
         return [c["amplification_at_reference_prior"] for c in cells(variant)]
+
+    def kinds_by_prior(entry, scale):
+        return next(p["binding_pair_kind"] for p in entry["by_variant"][FULL]["amplification_by_prior"]
+                    if p["prior_scale"] == scale)
 
     full, duty, bare = cells(FULL), cells("energy + duty"), cells("energy only")
     amp_full, amp_duty = amp(FULL), amp("energy + duty")
@@ -390,21 +449,37 @@ def claims(r: dict) -> dict:
         # needing at least a fifth more signal to name a fault than to see one, while the
         # count says all of them are isolable.
         "and_the_count_is_therefore_not_the_answer": min(amp_full) > 1.2,
-        "without_a_header_the_hardest_pair_is_a_circuit_against_its_own_fouling": all(
-            c["tightest_pair_is_within_one_circuit"]
-            and c["tightest_separated_pair"]["b"].endswith("fouling") for c in duty),
+        "the_binding_pair_is_never_one_pair_but_a_family_of_them": all(
+            c["tightest_separated_pair"]["n_tied"] == e["circuits"]
+            for e, c in zip(sweep, full)),
+        "conservation_alone_separates_circuits_perfectly_or_not_at_all": all(
+            c["tightest_separated_pair"] is None
+            or c["tightest_separated_pair"]["every_separated_pair_is_orthogonal"]
+            for c in bare),
+        "without_a_header_the_family_is_always_a_circuit_against_its_own_fouling": all(
+            c["tightest_separated_pair"]["kind"] == "within one circuit"
+            and c["tightest_separated_pair"]["every_tied_pair_involves_fouling"] for c in duty),
         "metering_more_circuits_does_not_loosen_it_at_all": (
             max(amp_duty) - min(amp_duty) < 1e-9),
         "a_metered_header_starts_bound_by_the_header_meter_itself": (
-            not full[0]["tightest_pair_is_within_one_circuit"]
-            and "header flow-meter bias" in
-            (full[0]["tightest_separated_pair"]["a"], full[0]["tightest_separated_pair"]["b"])),
-        "and_that_pair_loosens_until_the_within_circuit_one_binds_instead": (
-            full[-1]["tightest_pair_is_within_one_circuit"]
-            and full[-1]["tightest_separated_pair"]["b"].endswith("fouling")
+            full[0]["tightest_separated_pair"]["kind"] == "against the header meter"),
+        "and_that_family_loosens_until_the_within_circuit_one_binds_instead": (
+            full[-1]["tightest_separated_pair"]["kind"] == "within one circuit"
+            and full[-1]["tightest_separated_pair"]["every_tied_pair_involves_fouling"]
             and all(a > b for a, b in zip(amp_full, amp_full[1:]))),
         "converging_onto_the_same_within_circuit_floor": (
             amp_full[-1] > amp_duty[-1] and (amp_full[-1] - amp_duty[-1]) / amp_duty[-1] < 0.05),
+        # The handover above is NOT a property of the circuit count alone: the declared
+        # heat-load prior decides where it falls, and at a tight one it never falls at all.
+        "but_where_that_handover_falls_is_set_by_the_declared_heat_load": (
+            all(kinds_by_prior(e, min(r["declared"]["prior_scales_swept"]))
+                == "against the header meter" for e in sweep)
+            and len({kinds_by_prior(e, 1.0) for e in sweep}) > 1),
+        "the_declared_rows_are_independent_at_every_size": all(
+            c["declared_rows_are_independent"] for e in sweep for c in e["by_variant"].values()),
+        "the_declared_operating_point_satisfies_the_declared_rows": all(
+            c["operating_point_row_residual"] <= 1e-12
+            for e in sweep for c in e["by_variant"].values()),
         "the_declared_heat_load_binds_harder_than_the_meter_count": (
             max(prior_amps) / max(amp_full) > 10.0),
         "a_less_effective_circuit_is_the_harder_one_to_diagnose": all(
@@ -492,12 +567,18 @@ def render(report: dict) -> str:
       "means a residual direction exists, not that a fault of realistic size moves it far "
       "enough to name. The number that governs is the tightest separated pair.")
     A("")
-    A("| circuits | hardest pair, + duty | hardest pair, + header | which pair |")
-    A("| ---: | ---: | ---: | :--- |")
+    A("| circuits | hardest, + duty | hardest, + header | how many pairs tie there | what they ask |")
+    A("| ---: | ---: | ---: | ---: | :--- |")
     for e in sweep:
         tight = cell(e, FULL)["tightest_separated_pair"]
         A(f"| {e['circuits']} | {amp(e, 'energy + duty')} | {amp(e, FULL)} | "
-          f"`{tight['a']}` vs `{tight['b']}` |")
+          f"{tight['n_tied']} of {tight['n_separated_pairs']} | {tight['kind']} |")
+    A("")
+    A("**It is never one pair.** A manifold is symmetric under relabelling its circuits, so "
+      "whatever binds circuit 1 binds every other circuit identically and the minimum is "
+      "attained by a whole family at once — one member per circuit here. Naming a "
+      "representative would present an arbitrary choice among equals as a finding, so the "
+      "table reports how many tie and what they have in common instead.")
     A("")
     amp_duty = cell(sweep[-1], "energy + duty")["amplification_at_reference_prior"]
     first = cell(sweep[0], FULL)["amplification_at_reference_prior"]
@@ -510,15 +591,40 @@ def render(report: dict) -> str:
       f"rather than evidence about any existing one. Extra circuits buy **coverage**, not "
       f"**conditioning**.")
     A("")
-    A(f"**With a header meter the curve has two regimes**, and the table above shows the "
-      f"handover. At small counts the binding pair is a circuit's flow meter against the "
-      f"*header's* — with one or two circuits those are nearly the same measurement, and the "
-      f"redundancy that makes the header meter worth having is also what makes the two hard "
-      f"to tell apart. That pair loosens as circuits are added, from {first:.2f}x to "
-      f"{last:.2f}x, until at {sweep[-1]['circuits']} circuits it is no longer the binding one: "
-      f"the within-circuit thermocouple-against-fouling pair is, and the curve flattens onto "
-      f"the {amp_duty:.2f}x floor the header meter cannot move. That floor, not the fault "
-      f"count, is what this design is worth.")
+    handover = next((e["circuits"] for e in sweep
+                     if cell(e, FULL)["tightest_separated_pair"]["kind"] == "within one circuit"),
+                    None)
+    A(f"**With a header meter the binding family changes identity partway along the sweep.** "
+      f"At small counts it asks *which meter*: a circuit's flow meter against the header's. "
+      f"With one or two circuits those are nearly the same measurement, and the redundancy "
+      f"that makes a header meter worth having is also what makes the two hard to tell apart. "
+      f"It loosens as circuits are added, from {first:.2f}x to {last:.2f}x, and at "
+      f"{handover} circuits a different question takes over: a circuit's return thermocouple "
+      f"against its own fouling. The curve then flattens onto the {amp_duty:.2f}x floor the "
+      f"header meter cannot move, because that floor is a question inside one circuit.")
+    A("")
+    A("**Where that handover falls is not a property of the circuit count.** It is set by the "
+      "declared heat load, which is the next section's subject and the reason it is the next "
+      "section rather than a footnote:")
+    A("")
+    scales_all = [row["prior_scale"] for row in cell(sweep[0], FULL)["amplification_by_prior"]]
+    A("| prior on the heat load | " + " | ".join(f"{e['circuits']}" for e in sweep)
+      + " | where it hands over |")
+    A("| ---: |" + " :--- |" * len(sweep) + " ---: |")
+    for scale in scales_all:
+        kinds = [next(p["binding_pair_kind"] for p in cell(e, FULL)["amplification_by_prior"]
+                      if p["prior_scale"] == scale) for e in sweep]
+        short = ["header" if k == "against the header meter" else
+                 "circuit" if k == "within one circuit" else k for k in kinds]
+        at = next((e["circuits"] for e, k in zip(sweep, kinds) if k == "within one circuit"), None)
+        A(f"| {scale:g}x | " + " | ".join(short) + " | "
+          + (f"{at} circuits" if at else "never, in this sweep") + " |")
+    A("")
+    A("At a heat load known a hundred times better than declared, the header meter is the "
+      "binding question at **every** circuit count in this sweep and the amplification barely "
+      "moves with the count at all. Declare it a hundred times worse and the handover comes "
+      "a circuit earlier. The circuit count decides which side of the handover a given "
+      "manifold sits on; the declared heat load decides where the handover is.")
     A("")
 
     A("## What actually binds")
@@ -536,14 +642,18 @@ def render(report: dict) -> str:
     worst = max(p["isolation_amplification"] for e in sweep
                 for p in cell(e, FULL)["amplification_by_prior"]
                 if p["isolation_amplification"] is not None)
+    best_circuits = min(cell(e, FULL)["amplification_at_reference_prior"] for e in sweep)
+    worst_circuits = max(cell(e, FULL)["amplification_at_reference_prior"] for e in sweep)
     A(f"The swept axis is how well the absorbed heat is known relative to metered throughput, "
       f"and the whole circuit sweep is shown against it because that is the comparison that "
       f"matters. Loosening the declared heat load a hundredfold takes the hardest pair to "
-      f"**{worst:.0f}x** — roughly two orders of magnitude worse than anything the circuit "
-      f"count does, and it does that at every circuit count. A shop with a credible declared "
-      f"heat load and two metered circuits is better placed than one with six and no idea what "
-      f"the mould is absorbing. That is the procurement answer, and it is not the one the "
-      f"count suggests.")
+      f"**{worst:.0f}x**. Against it, going from one metered circuit to "
+      f"{sweep[-1]['circuits']} moves the same quantity from {worst_circuits:.2f}x to "
+      f"{best_circuits:.2f}x — a factor of {worst_circuits / best_circuits:.2f}, against the "
+      f"prior's factor of {worst / min(p['isolation_amplification'] for e in sweep for p in cell(e, FULL)['amplification_by_prior'] if p['isolation_amplification'] is not None):.0f}. "
+      f"A shop with a credible declared heat load and two metered circuits is better placed "
+      f"than one with six and no idea what the mould is absorbing. That is the procurement "
+      f"answer, and it is not the one the count suggests.")
     A("")
     eps_rows = sens["effectiveness"]
     A(f"Effectiveness matters for the same reason: at eps = {eps_rows[0]['effectiveness']:g} the "

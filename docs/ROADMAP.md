@@ -190,10 +190,17 @@ is bought. What it found:
   with the header metered, which is the reading `fdi.Isolability` warns against in its own
   docstring. The tightest separated pair is what governs, and without a header meter it is
   *identical* at one circuit and at six: extra circuits buy coverage, not conditioning.
-- **The declared heat load binds two orders of magnitude harder than the meter count.**
-  Loosening it a hundredfold takes the hardest pair past 100x at every circuit count, against
-  the 1.42x-to-1.25x the whole circuit sweep moves it. Buy a credible heat load before a sixth
-  flow meter.
+- **It is never one pair.** A manifold is symmetric under relabelling its circuits, so the
+  minimum is attained once per circuit — six tied pairs at six circuits. The study reports the
+  size and shape of that family instead of naming an arbitrary member.
+- **The declared heat load is the lever; the meter count is not.** Going from one metered
+  circuit to six moves the hardest pair by a factor of 1.14; declaring the heat load a hundred
+  times looser moves it by 88. Buy a credible heat load before a sixth flow meter.
+- **Which question binds is conditional on that prior, not on the count alone.** With the
+  header metered the binding family asks *which meter* at small counts and *thermocouple or
+  fouling, inside this circuit* at large ones. At the declared prior that handover falls at
+  four circuits; a hundredfold looser it falls at three; a hundredfold tighter it never falls
+  in this sweep. The study tabulates that rather than resolving it.
 - **The supply thermocouple is not the binding instrument**, declared uncertain at the full
   `vec(A)` covariance: no isolable set moves and the hardest pair moves by under 1%.
 
