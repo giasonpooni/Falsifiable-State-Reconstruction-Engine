@@ -18,6 +18,7 @@ from set_lcm.coordinates import AffineCoordinates
 from set_lcm.invariant import GaussianState, predict, update
 
 from .provenance import header_line, provenance
+from .provenance import REPO_ROOT
 
 N_STEPS = 32
 SEEDS = tuple(range(8))
@@ -26,7 +27,6 @@ ABSOLUTE_TOLERANCE = 1e-8
 BIAS_ONSET = 16
 GAUGE_BIAS_KG = 2.0
 METRICS = ("max_abs_mean_difference_kg", "max_abs_covariance_difference_kg2", "max_abs_nis_difference")
-
 
 @dataclass(frozen=True)
 class MeasurementRecord:
@@ -268,7 +268,7 @@ def main(out_dir: Path, *, quiet: bool = False) -> int:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--out-dir", type=Path, default=Path.cwd() / "results")
+    parser.add_argument("--out-dir", type=Path, default=REPO_ROOT / "results")
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args()
     raise SystemExit(main(args.out_dir, quiet=args.quiet))

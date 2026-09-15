@@ -21,7 +21,7 @@ from set_lcm.diagnostics import diagnose
 from set_lcm.measurement import BalanceRecord, balance_residuals
 
 from .provenance import header_line, provenance
-
+from .provenance import REPO_ROOT
 
 @dataclass(frozen=True)
 class ExperimentConfig:
@@ -379,7 +379,7 @@ def main(out_dir: Path, n_eval: int = N_EVALUATION, *, n_development: int = N_DE
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--out-dir", type=Path, default=Path.cwd() / "results")
+    parser.add_argument("--out-dir", type=Path, default=REPO_ROOT / "results")
     parser.add_argument("--n-eval", type=int, default=N_EVALUATION)
     parser.add_argument("--n-development", type=int, default=N_DEVELOPMENT)
     parser.add_argument("--quiet", action="store_true")

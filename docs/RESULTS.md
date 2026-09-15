@@ -19,8 +19,17 @@ previous one failed to answer, and that order is the argument.
 Contents: the Phase 1 vertical slice and what its results do and do not show; P2, which
 went after the null space the sum constraint cannot see; P2b's declared constraint
 uncertainty; the removal of hidden truth from the estimator side; the DAF evidence bridge;
-P4, the first real observations (NOAA tide gauge); and P4b, the first real conservation law
-(Ridgway Reservoir).
+P4, the first real observations (NOAA tide gauge); P4b, the first real conservation law
+(Ridgway Reservoir); and P4c, what a month of record buys over a day.
+
+**The narrative stops at P4c, and the work does not.** Everything after it — the
+second-balance and cooling-manifold design studies, the errors-in-variables calibration and
+its projection, the two-reach river, the second real site at Taylor Park, and the first
+isolation attempt on real evidence — is delivered and committed, with a row apiece in
+[`README.md`](../README.md#explore-the-examples) pointing at its artifact and a stage apiece in
+[`Roadmap`](ROADMAP.md). It is simply not narrated here yet. The module table below tracks
+this narrative rather than the package, so a module absent from it is later work, not
+missing work.
 
 ---
 

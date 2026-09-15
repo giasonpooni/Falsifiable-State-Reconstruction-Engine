@@ -49,6 +49,7 @@ from __future__ import annotations
 
 import json
 import math
+import argparse
 import sys
 from pathlib import Path
 
@@ -536,4 +537,12 @@ def render(r: dict) -> str:
 
 
 if __name__ == "__main__":
-    sys.exit(main(REPO_ROOT / "results"))
+    # argparse rather than a bare main(): without it an unrecognised flag was SILENTLY
+    # IGNORED and this wrote over the committed artifact anyway, which is how a `--out-dir`
+    # meant to protect results/ came to overwrite it. Default from REPO_ROOT, not Path.cwd(),
+    # so where the artifact lands does not depend on where the command was run.
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--out-dir", type=Path, default=REPO_ROOT / "results")
+    parser.add_argument("--quiet", action="store_true")
+    args = parser.parse_args()
+    sys.exit(main(args.out_dir, quiet=args.quiet))

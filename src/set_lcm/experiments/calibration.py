@@ -18,6 +18,7 @@ h can be read against the null rather than assumed.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from dataclasses import replace
@@ -28,6 +29,7 @@ import numpy as np
 from ..testbed.cusum import CusumConfig
 from ..testbed.runner import EstimatorSpec
 from .phase1 import DETECT_WITHIN, N_SEEDS, iter_runs, run_scenario
+from .provenance import REPO_ROOT
 
 # Windows over which the joint hypothesis holds for the shipped scenarios.
 NULL_WINDOWS: dict[str, tuple[int, int]] = {
@@ -43,7 +45,6 @@ SWEEP_QS = (0.95, 0.99, 0.999)
 SWEEP_DEBOUNCES = (1, 3, 10)
 CUSUM_HS = (4.0, 6.0, 8.0, 10.0)
 CUSUM_SHIPPED = CusumConfig()          # the default on EstimatorSpec: k = 0.5, h = 8
-
 
 def _lag1(x: np.ndarray) -> float:
     x = x - x.mean()
@@ -247,4 +248,12 @@ def main(out_dir: Path, n_seeds: int = N_SEEDS, *, quiet: bool = False) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(Path.cwd() / "results", int(sys.argv[1]) if len(sys.argv) > 1 else N_SEEDS))
+    # argparse rather than int(sys.argv[1]): the bare form turned any flag into a
+    # ValueError on int(), and defaulted the output to Path.cwd(), so where the artifact
+    # landed depended on where the command was run. The seed count stays positional.
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("n_seeds", nargs="?", type=int, default=N_SEEDS)
+    parser.add_argument("--out-dir", type=Path, default=REPO_ROOT / "results")
+    parser.add_argument("--quiet", action="store_true")
+    args = parser.parse_args()
+    sys.exit(main(args.out_dir, args.n_seeds, quiet=args.quiet))

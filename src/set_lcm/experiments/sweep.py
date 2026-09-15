@@ -24,6 +24,7 @@ test "b within its declared uncertainty", which holds, so their flags are false 
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from dataclasses import replace
@@ -39,6 +40,7 @@ from ..testbed.simulator import simulate
 from .phase1 import (
     DETECT_WITHIN, N_SEEDS, SCENARIOS, SEED, SEED_STRIDE, Scenario, aggregate, declared_prior, run_spec,
 )
+from .provenance import REPO_ROOT
 
 KF = EstimatorSpec("kf", "kf", None)
 HARD = EstimatorSpec("kf+hard", "kf", "hard")
@@ -95,7 +97,6 @@ AXES: dict[str, dict] = {
                          "'FA max / rate'). kf+hard and kf+hard+guard keep treating b as exact, for contrast.",
     },
 }
-
 
 def _point_config(axis: str, value: float, i: int, base: Scenario):
     """Return (sim, deg, runs) for one sweep point and seed index; runs is a list of
@@ -244,4 +245,12 @@ def main(out_dir: Path, n_seeds: int = N_SEEDS, *, quiet: bool = False) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(Path.cwd() / "results", int(sys.argv[1]) if len(sys.argv) > 1 else N_SEEDS))
+    # argparse rather than int(sys.argv[1]): the bare form turned any flag into a
+    # ValueError on int(), and defaulted the output to Path.cwd(), so where the artifact
+    # landed depended on where the command was run. The seed count stays positional.
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("n_seeds", nargs="?", type=int, default=N_SEEDS)
+    parser.add_argument("--out-dir", type=Path, default=REPO_ROOT / "results")
+    parser.add_argument("--quiet", action="store_true")
+    args = parser.parse_args()
+    sys.exit(main(args.out_dir, args.n_seeds, quiet=args.quiet))

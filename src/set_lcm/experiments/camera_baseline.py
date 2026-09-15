@@ -23,6 +23,7 @@ from set_lcm.diagnostics import DiagnosticResult, diagnose
 from set_lcm.frame_quality import FrameAudit, audit_frames, frame_content_hash, frame_spectrum
 
 from .provenance import header_line, provenance
+from .provenance import REPO_ROOT
 
 N_FRAMES = 32
 ONSET_SECONDS = 12.0
@@ -56,7 +57,6 @@ INTERVAL_LEVEL = 0.95
 DETECTOR_OPTIONS = {"expected_polarity": "dark_below", "min_contrast": 0.3,
                     "max_column_spread": 0.15, "plateau_rows": 3,
                     "max_profile_deviation": 0.2}
-
 
 @dataclass(frozen=True)
 class CalibrationEvidence:
@@ -520,7 +520,7 @@ def main(out_dir: Path, *, quiet: bool = False) -> int:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--out-dir", type=Path, default=Path.cwd() / "results")
+    parser.add_argument("--out-dir", type=Path, default=REPO_ROOT / "results")
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args()
     raise SystemExit(main(args.out_dir, quiet=args.quiet))
