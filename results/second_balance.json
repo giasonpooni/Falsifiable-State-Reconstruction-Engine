@@ -5,10 +5,10 @@
     "generation": {
       "python": "3.13.12",
       "numpy": "2.5.3",
-      "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+      "platform": "Linux-6.18.44-fc-v33-x86_64-with-glibc2.39",
       "machine": "x86_64",
-      "source_sha256": "1baf7ee49925d8342e1f9e74fe8cbf7fc97da25835ccc35f057b356fe32dd105",
-      "git_head": "4194bbfdedd94bfaeea6391075fe2abde948a76a",
+      "source_sha256": "1d22ad6e1b9a0e61941d88405f2f052047c6c5501edb93b7b7611dc1e8cb45f1",
+      "git_head": "385bafd04b13f6e74ea64e76d6b859ce47499bdd",
       "source_dirty": false,
       "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
     }
@@ -525,6 +525,42 @@
           "n_isolable": 1,
           "confounded_pairs": [
             [
+              "inlet flow-meter bias",
+              "outlet flow-meter bias"
+            ],
+            [
+              "inlet flow-meter bias",
+              "inlet temperature bias"
+            ],
+            [
+              "inlet flow-meter bias",
+              "outlet temperature bias"
+            ],
+            [
+              "inlet flow-meter bias",
+              "stored-energy sensor bias"
+            ],
+            [
+              "inlet flow-meter bias",
+              "heat-duty error"
+            ],
+            [
+              "outlet flow-meter bias",
+              "inlet temperature bias"
+            ],
+            [
+              "outlet flow-meter bias",
+              "outlet temperature bias"
+            ],
+            [
+              "outlet flow-meter bias",
+              "stored-energy sensor bias"
+            ],
+            [
+              "outlet flow-meter bias",
+              "heat-duty error"
+            ],
+            [
               "inlet temperature bias",
               "outlet temperature bias"
             ],
@@ -565,10 +601,10 @@
                 "stored-mass sensor bias"
               ],
               "tightest_separated_pair": {
-                "a": "inlet flow-meter bias",
-                "b": "outlet flow-meter bias",
-                "orthogonal_fraction": 0.16458774282733282,
-                "isolation_amplification": 6.075786585451196
+                "a": "outlet flow-meter bias",
+                "b": "stored-mass sensor bias",
+                "orthogonal_fraction": 0.7045463544003087,
+                "isolation_amplification": 1.4193530258930567
               }
             },
             {
@@ -581,8 +617,8 @@
           ],
           "n_priors_refused": 2,
           "amplification_range": [
-            6.075786585451196,
-            6.075786585451196
+            1.4193530258930567,
+            1.4193530258930567
           ]
         },
         {
@@ -608,6 +644,18 @@
           "n_isolable": 2,
           "confounded_pairs": [
             [
+              "inlet flow-meter bias",
+              "inlet temperature bias"
+            ],
+            [
+              "outlet flow-meter bias",
+              "outlet temperature bias"
+            ],
+            [
+              "outlet flow-meter bias",
+              "stored-energy sensor bias"
+            ],
+            [
               "outlet temperature bias",
               "stored-energy sensor bias"
             ]
@@ -629,10 +677,10 @@
                 "heat-duty error"
               ],
               "tightest_separated_pair": {
-                "a": "inlet flow-meter bias",
-                "b": "inlet temperature bias",
-                "orthogonal_fraction": 0.45327494383580164,
-                "isolation_amplification": 2.2061665079864836
+                "a": "outlet flow-meter bias",
+                "b": "stored-mass sensor bias",
+                "orthogonal_fraction": 0.7231098761740042,
+                "isolation_amplification": 1.382915699189492
               }
             },
             {
@@ -645,8 +693,8 @@
           ],
           "n_priors_refused": 2,
           "amplification_range": [
-            2.2061665079864836,
-            2.2061665079864836
+            1.382915699189492,
+            1.382915699189492
           ]
         }
       ]

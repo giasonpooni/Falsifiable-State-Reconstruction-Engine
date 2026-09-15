@@ -30,10 +30,10 @@
     "generation": {
       "python": "3.13.12",
       "numpy": "2.5.3",
-      "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+      "platform": "Linux-6.18.44-fc-v33-x86_64-with-glibc2.39",
       "machine": "x86_64",
-      "source_sha256": "1baf7ee49925d8342e1f9e74fe8cbf7fc97da25835ccc35f057b356fe32dd105",
-      "git_head": "4194bbfdedd94bfaeea6391075fe2abde948a76a",
+      "source_sha256": "1d22ad6e1b9a0e61941d88405f2f052047c6c5501edb93b7b7611dc1e8cb45f1",
+      "git_head": "385bafd04b13f6e74ea64e76d6b859ce47499bdd",
       "source_dirty": false,
       "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
     }
@@ -15609,7 +15609,7 @@
       "tested_adjacent_pairs": 1078,
       "untested_adjacent_pairs": 17,
       "statistic_over_threshold": {
-        "median": 0.925144106402282,
+        "median": 0.9251441064022823,
         "max": 3.988196245751999
       },
       "storage_sigma_acre_ft": 50.0,
@@ -15673,8 +15673,8 @@
       "tested_adjacent_pairs": 1078,
       "untested_adjacent_pairs": 17,
       "statistic_over_threshold": {
-        "median": 0.35912852869052886,
-        "max": 1.1485315118610862
+        "median": 0.35912852869052914,
+        "max": 1.1485315118610855
       },
       "storage_sigma_acre_ft": 200.0,
       "is_declared_window": false

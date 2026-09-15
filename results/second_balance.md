@@ -1,6 +1,6 @@
 # Which second balance would let this repository isolate a fault
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v24-x86_64-with-glibc2.39; source sha256 1baf7ee49925, git 4194bbfded. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v33-x86_64-with-glibc2.39; source sha256 1d22ad6e1b9a, git 385bafd04b. Latency columns are wall-clock on this machine and are not a claim.
 
 A design study of PROPOSED constraint topologies. No instrument, record or estimate appears here; nothing below is a measurement.
 
@@ -13,8 +13,8 @@ Every constraint in this repository has rank(A) = 1, which means a scalar residu
 | Ridgway closure (every constraint in this repository today) | 1 | 1 | **0 of 4** | 1 | 3 |
 | Two-reach Muskingum river — *continuity only* | 2 | 2 | **1 of 7** | 1 | 4 |
 | Two-reach Muskingum river — *continuity + declared routing* | 4 | 4 | **5 of 7** | 0 | 1 |
-| Cooling loop, mass and energy over the same pipes — *mass + energy only* | 2 | 2 | **1 of 7** | 0 | 6 |
-| Cooling loop, mass and energy over the same pipes — *mass + energy + declared duty* | 3 | 3 | **2 of 7** | 0 | 1 |
+| Cooling loop, mass and energy over the same pipes — *mass + energy only* | 2 | 2 | **1 of 7** | 0 | 15 |
+| Cooling loop, mass and energy over the same pipes — *mass + energy + declared duty* | 3 | 3 | **2 of 7** | 0 | 4 |
 
 **Conservation alone buys almost nothing.** A second *conservation* row takes the river from 0 isolable faults to 1 and the cooling loop to 1, out of 7 declared candidates each. Adding a balance is not the same as adding information about which instrument moved.
 
@@ -26,9 +26,12 @@ Every constraint in this repository has rank(A) = 1, which means a scalar residu
 
 The cooling loop's remaining confounds are instrumental, which is worse:
 
+- `inlet flow-meter bias` and `inlet temperature bias` are the same direction.
+- `outlet flow-meter bias` and `outlet temperature bias` are the same direction.
+- `outlet flow-meter bias` and `stored-energy sensor bias` are the same direction.
 - `outlet temperature bias` and `stored-energy sensor bias` are the same direction.
 
-With conservation alone the loop leaves 6 pairs perfectly confounded: one energy equation gives one residual direction, so every fault that touches only the energy side collapses into it, whatever the sensors are.
+With conservation alone the loop leaves 15 pairs perfectly confounded: one energy equation gives one residual direction, so every fault that touches only the energy side collapses into it, whatever the sensors are.
 
 ## What routing makes visible
 
@@ -71,10 +74,10 @@ Which faults are isolable is structural: it does not move when the declared prio
 | Ridgway closure (every constraint in this repository today) | one closure | none separated | — |
 | Two-reach Muskingum river | continuity only | storage 1 bias vs middle gauge bias | 1.15x to 1.41x |
 | Two-reach Muskingum river | continuity + declared routing | storage 1 bias vs storage 2 bias | 1.41x to 20.31x |
-| Cooling loop, mass and energy over the same pipes | mass + energy only | inlet flow-meter bias vs outlet flow-meter bias | 6.08x to 6.08x |
-| Cooling loop, mass and energy over the same pipes | mass + energy + declared duty | inlet flow-meter bias vs inlet temperature bias | 2.21x to 2.21x |
+| Cooling loop, mass and energy over the same pipes | mass + energy only | outlet flow-meter bias vs stored-mass sensor bias | 1.42x to 1.42x |
+| Cooling loop, mass and energy over the same pipes | mass + energy + declared duty | outlet flow-meter bias vs stored-mass sensor bias | 1.38x to 1.38x |
 
-An amplification near 1 means a fault that can be detected can be named; a large one means the separation is real and useless. **Every separation in this study is actionable** -- the largest is 20.3x. An earlier draft of this study reported the cooling loop's tightest pair at 204,258x. That was a units error, not a finding: it whitened joules against kilograms by giving both unit variance. Declared in kilograms and joules the same pair reads 2.21x. A dimensionless prior is not a neutral choice.
+An amplification near 1 means a fault that can be detected can be named; a large one means the separation is real and useless. **Every separation in this study is actionable** -- the largest is 20.3x. An earlier draft of this study reported the cooling loop's tightest pair at 204,258x. That was a units error, not a finding: it whitened joules against kilograms by giving both unit variance. Declared in kilograms and joules the same pair reads 1.38x. A dimensionless prior is not a neutral choice.
 
 **The cooling loop's own units are near the kernel's numerical limit.** Its states are kilograms and joules, which span enough orders of magnitude that a prior declared honestly in them is rejected by `check_spd`'s positive-definiteness tolerance at 2 of the 3 swept scales, in both variants. Those cells are reported as refusals rather than tuned around: the refused scales are listed per variant in the JSON. The river's states are all volumes and every declared prior is accepted. Nondimensionalising the loop would fix this, and is work the river design does not need.
 
