@@ -386,7 +386,10 @@ def claims(r: dict) -> dict:
         "the_full_arrangement_leaves_no_fault_structurally_confounded": all(
             c["n_isolable"] == e["n_faults"] and not c["confounded_pairs"]
             for e, c in zip(sweep, full)),
-        "and_the_count_is_therefore_not_the_answer": max(amp_full) > 1.0,
+        # Not that SOME pair is imperfect -- that EVERY circuit count leaves the hardest pair
+        # needing at least a fifth more signal to name a fault than to see one, while the
+        # count says all of them are isolable.
+        "and_the_count_is_therefore_not_the_answer": min(amp_full) > 1.2,
         "without_a_header_the_hardest_pair_is_a_circuit_against_its_own_fouling": all(
             c["tightest_pair_is_within_one_circuit"]
             and c["tightest_separated_pair"]["b"].endswith("fouling") for c in duty),
