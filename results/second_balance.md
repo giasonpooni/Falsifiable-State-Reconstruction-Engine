@@ -1,6 +1,6 @@
 # Which second balance would let this repository isolate a fault
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v33-x86_64-with-glibc2.39; source sha256 3ef75ea43f3c, git 076ccad748. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v33-x86_64-with-glibc2.39; source sha256 33e4e335962b, git ec69c5a08c. Latency columns are wall-clock on this machine and are not a claim.
 
 A design study of PROPOSED constraint topologies. No instrument, record or estimate appears here; nothing below is a measurement.
 
