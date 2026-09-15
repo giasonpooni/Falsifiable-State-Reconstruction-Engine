@@ -254,6 +254,56 @@ def test_the_docs_do_not_still_say_the_projection_ignores_the_declaration():
 
 
 # ---------------------------------------------------------------------------
+# the README's own results table
+#
+# Each row summarises an artifact in a sentence carrying its headline number. Those numbers
+# are copied by hand and nothing regenerates them, which is the same exposure that let
+# ROADMAP keep saying "six perfectly confounded pairs" after the artifact said fifteen. The
+# rows whose numbers are derived statistics -- the ones that actually move when a record,
+# seed or sweep changes -- are pinned here.
+# ---------------------------------------------------------------------------
+
+TAYLOR = json.loads((RESULTS / "real_taylor_park.json").read_text(encoding="utf-8"))
+MUSKINGUM = json.loads((RESULTS / "muskingum_reach.json").read_text(encoding="utf-8"))
+EIV = json.loads((RESULTS / "errors_in_variables.json").read_text(encoding="utf-8"))
+
+
+def test_the_second_sites_residual_is_quoted_on_the_subset_it_was_measured_on():
+    """9.80% is the fully reported days, not the record. Quoting the record's 18.14% under
+    the same words, or this number without them, would both be wrong."""
+    split = TAYLOR["reporting_split"]
+    complete = f"{split['every_gauge_reporting']['residual_over_gauged_inflow'] * 100:.2f}%"
+    assert complete == "9.80%"
+    assert f"{complete} of gauged inflow even on the days every gauge reports" in README
+    # and the all-days figure is a different number, which is why the qualifier matters
+    assert (f"{split['all_days']['residual_over_gauged_inflow'] * 100:.2f}%") == "18.14%"
+
+
+def test_the_river_row_counts_the_faults_routing_actually_recovers():
+    def fully_identified(variant):
+        strong = {k: v for k, v in MUSKINGUM["evaluation"][variant].items()
+                  if v.get("magnitude_multiple") == 4.0}
+        return {k for k, v in strong.items()
+                if v["outcomes"].get("identified correctly", 0) == v["n_seeds"]}
+
+    routing, bare = fully_identified("continuity + routing"), fully_identified("continuity only")
+    # The prose spells the count, so the word is derived from it rather than hard-coded:
+    # a seventh recovered fault must change the sentence, not just satisfy a looser match.
+    spelled = {5: "five", 6: "six", 7: "seven", 8: "eight"}[len(routing)]
+    assert f"{spelled} declared faults recovered in 100% of records with routing" in README
+    # "none of the storage ones without it" -- the half of the sentence that is easy to lose
+    assert not {k for k in bare if k.startswith("storage")}
+    assert "none of the storage ones without it" in README
+
+
+def test_the_calibration_row_quotes_the_span_the_experiment_measured():
+    rates = [arm["rejection_rate_over_nominal"]
+             for experiment in EIV["experiments"]
+             for name, arm in experiment["by_declaration"].items() if name == "A treated as exact"]
+    assert f"{min(rates):.0f} to {max(rates):.0f} times the nominal false-alarm rate" in README
+
+
+# ---------------------------------------------------------------------------
 # the two design studies
 #
 # Correcting second_balance's confound selection changed the cooling loop's confounded-pair
