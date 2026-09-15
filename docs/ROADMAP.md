@@ -135,7 +135,7 @@ balance buys only the directions its rows separate. Its results decide this stag
 - Every constraint in the repository has rank(A) = 1, so **0 of 4** declared faults are
   isolable today. That is why this stage exists.
 - A second *conservation* row is not enough: continuity alone reaches **1 of 7**, and the
-  cooling loop's mass+energy pair also **1 of 7**, leaving six perfectly confounded pairs
+  cooling loop's mass+energy pair also **1 of 7**, leaving fifteen perfectly confounded pairs
   because one energy equation gives one residual direction.
 - The **constitutive** relation is what separates sensors. With Muskingum routing the river
   reaches **5 of 7**; with the heat-exchanger duty relation the loop reaches **2 of 7**.
