@@ -73,6 +73,22 @@ labels. `as_dict()` archives them beside `cos` for every pair, because archiving
 the geometry supports. Pairs containing an invisible fault have undefined angular
 diagnostics, which serialize as non-finite values a caller must map itself.
 
+A reader must take confounding from `distinguishable` and not from `orthogonal_fraction ==
+0.0`. The two agree under well-conditioned whitening and part company once `S` is
+ill-conditioned or carries a declared `A_var`: a structurally collinear pair then reports a
+fraction around `1e-17` rather than exactly zero, which reads as a real separation at an
+enormous amplification. `experiments.second_balance` selected on the float and did exactly
+that, reporting the cooling loop's tightest pair at 2.21x when the pair was confounded and
+the tightest genuinely separated pair reads 1.38x; it now selects on `distinguishable`.
+`orthogonal_fraction` answers how far apart a pair the geometry already calls separate is,
+and nothing else.
+
+`residual_covariance`, `whitened_signature` and `isolability` take an optional operating
+point `x`, required exactly when the set declares `A_var`. A declared matrix uncertainty
+contributes `Cov(E x)`, a quadratic form in the state, so such a set has no whitened fault
+geometry independent of an operating point. Passing `x` for a set that declares `A` exact is
+refused rather than ignored, and so is omitting it for one that does not.
+
 `diagnostics.diagnose()` reports the same thing for a finite record rather than a static
 structure. Each observable candidate carries its nearest rival in the whitened post-nuisance
 coordinates the test used — the cosine, the fraction of its own signature that rival cannot

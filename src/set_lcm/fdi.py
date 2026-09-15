@@ -34,7 +34,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .lcm import _S, _S_declared, _check_columns, _finite, _vector, check_spd, reduced
+from .lcm import _check_columns, _finite, _residual_S, _vector, check_spd, reduced
 from .schema import ConstraintSet
 
 __all__ = [
@@ -51,31 +51,46 @@ NULL_REL_TOL = 1e-12
 VISIBLE_D = 1e-12
 
 
-def residual_covariance(P: np.ndarray, cs: ConstraintSet) -> tuple[np.ndarray, np.ndarray]:
-    """(A_r, S) for the independent row set of `cs`: S = A P A^T, plus Sigma_b where declared.
+def residual_covariance(P: np.ndarray, cs: ConstraintSet,
+                        x=None) -> tuple[np.ndarray, np.ndarray]:
+    """(A_r, S) for the independent row set of `cs`: S = A P A^T, plus what is declared.
 
     The same reduction and the same S the kernel's own consistency_stat uses, so a signature
     computed here is a statement about the statistic actually reported, not a parallel one.
+    That equality is the reason `x` exists, and the reason this delegates to the kernel's own
+    _residual_S rather than rebuilding S. A declared A_var contributes Cov(E x), which is a
+    QUADRATIC FORM IN THE STATE, so a set with uncertain coefficients has no residual
+    covariance independent of an operating point -- and therefore no fault geometry
+    independent of one either. This module used to build S itself and drop A_var entirely,
+    reporting a geometry the kernel does not use; a declared A_var without an `x` is now
+    refused rather than dropped, exactly as lcm.detectability refuses it.
     """
     P = np.asarray(P, dtype=float)
     check_spd(P)
     A, _ = reduced(cs)
     _check_columns(A, P.shape[0])
-    # Reuse the kernel's finite/conditioning guards: a signature must not claim to
-    # describe a consistency calculation that the kernel itself would refuse.
-    S = _S(A, P) if cs.b_var is None else _S_declared(A, P, cs.b_cov)
+    if cs.A_var is None and x is not None:
+        raise ValueError(
+            f"constraint set {cs.version!r} declares A exact (A_var is None), so its residual "
+            "geometry does not depend on an operating point; passing x would suggest it does")
+    # The kernel's own S, not a parallel one: this is the same call detectability makes, so
+    # ||whitened_signature(f)||^2 == detectability(f) holds by construction rather than by
+    # two implementations agreeing. It carries the kernel's finite and conditioning guards,
+    # and raises for a declared A_var with no operating point.
+    S = _residual_S(cs, A, P, None if x is None else _vector(x, "x", A.shape[1]))
     return A, 0.5 * S + 0.5 * S.T
 
 
-def whitened_signature(f, P: np.ndarray, cs: ConstraintSet) -> np.ndarray:
+def whitened_signature(f, P: np.ndarray, cs: ConstraintSet, x=None) -> np.ndarray:
     """S^(-1/2) A f: what a unit fault along `f` does to the whitened residual.
 
     Its squared norm is lcm.detectability(f, P, cs) -- checked in the tests, not asserted --
     and its direction is everything else the residual says about the fault. The direction
     must be a finite 1-D vector matching the state, and the covariance must pass the same
-    validation as lcm.detectability.
+    validation as lcm.detectability. `x` is the operating point the whitening is claimed at,
+    required exactly when the set declares A uncertain; see residual_covariance.
     """
-    A, S = residual_covariance(P, cs)
+    A, S = residual_covariance(P, cs, x)
     Af = A @ _vector(f, "f", A.shape[1])
     _finite(Af, "fault residual")
     w, V = np.linalg.eigh(S)
@@ -182,7 +197,7 @@ class Isolability:
         }
 
 
-def isolability(directions: dict, P: np.ndarray, cs: ConstraintSet) -> Isolability:
+def isolability(directions: dict, P: np.ndarray, cs: ConstraintSet, x=None) -> Isolability:
     """Compare static residual-vector lines under the module's single-fault assumptions.
 
     Visibility uses ||V_r^T f_unit|| > NULL_REL_TOL, where V_r spans row(A). Thus a small
@@ -195,21 +210,27 @@ def isolability(directions: dict, P: np.ndarray, cs: ConstraintSet) -> Isolabili
     candidates remain unlocalisable against the no-fault case; pairs containing one are
     marked False because two visible fault lines are needed for this comparison. Neither
     temporal signatures nor simultaneous faults are evaluated here.
+
+    `x` is the operating point, required exactly when `cs` declares A uncertain: Cov(E x) is
+    a quadratic form in the state, so such a set has no whitened geometry independent of one.
+    The STRUCTURAL half -- visibility and pair collinearity -- is computed in row-space
+    coordinates and does not move with x or with any covariance; the whitened half -- d, the
+    signatures, and each pair's orthogonal fraction -- does.
     """
     if not directions:
         raise ValueError("declare at least one named fault direction")
-    A, _ = residual_covariance(P, cs)
+    A, _ = residual_covariance(P, cs, x)
     rank = int(A.shape[0])
 
     unit = {name: _unit_direction(f, A.shape[1]) for name, f in directions.items()}
     _, _, row_basis = np.linalg.svd(A, full_matrices=False)
     geometry = {name: row_basis @ f for name, f in unit.items()}
-    sig = {name: whitened_signature(f, P, cs) for name, f in directions.items()}
+    sig = {name: whitened_signature(f, P, cs, x) for name, f in directions.items()}
     d = {name: float(s @ s) for name, s in sig.items()}
     visible = [n for n in directions if np.linalg.norm(geometry[n]) > NULL_REL_TOL]
     invisible = [n for n in directions if n not in visible]
     # Compare normalized directions, so tiny amplitudes cannot underflow the angle.
-    unit_sig = {name: whitened_signature(unit[name], P, cs) for name in visible}
+    unit_sig = {name: whitened_signature(unit[name], P, cs, x) for name in visible}
 
     pairs: list[FaultPair] = []
     names = list(directions)

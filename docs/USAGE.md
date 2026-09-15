@@ -259,6 +259,7 @@ uv run --frozen --python 3.13 python -m set_lcm.experiments.calibration
 uv run --frozen --python 3.13 python -m set_lcm.experiments.sweep
 uv run --frozen --python 3.13 python -m set_lcm.experiments.second_balance --quiet
 uv run --frozen --python 3.13 python -m set_lcm.experiments.muskingum_reach --quiet
+uv run --frozen --python 3.13 python -m set_lcm.experiments.cooling_circuits --quiet
 uv run --frozen --python 3.13 python -m set_lcm.experiments.errors_in_variables --quiet
 uv run --frozen --python 3.13 python -m set_lcm.experiments.eiv_projection --quiet
 uv run --frozen --python 3.13 python -m set_lcm.experiments.real_noaa

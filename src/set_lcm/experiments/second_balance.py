@@ -84,6 +84,13 @@ class Topology:
     reference_prior_sd: tuple[float, ...]         # declared, in this topology's own units
     prior_units: str
     note: str
+    # Optional, and only meaningful together. A topology whose rows carry MEASURED or FITTED
+    # coefficients may declare their uncertainty per variant, as a vec(A) covariance in the
+    # same row order the variant declares. Cov(E x) is a quadratic form in the state, so such
+    # a declaration has no geometry without an operating point, which is why the two arrive
+    # together and `evaluate` refuses one without the other.
+    a_var: dict[str, np.ndarray] | None = None    # variant -> vec(A) covariance, row-major
+    operating_point: tuple[float, ...] | None = None
 
 
 def _muskingum(k: float = MUSKINGUM_K, x: float = MUSKINGUM_X) -> Topology:
@@ -218,21 +225,34 @@ def _prior(topology: Topology, scale: float) -> np.ndarray:
     return np.diag(sd ** 2)
 
 
-def evaluate(topology: Topology, variant: str, scale: float) -> dict:
+def evaluate(topology: Topology, variant: str, scale: float,
+             *, declare_A_var: bool = False) -> dict:
     """One topology, one variant, one declared prior -- or the kernel's refusal of it.
 
     A refusal is reported as a cell outcome rather than tuned around. The cooling loop's
     states are kilograms and joules, so a prior declared honestly in those units spans enough
     orders of magnitude that the kernel's positive-definiteness tolerance rejects it. That is
     a measured property of the design, and the argument for nondimensionalising it.
+
+    `declare_A_var` declares the topology's A_var for this variant, which requires the
+    topology to carry both it and an operating point; the cell records which was done, so a
+    comparison of the two cannot be read off the numbers alone.
     """
     rows, declares = topology.variants[variant]
+    A_var = x = None
+    if declare_A_var:
+        if topology.a_var is None or topology.operating_point is None:
+            raise ValueError(f"{topology.key} declares no A_var and operating point; "
+                             "declare_A_var has nothing to declare")
+        A_var = topology.a_var[variant]
+        x = np.array(topology.operating_point, dtype=float)
     cs = ConstraintSet(f"{topology.key}:{variant}", rows, np.zeros(rows.shape[0]),
-                       f"{topology.label} -- {declares}")
+                       f"{topology.label} -- {declares}", A_var=A_var)
     try:
-        result = isolability(topology.faults, _prior(topology, scale), cs)
+        result = isolability(topology.faults, _prior(topology, scale), cs, x)
     except ValueError as refusal:
         return {"variant": variant, "declares": declares, "prior_scale": scale,
+                "A_declared_uncertain": declare_A_var,
                 "declared_rows": int(rows.shape[0]), "n_faults": len(topology.faults),
                 "refused": True, "refusal": str(refusal).split(";")[0],
                 "residual_rank": None, "visible": None, "invisible": None,
@@ -240,18 +260,26 @@ def evaluate(topology: Topology, variant: str, scale: float) -> dict:
                 "tightest_separated_pair": None, "pairs": None}
     archived = result.as_dict()
     pairs = archived["pairs"]
-    separated = [p for p in pairs if p["orthogonal_fraction"] is not None
+    # Confounding is the STRUCTURAL label, not a floating-point zero in the whitened angle.
+    # The two agree under exact whitening and do not once a declared A_var widens S: a
+    # structurally collinear pair then reports an orthogonal fraction around 1e-17 rather
+    # than exactly 0, which read as "separated, at 8e16x amplification" -- a false reading
+    # of a pair the geometry says cannot be separated at all. Both selections below are
+    # therefore taken from `distinguishable`, with a finite cos excluding the pairs that
+    # contain an invisible fault (fdi leaves their angle NaN).
+    separated = [p for p in pairs if p["distinguishable"] and np.isfinite(p["cos"])
                  and np.isfinite(p["orthogonal_fraction"]) and p["orthogonal_fraction"] > 0.0]
     tightest = min(separated, key=lambda p: p["orthogonal_fraction"]) if separated else None
     return {
         "variant": variant, "declares": declares, "prior_scale": scale,
+        "A_declared_uncertain": declare_A_var,
         "declared_rows": int(rows.shape[0]), "residual_rank": archived["residual_rank"],
         "n_faults": len(topology.faults), "refused": False, "refusal": None,
         "visible": archived["visible"], "invisible": archived["invisible"],
         "isolable": archived["isolable"],
         "n_isolable": len(archived["isolable"]),
         "confounded_pairs": [[p["a"], p["b"]] for p in pairs
-                             if p["orthogonal_fraction"] == 0.0],
+                             if not p["distinguishable"] and np.isfinite(p["cos"])],
         "tightest_separated_pair": (None if tightest is None else {
             "a": tightest["a"], "b": tightest["b"],
             "orthogonal_fraction": tightest["orthogonal_fraction"],

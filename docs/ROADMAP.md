@@ -170,6 +170,46 @@ against a full declaration's 1.2x. A joint nonlinear state model remains an alte
 remains unimplemented. Neither thermal modeling nor this alternative experiment is delivered
 in the foundation stage.
 
+## 3a-ii. The cooling design, taken up on its own terms
+
+**Committed: [`results/cooling_circuits.md`](../results/cooling_circuits.md).** The paragraph
+above asks for exactly one thing before choosing the cooling design anyway — which candidate
+faults stay observable with noncollinear signatures once the real nuisance structure is in —
+and this study answers it for the arrangement a moulding shop actually has: a manifold feeding
+several metered circuits rather than one loop. It does the nondimensionalising the study above
+called for, declares the shared supply thermocouple as the full `vec(A)` covariance stage 3b
+asks for, and sweeps the circuit count so the procurement question is answered before hardware
+is bought. What it found:
+
+- **Conservation alone isolates nothing, at any circuit count**, and not because the geometry
+  is tight: a fouling circuit returns less enthalpy because it absorbed less heat, so it
+  satisfies the energy balance exactly and is **invisible**, in `null(A)`.
+- **The duty row is what buys isolation** — 18 of 19 declared faults at six circuits — and a
+  metered header closes the catalogue by making the header meter itself visible.
+- **The count is then the wrong thing to read.** Every declared fault is structurally isolable
+  with the header metered, which is the reading `fdi.Isolability` warns against in its own
+  docstring. The tightest separated pair is what governs, and without a header meter it is
+  *identical* at one circuit and at six: extra circuits buy coverage, not conditioning.
+- **The declared heat load binds two orders of magnitude harder than the meter count.**
+  Loosening it a hundredfold takes the hardest pair past 100x at every circuit count, against
+  the 1.42x-to-1.25x the whole circuit sweep moves it. Buy a credible heat load before a sixth
+  flow meter.
+- **The supply thermocouple is not the binding instrument**, declared uncertain at the full
+  `vec(A)` covariance: no isolable set moves and the hardest pair moves by under 1%.
+
+It also closed two defects it depended on. `fdi` computed `S` without `Cov(E x)` whatever
+`A_var` declared, so a declared matrix uncertainty never reached the fault geometry;
+`residual_covariance`, `whitened_signature` and `isolability` now take the operating point
+that quadratic form needs, and refuse a declared `A_var` without one. And `second_balance`
+read confounding off `orthogonal_fraction == 0.0` rather than the structural label, which
+under its own kg/J conditioning reported a confounded pair as its tightest *separated* one at
+2.21x; corrected, its confound counts rise from 6 to 15 and from 1 to 4, and its tightest
+genuinely separated pair reads 1.38x. No isolable count in that study changed.
+
+Not established: nothing here is measured on an installed manifold, the form of the duty
+relation is not varied, and fouling is *declared* to be a process change that conserves
+energy rather than found to be one.
+
 ## 3b. Uncertainty on the relation itself — implemented for the test and the projection
 
 Every constitutive row the stage above needs carries measured coefficients, and the kernel

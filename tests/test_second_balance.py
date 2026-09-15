@@ -180,3 +180,48 @@ def test_the_report_reproduces(report):
     failure = reproduction_failure("second_balance.json", report, committed)
     assert failure is None, failure
     assert study.render(committed) == (RESULTS / "second_balance.md").read_text(encoding="utf-8")
+
+
+def test_confounding_is_read_from_the_structural_label_not_from_a_float():
+    """A pair the geometry calls confounded whose whitened angle is small but not zero.
+
+    `evaluate` selected confounded pairs on `orthogonal_fraction == 0.0`. `fdi` calls a pair
+    confounded at `COLLINEAR_COS`, a tolerance, so a NEARLY collinear pair is labelled
+    confounded while its whitened angle stays a small positive float. Those pairs then read as
+    separated -- at an enormous amplification -- and one became the reported tightest
+    separated pair. That is what made the committed cooling-loop report understate its
+    confounds and name a confounded pair as its tightest separated one.
+    """
+    rows = np.array([[1.0, -1.0, 0.0], [0.0, 1.0, -1.0]])
+    cs = ConstraintSet("near", rows, np.zeros(2), "two rows")
+    directions = {"a": [1.0, 0.0, 0.0], "nearly a": [1.0, 1e-11, 0.0], "b": [0.0, 0.0, 1.0]}
+    near = next(p for p in isolability(directions, np.eye(3), cs).as_dict()["pairs"]
+                if {p["a"], p["b"]} == {"a", "nearly a"})
+    assert not near["distinguishable"], "within COLLINEAR_COS, so the geometry says confounded"
+    assert 0.0 < near["orthogonal_fraction"] < 1e-9, "and the float is not exactly zero"
+    topology = study.Topology(
+        key="near", label="near", states=("x", "y", "z"), faults=directions,
+        variants={"two rows": (rows, "two rows")}, stored_states=(2,),
+        reference_prior_sd=(1.0, 1.0, 1.0), prior_units="same", note="")
+    cell = study.evaluate(topology, "two rows", 1.0)
+    assert ["a", "nearly a"] in [sorted(pair) for pair in cell["confounded_pairs"]]
+    tightest = cell["tightest_separated_pair"]
+    assert tightest is None or {tightest["a"], tightest["b"]} != {"a", "nearly a"}
+
+
+def test_a_declared_A_var_does_not_turn_a_confounded_pair_into_a_separated_one():
+    """The same guard on the path that exposed it: Cov(E x) widening S."""
+    rows = np.array([[1.0, -1.0, 0.0], [0.0, 1.0, -1.0]])
+    width = 3
+    directions = {"a": [1.0, 0.0, 0.0], "nearly a": [1.0, 1e-11, 0.0], "b": [0.0, 0.0, 1.0]}
+    A_var = np.zeros((2 * width, 2 * width))
+    A_var[0, 0] = A_var[width, width] = 0.04
+    topology = study.Topology(
+        key="uncertain", label="uncertain", states=("x", "y", "z"), faults=directions,
+        variants={"two rows": (rows, "two rows")}, stored_states=(2,),
+        reference_prior_sd=(1.0, 1.0, 1.0), prior_units="same", note="",
+        a_var={"two rows": A_var}, operating_point=(1.0, 1.0, 1.0))
+    cell = study.evaluate(topology, "two rows", 1.0, declare_A_var=True)
+    assert cell["A_declared_uncertain"] is True
+    assert ["a", "nearly a"] in [sorted(pair) for pair in cell["confounded_pairs"]]
+    assert "a" not in cell["isolable"] and "nearly a" not in cell["isolable"]
