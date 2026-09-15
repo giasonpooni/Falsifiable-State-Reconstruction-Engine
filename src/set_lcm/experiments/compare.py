@@ -34,7 +34,7 @@ engineering allowance "pending broader cross-build measurements"; they are now m
 two builds bitwise, which its declared near-zero absolute allowances did not assume and do
 not now claim in general.
 
-THE COMMITTED FILES ARE NOW LINUX-GENERATED, all ten at one source hash. So on Linux the
+THE COMMITTED FILES ARE NOW LINUX-GENERATED, every one of them at one source hash. So on Linux the
 comparison is the bitwise one and on Windows it is the declared tolerance -- the reverse of
 the arrangement these numbers were measured under. CI runs both (ubuntu-latest and
 windows-latest, Python 3.12 and 3.13), and a runner's platform string differs from any
@@ -106,6 +106,7 @@ TOLERANCE: dict[str, float] = {
     "real_taylor_park.json": 1e-8,      # the second site, same bridge and kernel
     "real_diagnosis.json": 1e-8,        # linear algebra on two committed records
     "second_balance.json": 1e-8,   # a design study: linear algebra on declared matrices
+    "cooling_circuits.json": 1e-8,      # the same, swept over circuit count
     "errors_in_variables.json": 1e-8,   # seeded Monte Carlo; the seed is declared in the report
     "eiv_projection.json": 1e-8,        # seeded Monte Carlo; the seed is declared in the report
     "muskingum_reach.json": 1e-8,       # seeded synthetic records; seeds declared in the report
