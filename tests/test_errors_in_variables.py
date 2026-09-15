@@ -89,6 +89,46 @@ def test_the_contribution_is_the_quadratic_form_the_docstring_states():
     np.testing.assert_allclose(Q, Q.T)
 
 
+def test_the_contribution_is_the_covariance_it_claims_to_be_when_sampled():
+    """Against DRAWS, not against the formula again.
+
+    Every other check of `matrix_uncertainty` re-evaluates `x^T Sigma_ij x + tr(Sigma_ij P)`
+    and compares it with itself, so a wrong formula would satisfy all of them: drop the trace
+    term and the assertions above still pass. This draws the two errors the derivation assumes
+    -- one shared coefficient error, one state error from P, independent of each other -- forms
+    E x, and requires the sample covariance to match.
+
+    The system is two rows sharing ONE coefficient, placed at different states, so the check
+    covers the off-diagonal a per-row declaration cannot express as well as the diagonal.
+    Measured at this seed: 0.600% worst relative error, against 8.4% for the same formula
+    with the trace term dropped. The 2% bound sits between them with room on both sides.
+    """
+    n, rows, sd = 3, 2, 0.3
+    A = np.array([[1.0, -1.0, 0.0], [0.0, 1.0, -1.0]])
+    shared = ((0, 0), (1, 2))                       # (row, state) the one coefficient sits at
+    cov = np.zeros((rows * n, rows * n))
+    for i, si in shared:
+        for j, sj in shared:
+            cov[i * n + si, j * n + sj] = sd ** 2
+    cs = ConstraintSet("shared", A, np.zeros(rows), "one coefficient in two rows", A_var=cov)
+    x, prior = np.array([3.0, 2.0, 1.0]), np.diag([0.5, 0.2, 0.8])
+    analytic = matrix_uncertainty(cs, x, prior)
+
+    draws = 60_000
+    rng = np.random.default_rng(7)
+    theta = rng.normal(0.0, sd, size=draws)         # ONE instrument, so one error per draw
+    delta = np.linalg.cholesky(prior) @ rng.normal(size=(n, draws))
+    Ex = np.stack([theta * (x[state] + delta[state]) for _, state in shared])
+    sampled = (Ex @ Ex.T) / draws
+
+    peak = np.abs(analytic).max()
+    assert np.abs(analytic - sampled).max() < 0.02 * peak
+    # and the check would fail for the formula without its second term
+    first_term_only = np.array([[x @ cs.A_block(i, j) @ x for j in range(rows)]
+                                for i in range(rows)])
+    assert np.abs(analytic - first_term_only).max() > 0.05 * peak
+
+
 def test_the_contribution_grows_with_the_state_because_it_is_a_quadratic_form():
     """Unlike b_var this is not a property of the set: it moves with the operating point."""
     cs = a_set(A_var=PER_ROW)

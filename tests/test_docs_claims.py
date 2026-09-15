@@ -254,6 +254,116 @@ def test_the_docs_do_not_still_say_the_projection_ignores_the_declaration():
 
 
 # ---------------------------------------------------------------------------
+# the two design studies
+#
+# Correcting second_balance's confound selection changed the cooling loop's confounded-pair
+# count from 6 to 15. The report followed and its claims() followed, because a report refuses
+# to render prose its own numbers stopped supporting. ROADMAP stage 3a went on saying "six"
+# through a full regeneration and a push, because nothing here pinned it. These do.
+#
+# TWO KINDS OF NUMBER ARE DELIBERATELY NOT PINNED, and the last test below keeps them from
+# being silently deleted instead. ARCHIVAL values -- 2.21x, what the cooling loop's tightest
+# pair read BEFORE the fix -- appear in no current artifact, so a later reader checking prose
+# against results/ would find them unsupported and "correct" them, destroying the record of
+# the correction. WALL-CLOCK numbers are machine facts and never claims.
+# ---------------------------------------------------------------------------
+
+BALANCE = json.loads((RESULTS / "second_balance.json").read_text(encoding="utf-8"))
+COOLING = json.loads((RESULTS / "cooling_circuits.json").read_text(encoding="utf-8"))
+TOPOLOGY = {t["key"]: {v["variant"]: v for v in t["variants"]} for t in BALANCE["topologies"]}
+FULL = "energy + duty + header"
+
+
+def test_the_isolable_counts_the_roadmap_quotes_per_topology():
+    river, loop = TOPOLOGY["muskingum_two_reach"], TOPOLOGY["cooling_loop_mass_energy"]
+    today = TOPOLOGY["ridgway_today"]["one closure"]
+    for isolable, faults in ((today["n_isolable"], today["n_faults"]),
+                             (river["continuity + declared routing"]["n_isolable"], 7),
+                             (loop["mass + energy + declared duty"]["n_isolable"], 7)):
+        assert f"**{isolable} of {faults}**" in ROADMAP
+    # "1 of 7" is quoted twice, for two topologies that happen to agree.
+    assert river["continuity only"]["n_isolable"] == loop["mass + energy only"]["n_isolable"] == 1
+    assert ROADMAP.count("**1 of 7**") == 2
+
+
+def test_the_confound_counts_the_selection_fix_changed():
+    """The sentence that went stale, and the one that records why."""
+    loop = TOPOLOGY["cooling_loop_mass_energy"]
+    bare = len(loop["mass + energy only"]["confounded_pairs"])
+    full = len(loop["mass + energy + declared duty"]["confounded_pairs"])
+    assert (bare, full) == (15, 4)
+    assert "leaving fifteen perfectly confounded pairs" in ROADMAP
+    assert f"from 6 to {bare} and from 1 to {full}" in ROADMAP
+    assert len(TOPOLOGY["muskingum_two_reach"]["continuity + declared routing"]
+               ["confounded_pairs"]) == 1
+    assert "The river's one remaining confound is physical" in ROADMAP
+
+
+def test_the_tightest_separated_pair_the_fix_corrected_to():
+    loop = TOPOLOGY["cooling_loop_mass_energy"]["mass + energy + declared duty"]
+    tightest = next(c["tightest_separated_pair"] for c in loop["by_prior"] if not c["refused"])
+    shown = f"{tightest['isolation_amplification']:.2f}x"
+    assert shown == "1.38x"
+    for doc, name in ((ROADMAP, "ROADMAP.md"), (METHODS, "METHODS.md")):
+        assert shown in doc, name
+
+
+def test_the_duty_row_count_both_documents_quote():
+    last = COOLING["sweep"][-1]
+    shown = f"{last['by_variant']['energy + duty']['n_isolable']} of {last['n_faults']}"
+    assert shown == "18 of 19"
+    for doc, name in ((README, "README.md"), (ROADMAP, "ROADMAP.md")):
+        assert shown in doc, name
+
+
+def test_the_two_levers_are_quoted_at_their_measured_ratios():
+    """The comparison that replaced a hand-waved "roughly two orders of magnitude"."""
+    amps = [e["by_variant"][FULL]["amplification_at_reference_prior"] for e in COOLING["sweep"]]
+    over_prior = [p["isolation_amplification"] for e in COOLING["sweep"]
+                  for p in e["by_variant"][FULL]["amplification_by_prior"]
+                  if p["isolation_amplification"] is not None]
+    circuits = f"{max(amps) / min(amps):.2f}"
+    prior = f"{max(over_prior) / min(over_prior):.0f}"
+    assert (circuits, prior) == ("1.14", "88")
+    for doc, name in ((README, "README.md"), (ROADMAP, "ROADMAP.md")):
+        assert f"factor of {circuits}" in doc, name
+        assert prior in doc, name
+
+
+def test_the_handover_circuit_counts_the_roadmap_quotes():
+    def handover(scale):
+        return next((e["circuits"] for e in COOLING["sweep"]
+                     if next(p["binding_pair_kind"]
+                             for p in e["by_variant"][FULL]["amplification_by_prior"]
+                             if p["prior_scale"] == scale) == "within one circuit"), None)
+
+    scales = COOLING["declared"]["prior_scales_swept"]
+    assert (handover(1.0), handover(max(scales)), handover(min(scales))) == (4, 3, None)
+    assert ("At the declared prior that handover falls at four circuits; a hundredfold looser "
+            "it falls at three; a hundredfold tighter it never falls in this sweep.") in ROADMAP
+
+
+def test_the_tie_family_size_the_roadmap_quotes():
+    last = COOLING["sweep"][-1]
+    assert last["by_variant"][FULL]["tightest_separated_pair"]["n_tied"] == last["circuits"] == 6
+    assert "six tied pairs at six circuits" in ROADMAP
+
+
+def test_the_pre_correction_value_is_kept_and_kept_labelled():
+    """No artifact contains 2.21x, which is exactly why it needs its own test.
+
+    A reader checking prose against `results/` would find it unsupported and "correct" it,
+    erasing the record of what the confound-selection defect reported. It must stay, and it
+    must stay marked as what it is.
+    """
+    for doc, name in ((ROADMAP, "ROADMAP.md"), (METHODS, "METHODS.md")):
+        assert "2.21x" in doc, f"{name} dropped the pre-correction value"
+        window = doc[max(0, doc.index("2.21x") - 400):doc.index("2.21x") + 200]
+        assert re.search(r"confounded|did exactly that|reported", window), (
+            f"{name} quotes 2.21x without saying it is what the defect reported")
+
+
+# ---------------------------------------------------------------------------
 # the project's own name
 #
 # It had drifted into three variants at once -- the repository called itself one thing, the
