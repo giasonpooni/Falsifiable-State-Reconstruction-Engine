@@ -1,6 +1,6 @@
 # P4b: a real reservoir water balance through the reconciliation kernel
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v33-x86_64-with-glibc2.39; source sha256 1d22ad6e1b9a, git 385bafd04b. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v33-x86_64-with-glibc2.39; source sha256 3ef75ea43f3c, git 076ccad748. Latency columns are wall-clock on this machine and are not a claim.
 
 Ridgway Reservoir, Uncompahgre River, Colorado, 1096 days from 2022-10-01, four USGS daily-mean series admitted by DAF. Gauged drainage 246.2 of 265 sq mi = 0.929.
 

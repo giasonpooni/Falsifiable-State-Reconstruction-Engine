@@ -1,6 +1,6 @@
 # How many metered cooling circuits are worth buying
 
-Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v33-x86_64-with-glibc2.39; source sha256 1d22ad6e1b9a, git 385bafd04b. Latency columns are wall-clock on this machine and are not a claim.
+Generated with Python 3.13.12, numpy 2.5.3 on Linux-6.18.44-fc-v33-x86_64-with-glibc2.39; source sha256 3ef75ea43f3c, git 076ccad748. Latency columns are wall-clock on this machine and are not a claim.
 
 A design study of a mould-cooling manifold, computed before any circuit is metered. No record appears and nothing here describes an installed instrument.
 
@@ -26,17 +26,29 @@ That study left one lever untested. A mould-cooling loop is a manifold, not a ci
 
 With every circuit and the header metered, **every declared fault is structurally isolable at every size in this sweep**. Read alone that is the wrong conclusion to draw, and `fdi.Isolability` says so in its own docstring: a structural separation means a residual direction exists, not that a fault of realistic size moves it far enough to name. The number that governs is the tightest separated pair.
 
-| circuits | hardest pair, + duty | hardest pair, + header | which pair |
-| ---: | ---: | ---: | :--- |
-| 1 | 1.23x | 1.42x | `circuit 1 flow-meter bias` vs `header flow-meter bias` |
-| 2 | 1.23x | 1.33x | `circuit 1 flow-meter bias` vs `header flow-meter bias` |
-| 3 | 1.23x | 1.27x | `circuit 2 flow-meter bias` vs `header flow-meter bias` |
-| 4 | 1.23x | 1.26x | `circuit 3 return-thermocouple bias` vs `circuit 3 fouling` |
-| 6 | 1.23x | 1.25x | `circuit 5 return-thermocouple bias` vs `circuit 5 fouling` |
+| circuits | hardest, + duty | hardest, + header | how many pairs tie there | what they ask |
+| ---: | ---: | ---: | ---: | :--- |
+| 1 | 1.23x | 1.42x | 1 of 6 | against the header meter |
+| 2 | 1.23x | 1.33x | 2 of 21 | against the header meter |
+| 3 | 1.23x | 1.27x | 3 of 45 | against the header meter |
+| 4 | 1.23x | 1.26x | 4 of 78 | within one circuit |
+| 6 | 1.23x | 1.25x | 6 of 171 | within one circuit |
+
+**It is never one pair.** A manifold is symmetric under relabelling its circuits, so whatever binds circuit 1 binds every other circuit identically and the minimum is attained by a whole family at once — one member per circuit here. Naming a representative would present an arbitrary choice among equals as a finding, so the table reports how many tie and what they have in common instead.
 
 **Without a header meter, metering more circuits does not loosen the hardest pair at all.** It reads 1.23x at one circuit and 1.23x at 6 — identical, not merely similar. The pair binding it is always a circuit against *its own fouling*, a question answered entirely by that circuit's two rows, so every circuit added is an independent copy of the same local problem rather than evidence about any existing one. Extra circuits buy **coverage**, not **conditioning**.
 
-**With a header meter the curve has two regimes**, and the table above shows the handover. At small counts the binding pair is a circuit's flow meter against the *header's* — with one or two circuits those are nearly the same measurement, and the redundancy that makes the header meter worth having is also what makes the two hard to tell apart. That pair loosens as circuits are added, from 1.42x to 1.25x, until at 6 circuits it is no longer the binding one: the within-circuit thermocouple-against-fouling pair is, and the curve flattens onto the 1.23x floor the header meter cannot move. That floor, not the fault count, is what this design is worth.
+**With a header meter the binding family changes identity partway along the sweep.** At small counts it asks *which meter*: a circuit's flow meter against the header's. With one or two circuits those are nearly the same measurement, and the redundancy that makes a header meter worth having is also what makes the two hard to tell apart. It loosens as circuits are added, from 1.42x to 1.25x, and at 4 circuits a different question takes over: a circuit's return thermocouple against its own fouling. The curve then flattens onto the 1.23x floor the header meter cannot move, because that floor is a question inside one circuit.
+
+**Where that handover falls is not a property of the circuit count.** It is set by the declared heat load, which is the next section's subject and the reason it is the next section rather than a footnote:
+
+| prior on the heat load | 1 | 2 | 3 | 4 | 6 | where it hands over |
+| ---: | :--- | :--- | :--- | :--- | :--- | ---: |
+| 0.01x | header | header | header | header | header | never, in this sweep |
+| 1x | header | header | header | circuit | circuit | 4 circuits |
+| 100x | header | header | circuit | circuit | circuit | 3 circuits |
+
+At a heat load known a hundred times better than declared, the header meter is the binding question at **every** circuit count in this sweep and the amplification barely moves with the count at all. Declare it a hundred times worse and the handover comes a circuit earlier. The circuit count decides which side of the handover a given manifold sits on; the declared heat load decides where the handover is.
 
 ## What actually binds
 
@@ -46,7 +58,7 @@ With every circuit and the header metered, **every declared fault is structurall
 | 1x | 1.42x | 1.33x | 1.27x | 1.26x | 1.25x |
 | 100x | 110.51x | 93.35x | 86.28x | 85.51x | 84.57x |
 
-The swept axis is how well the absorbed heat is known relative to metered throughput, and the whole circuit sweep is shown against it because that is the comparison that matters. Loosening the declared heat load a hundredfold takes the hardest pair to **111x** — roughly two orders of magnitude worse than anything the circuit count does, and it does that at every circuit count. A shop with a credible declared heat load and two metered circuits is better placed than one with six and no idea what the mould is absorbing. That is the procurement answer, and it is not the one the count suggests.
+The swept axis is how well the absorbed heat is known relative to metered throughput, and the whole circuit sweep is shown against it because that is the comparison that matters. Loosening the declared heat load a hundredfold takes the hardest pair to **111x**. Against it, going from one metered circuit to 6 moves the same quantity from 1.42x to 1.25x — a factor of 1.14, against the prior's factor of 88. A shop with a credible declared heat load and two metered circuits is better placed than one with six and no idea what the mould is absorbing. That is the procurement answer, and it is not the one the count suggests.
 
 Effectiveness matters for the same reason: at eps = 0.2 the hardest pair reads 2.47x and at 0.9 it reads 1.21x. A circuit that moves little heat per unit of flow is the one this instrument diagnoses worst, which is unfortunate, because it is also the one most likely to be fouling.
 
@@ -97,3 +109,5 @@ A bookkeeping choice moves the answer by 1.38x over that range. Writing the row 
 - The duty coefficient is one declared operating point. The effectiveness is swept rather than asserted, and the supply temperature's uncertainty is declared as A_var rather than assumed away, but the FORM of the duty relation is not varied.
 - Fouling is declared as a process change that conserves energy. That it is a different KIND of thing from an instrument bias is an assumption of the catalogue, not a finding.
 - The prior is declared, not measured. The heat-load axis it sweeps is the one the report finds binding, so a shop's real number for it matters more than anything else here.
+- The tightest pair is a family, not a pair: a manifold is symmetric under relabelling its circuits, so the minimum is attained once per circuit. The report gives the size and shape of that family rather than naming a member, and a reader must not take any one pair as the binding one.
+- Which family binds is conditional on the declared heat-load prior as well as on the circuit count, and the report tabulates that rather than resolving it. A conclusion about the circuit count alone is not available from this study.

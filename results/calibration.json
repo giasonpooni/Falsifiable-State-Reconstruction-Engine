@@ -6,8 +6,8 @@
     "numpy": "2.5.3",
     "platform": "Linux-6.18.44-fc-v33-x86_64-with-glibc2.39",
     "machine": "x86_64",
-    "source_sha256": "1d22ad6e1b9a0e61941d88405f2f052047c6c5501edb93b7b7611dc1e8cb45f1",
-    "git_head": "385bafd04b13f6e74ea64e76d6b859ce47499bdd",
+    "source_sha256": "3ef75ea43f3c8399834d72e6900b3e9224ed60335f2f98795063dd99861ec46b",
+    "git_head": "076ccad748137486e14f2775f7baca22ecc9560e",
     "source_dirty": false,
     "note": "git_head is HEAD at generation time (the parent of the commit containing these results); source_dirty covers src/, run_experiments.py, pyproject.toml and tests/ only"
   },
